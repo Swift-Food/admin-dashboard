@@ -42,3 +42,51 @@
 .read-the-docs {
   color: #888;
 }
+
+/*Order Card*/
+
+.order-card {
+  background-color: #4d4afb;       
+  padding: 1.25rem;
+  border-radius: 1rem;           
+  margin-bottom: 0.75rem;  
+  text-align: left;    
+  color: #FFFFFF;    
+}
+
+.order-card__id {
+  font-weight: bold;                                
+  font-size: 0.55em;             
+}
+
+.order-card__name {
+  font-size: 0.875rem;             
+  font-weight: bold;
+  padding-top: 0.5rem;
+}
+
+.order-card__address {
+  font-size: 0.75rem; 
+  font-weight: bold;             
+}
+
+/*Order Columns */
+
+.order-column__header {
+  font-size: 1em;         /* text-[1em] */
+  font-weight: 600;       /* font-semibold */
+  margin: 0.25rem;        /* m-1 */
+  text-align: left;       /* text-left */
+  color: #040273;         /* text-[#040273] */
+  padding-bottom: 0.5rem; /* pb-2 */
+}
+
+.order-column__background {
+   flex: 1;                              /* flex-1 */
+  background-color: #ffffff;            /* bg-white */
+  padding: 1rem;                        /* p-4 */
+  overflow-y: auto;                     /* overflow-y-auto */
+  max-height: 80vh;                     /* max-h-[80vh] */
+  border-radius: 1.5rem;                /* rounded-3xl */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
+}

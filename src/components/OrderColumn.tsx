@@ -1,9 +1,10 @@
 import OrderCard from "./OrderCard";
+import "../App.css"
 
 const OrderColumn = ({ title, orders }) => {
   return (
-    <div className="flex-1 bg-white p-4 rounded shadow overflow-y-auto max-h-[80vh]">
-      <h2 className="text-lg font-semibold mb-4 text-center text-gray-800">{title}</h2>
+    <div className="order-column__background">
+      <h2 className="order-column__header">{title}</h2>
       {orders.map((order) => (
         <OrderCard key={order.id} order={order} />
       ))}

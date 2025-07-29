@@ -52,7 +52,10 @@
   margin-bottom: 0.75rem;  
   text-align: left;    
   color: #FFFFFF;  
-  font-weight: bold;    
+  font-weight: bold;  
+  display: flex;
+  flex-direction: column;
+  
 }
 
 .order-card__id {                           
@@ -87,4 +90,11 @@
   max-height: 80vh;                     /* max-h-[80vh] */
   border-radius: 1.5rem;                /* rounded-3xl */
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.order-card__timestamp {
+  padding-top: 1rem;
+  margin-top: auto;
+  color: #07056a;  
+  font-size: 0.55em;   
 }

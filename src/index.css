@@ -1,5 +1,5 @@
 @tailwind base;
-@tailwind components;
+@tailwind components; 
 @tailwind utilities;
 
 :root {
@@ -35,8 +35,12 @@ body {
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 1.5em;
   line-height: 1.1;
+  color: black;
+  text-align: left;
+  margin-bottom: 1em;
+  margin-top: 0.5em;
 }
 
 button {

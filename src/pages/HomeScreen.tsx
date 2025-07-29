@@ -86,7 +86,7 @@ const HomeScreen = () => {
 
    return (
     <div className="p-4 h-screen bg-gray-100">
-      <h1 className="text-2xl font-bold mb-4">Orders:</h1>
+      <h1 className="text-xl font-bold mb-4">Orders:</h1>
       <div className="flex gap-4">
         <OrderColumn title="Finding Driver" orders={statusMap.FINDING_DRIVER} />
         <OrderColumn title="Preparing" orders={statusMap.PREPARING} />

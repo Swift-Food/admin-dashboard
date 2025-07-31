@@ -97,3 +97,34 @@
   color: #07056a;  
   font-size: 0.55em;   
 }
+
+/* default state */
+.order-card__btn {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #fbcd4e;   
+  color: #000;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* hover state */
+.order-card__btn:hover {
+  background-color: #ffbb00;   
+}
+
+/* active (pressed) state */
+.order-card__btn:active {
+  background-color: #008000;   
+  transform: scale(0.98);
+}
+
+/* focus outline for accessibility */
+.order-card__btn:focus {
+  outline: 2px solid #93c5fd;  
+  outline-offset: 2px;
+}

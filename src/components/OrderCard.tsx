@@ -1,6 +1,6 @@
 import "../App.css"
 
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, actionLabel }) => {
   // parse the ISO string into a nicer format
   const date = new Date(order.timestamp);
   const formatted = date.toLocaleString([], {
@@ -18,6 +18,9 @@ const OrderCard = ({ order }) => {
       <p className="order-card__name">{order.customerName}</p>
       <p className="order-card__address">{order.address}</p>
       <p className="order-card__timestamp">{formatted}</p>
+      {actionLabel && (
+        <button className="order-card__btn">{actionLabel}</button>
+      )}
     </div>
   );
 };

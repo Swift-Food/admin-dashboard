@@ -1,10 +1,25 @@
+import type { DriverOrder } from "../types/order.types";
 import "../App.css"
+import React from "react";
 
-const OrderCard = ({ order, actionLabel }) => {
-  // parse the ISO string into a nicer format
-  const date = new Date(order.timestamp);
+interface OrderCardProps {
+  order: DriverOrder;
+  actionLabel?: string;
+}
+
+const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel }) => {
+  // extract the restaurant name from the first orderItem
+  const restaurantName = order.orderItems[0]?.restaurantName || "—";
+
+  // extract the market name
+  const marketName = order.market.market_name;
+
+  // extract the order status 
+  const orderStatus = order.status;
+
+  // format the creation timestamp
+  const date = new Date(order.placedAt);
   const formatted = date.toLocaleString([], {
-    // omit seconds, show date & time
     year:   "numeric",
     month:  "short",
     day:    "numeric",
@@ -15,8 +30,9 @@ const OrderCard = ({ order, actionLabel }) => {
   return (
     <div className="order-card">
       <p className="order-card__id">Order #{order.id}</p>
-      <p className="order-card__name">{order.customerName}</p>
-      <p className="order-card__address">{order.address}</p>
+      <p className="order-card__name">{restaurantName}</p>
+      <p className="order-card__address">{marketName}</p>
+      <p className = "order-card__status">{orderStatus}</p>
       <p className="order-card__timestamp">{formatted}</p>
       {actionLabel && (
         <button className="order-card__btn">{actionLabel}</button>

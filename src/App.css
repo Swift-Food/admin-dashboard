@@ -70,6 +70,12 @@
   font-size: 0.875rem; 
 }
 
+.order-card__status {
+  padding-top: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.5rem; 
+}
+
 /*Order Columns */
 
 .order-column__header {
@@ -109,6 +115,7 @@
   color: #000;
   font-size: 0.875rem;
   cursor: pointer;
+  font-weight: bold;
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
@@ -119,12 +126,13 @@
 
 /* active (pressed) state */
 .order-card__btn:active {
-  background-color: #008000;   
+  background-color: #91d578;   
+  color: #000;
   transform: scale(0.98);
 }
 
 /* focus outline for accessibility */
 .order-card__btn:focus {
-  outline: 2px solid #93c5fd;  
+  outline: 2px solid #3ba13b;  
   outline-offset: 2px;
 }

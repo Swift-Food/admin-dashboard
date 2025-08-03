@@ -3,7 +3,8 @@ import orderService from "../services/order.service";
 import { driverId } from "../constants";
 import OrderColumn from "../components/OrderColumn";
 import type {DriverOrder} from "../types/order.types";
-import OrderCard from "../components/OrderCard";
+import useSocket from "../hooks/useSocket";
+// import OrderCard from "../components/OrderCard";
 
 const HomeScreen = () => {
     const [orders, setOrders] = useState<DriverOrder[]>([]);
@@ -17,8 +18,29 @@ const HomeScreen = () => {
       .finally(() => setLoading(false));
     }, []);
 
-    if (loading) return <div>Loading orders...</div>;
-    if (error) return <div className="text-red-500">Error: {error}</div>;
+    // -2) Socket to listen for new assignments 
+    const { data: newAssignment, connected, sendEvent} = 
+      useSocket<DriverOrder>("restaurantIncomingOrderUpdate");
+
+    useEffect(() => {
+      if (newAssignment && connected) {
+        setOrders(prev => [newAssignment, ...prev]);
+      }
+    }, [newAssignment, connected]);
+
+    // -3) Socket: listen for order-status updates 
+    const { data: orderUpdate} = useSocket<{orderId: string; status: string}>("orderUpdate");
+
+    useEffect(() => {
+      if (orderUpdate) {
+        setOrders(prev => 
+          prev.map(o =>
+            o.id === orderUpdate.orderId ? { ...o, status: orderUpdate.status as DriverOrder["status"]}
+            : o
+          )
+        );
+      }
+    }, [orderUpdate]);
 
     const getOrders = () => {
       const response = orderService.getOrdersbyDriver(driverId).then(setOrders);
@@ -51,8 +73,14 @@ const HomeScreen = () => {
       }
 });
 
+  if (loading) return <div>Loading orders...</div>;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+
+
    return (
     <div className="p-4 h-screen bg-[#ccdaf5]">
+      {!connected && (
+        <div className="text-yellow-600">Reconnecting to live updates...</div>)}
       <h1 className="text-xl font-bold mb-4">Orders</h1>
       <div className="flex gap-4">
         <OrderColumn title="Preparing" orders={buckets.PREPARING} />

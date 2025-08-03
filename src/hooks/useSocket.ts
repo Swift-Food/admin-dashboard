@@ -8,23 +8,27 @@ export default function useSocket<T>(eventName: string) {
     const [connected, setConnected] = useState(false);
 
     useEffect(() => {
-
+        //establish a connection
         const socket = io(BASE_URL, {path: "/socket.io", transports: ["websocket"]});
         socketRef.current = socket;
 
+        //track conection state 
         socket.on("connect", () => setConnected(true));
         socket.on("disconnect", () => setConnected(false));
 
+        //subscribe to named event
         socket.on(eventName, (payload: T) => {
             setData(payload);
         });
 
+        //clean up on unmount 
         return () => {
             socket.off(eventName);
             socket.disconnect();
         };
     }, [eventName]);
 
+    //send arbitrary event 
     const sendEvent = useCallback((evt: string, payload:any) => {
         socketRef.current?.emit(evt, payload);
     }, []);

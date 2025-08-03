@@ -9,7 +9,8 @@ export default function useSocket<T>(eventName: string) {
 
     useEffect(() => {
         //establish a connection
-        const socket = io(BASE_URL, {path: "/socket.io", transports: ["websocket"]});
+        //potential path: {path: "/socket.io", transports: ["websocket"]}
+        const socket = io(BASE_URL);
         socketRef.current = socket;
 
         //track conection state 

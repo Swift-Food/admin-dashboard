@@ -4,6 +4,7 @@ export interface Market {
 
 export interface OrderItem {
     restaurantName: string;
+    restaurantId: string;
 }
 
 export type OrderStatus =
@@ -19,6 +20,8 @@ export type OrderStatus =
 
 export interface DriverOrder {
     id: string;
+    cacheKey: string;
+    otp: string;
     status: OrderStatus;
     placedAt: string;
     market: Market;

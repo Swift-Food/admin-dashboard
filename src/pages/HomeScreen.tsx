@@ -6,6 +6,7 @@ import type {DriverOrder} from "../types/order.types";
 import useSocket from "../hooks/useSocket";
 // import OrderCard from "../components/OrderCard";
 
+
 const HomeScreen = () => {
     const [orders, setOrders] = useState<DriverOrder[]>([]);
     const [loading, setLoading] = useState(true);
@@ -18,10 +19,12 @@ const HomeScreen = () => {
       .finally(() => setLoading(false));
     }, []);
 
+    
+    
     // -2) Socket to listen for new assignments 
     const { data: newAssignment, connected, sendEvent} = 
-      useSocket<DriverOrder>("restaurantIncomingOrderUpdate");
-
+    useSocket<DriverOrder>("restaurantIncomingOrderUpdate");
+    
     useEffect(() => {
       if (newAssignment && connected) {
         setOrders(prev => [newAssignment, ...prev]);
@@ -83,9 +86,9 @@ const HomeScreen = () => {
         <div className="text-yellow-600">Reconnecting to live updates...</div>)}
       <h1 className="text-xl font-bold mb-4">Orders</h1>
       <div className="flex gap-4">
-        <OrderColumn title="Preparing" orders={buckets.PREPARING} />
-        <OrderColumn title="Finding Driver" orders={buckets.FINDING_DRIVER} />
-        <OrderColumn title="Out for Delivery" orders={buckets.OUT_FOR_DELIVERY} />
+        <OrderColumn title="Preparing" orders={buckets.PREPARING} sendEvent={sendEvent}/>
+        <OrderColumn title="Finding Driver" orders={buckets.FINDING_DRIVER} sendEvent={sendEvent}/>
+        <OrderColumn title="Out for Delivery" orders={buckets.OUT_FOR_DELIVERY} sendEvent={sendEvent}/>
       </div>
     </div>
   );

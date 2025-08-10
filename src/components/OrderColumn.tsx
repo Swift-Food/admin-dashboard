@@ -1,4 +1,5 @@
 import OrderCard from "./OrderCard";
+import { driverId } from "../constants";
 import type { DriverOrder } from "../types/order.types";
 import React from "react";
 import "../App.css"
@@ -6,7 +7,8 @@ import "../App.css"
 interface OrderColumnProps {
   title: string;
   orders: DriverOrder[];
-  sendEvent: (evt: string, payload: any) => void;
+  sendEvent: (evt: string, payload: any, callback?: (response: any) => void) => void;
+  driverId: string; 
 }
 
 const actionEventMap: Record<string,string> = {
@@ -15,48 +17,64 @@ const actionEventMap: Record<string,string> = {
   "Out for Delivery": "order-delivered",
 }
 
-const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent }) => {
+const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, driverId }) => {
   const actionLabel = {
     "Preparing": "Accept",
     "Finding Driver": "Pick Up",
     "Out for Delivery": "Delivered",
-  } [title]!;
+  }[title]!;
 
-const handleAction = (order: DriverOrder) => {
-  const evt = actionEventMap[title];
-  let payload: any = {orderId: order.id}; 
+  const handleAction = (order: DriverOrder) => {
+    const evt = actionEventMap[title];
+    let payload: any = { orderId: order.id }; 
 
-  if (evt === "order-accept") {
-    payload = {
-      orderId: order.id,
-      accepted: true,
-      cacheKey: order.cacheKey
-    };
+    if (evt === "order-accept") {
+      //const assignmentCacheKey = `pending-assignments:${driverId}:${order.id}`;
+      payload = {
+        orderId: order.id,
+        accepted: true,
+        cacheKey: order.cacheKey  
+      };
 
-  } else if (evt === "order-pickup") {
+    } else if (evt === "order-pickup") {
+      payload = {
+        orderId: order.id,
+        restaurantId: order.orderItems[0]?.restaurantId,
+      };
 
-    order.orderItems.forEach(item => {
-    const singlePayload = {
-      orderId: order.id,
-      restaurantId: item.restaurantId,
-    };
-    console.log("🛰️  Emitting order-pickup:", singlePayload);
-    sendEvent("order-pickup", singlePayload);
-  });
+    } else if (evt === "order-delivered") {
+      payload = {
+        orderId: order.id,
+        otp: order.otp
+      };
 
-  } else if (evt === "order-delivered") {
-    payload = {
-      orderId: order.id,
-      otp: order.otp
-    };
+    } else {
+      return;
+    }
 
-  } else {
-    return;
+    console.log(`🛰️ Emitting ${evt}:`, payload);
+    
+    sendEvent(evt, payload, (response: any) => {
+      console.log(`✅ ${evt} response:`, response);
+
+      
+      
+      // if (response?.success) {
+      //   if (evt === "order-pickup") {
+      //     onStatusUpdate(order.id, 'out_for_delivery');
+      //   } else if (evt === "order-delivered") {
+      //     onStatusUpdate(order.id, 'delivered');
+      //   } else if (evt === "order-accept") {
+      //     onStatusUpdate(order.id, 'driver_assigned');
+      //   }
+      // } else {
+      //   console.error(`${evt} failed:`, response?.error || response?.message);
+      //   if (evt === "order-delivered" && response?.error) {
+      //     alert(`Delivery failed: ${response.error}`);
+      //   }
+      // }
+    });
   }
-
-  console.log(`🛰️  Emitting ${evt}:`, payload)
-  sendEvent(evt, payload);
-}
   
   return (
     <div className="order-column__background">
@@ -65,12 +83,13 @@ const handleAction = (order: DriverOrder) => {
         <OrderCard 
           key={order.id}
           order={order}
-          actionLabel = {actionLabel}
-          onAction = {() => handleAction(order)}
-          />
+          actionLabel={actionLabel}
+          onAction={() => handleAction(order)}
+        />
       ))}
     </div>
   );
 };
 
 export default OrderColumn;
+

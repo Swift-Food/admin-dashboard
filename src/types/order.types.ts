@@ -1,5 +1,6 @@
 export interface Market {
     market_name: string;
+    address: string;
 }
 
 export interface OrderItem {
@@ -20,8 +21,8 @@ export type OrderStatus =
 
 export interface DriverOrder {
     id: string;
-    cacheKey: string;
-    otp: string;
+    cacheKey?: string;
+    otp?: string;
     status: OrderStatus;
     placedAt: string;
     market: Market;

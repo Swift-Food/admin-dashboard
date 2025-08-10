@@ -3,6 +3,7 @@ import orderService from "../services/order.service";
 import { driverId } from "../constants";
 import OrderColumn from "../components/OrderColumn";
 import type {DriverOrder} from "../types/order.types";
+import type { NewAssignmentPayload } from "../types/assignments.types";
  import useSocket from "../hooks/useSocket";
 
 const HomeScreen = () => {
@@ -30,39 +31,13 @@ const HomeScreen = () => {
   }, [fetchOrders]);
 
 // 1) Listen for new order assignments from DriverGateway
-    const { data: newAssignment, connected, sendEvent } = useSocket<{
-      type: 'NEW_ORDER_ASSIGNMENT';
-      data: {
-        orderId: string;
-        marketName: string;
-        marketAddress: any;
-        estimatedCompensation: string;
-        pickupLocation: string;
-        deliveryLocation: any;
-        items: any[];
-        otp: string;
-        assignmentTime: string;
-        acceptanceDeadline: string;
-        eventResponseType: 'order-accept';
-        cacheKey: string;
-      };
-    }>("new-assignment", { 
-      namespace: "/driver", // Use driver namespace
-      query: { driverId } 
-    });
-
-    // 4) Listen for restaurant order ready notifications
-    const { data: orderReady } = useSocket<{
-      type: 'RESTAURANT_ORDER_READY';
-      data: {
-        orderId: string;
-        restaurantId: string;
-        readyTime: string;
-      };
-    }>("restaurant-order-ready", { 
+    const { data: newAssignment, connected, sendEvent } = useSocket<NewAssignmentPayload>(
+    "new-assignment", 
+    { 
       namespace: "/driver",
       query: { driverId } 
-    });
+    }
+  );
 
    useEffect(() => {
     if (newAssignment && connected) {
@@ -71,20 +46,26 @@ const HomeScreen = () => {
       // Convert to your DriverOrder format and add to state
       const newOrder: DriverOrder = {
         id: newAssignment.data.orderId,
-        status: 'driver_assigned', // or 'incoming'
+        status: 'driver_assigned', // Maps to OrderStatus.DRIVER_ASSIGNED
         market: {
           market_name: newAssignment.data.marketName,
           address: newAssignment.data.marketAddress,
         },
         orderItems: newAssignment.data.items.map(item => ({
-          restaurantName: item.restaurantName || "",
-          restaurantId: item.restaurantId || "",
+          restaurantName: item.restaurantName,
+          restaurantId: item.restaurantId,
+          itemName: item.itemName,
+          quantity: item.quantity,
+          price: item.price,
         })),
         placedAt: newAssignment.data.assignmentTime,
         cacheKey: newAssignment.data.cacheKey,
         otp: newAssignment.data.otp,
-        // Map other fields as needed
+        estimatedCompensation: parseFloat(newAssignment.data.estimatedCompensation),
+        acceptanceDeadline: newAssignment.data.acceptanceDeadline,
+        eventResponseType: newAssignment.data.eventResponseType,
       };
+    
       
       // Add to your orders list
       setOrders(prev => [newOrder, ...prev]);

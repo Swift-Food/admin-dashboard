@@ -29,11 +29,11 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
     let payload: any = { orderId: order.id }; 
 
     if (evt === "order-accept") {
-      //const assignmentCacheKey = `pending-assignments:${driverId}:${order.id}`;
+      const assignmentCacheKey = `pending-assignments:${driverId}:${order.id}`;
       payload = {
         orderId: order.id,
         accepted: true,
-        cacheKey: order.cacheKey  
+        cacheKey: assignmentCacheKey 
       };
 
     } else if (evt === "order-pickup") {
@@ -56,23 +56,6 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
     
     sendEvent(evt, payload, (response: any) => {
       console.log(`✅ ${evt} response:`, response);
-
-      
-      
-      // if (response?.success) {
-      //   if (evt === "order-pickup") {
-      //     onStatusUpdate(order.id, 'out_for_delivery');
-      //   } else if (evt === "order-delivered") {
-      //     onStatusUpdate(order.id, 'delivered');
-      //   } else if (evt === "order-accept") {
-      //     onStatusUpdate(order.id, 'driver_assigned');
-      //   }
-      // } else {
-      //   console.error(`${evt} failed:`, response?.error || response?.message);
-      //   if (evt === "order-delivered" && response?.error) {
-      //     alert(`Delivery failed: ${response.error}`);
-      //   }
-      // }
     });
   }
   

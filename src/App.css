@@ -136,3 +136,29 @@
   outline: 2px solid #3ba13b;  
   outline-offset: 2px;
 }
+
+.outer-div {
+  margin-bottom: 2rem;
+  font: #000000;
+  
+}
+
+.driver_picker__label {
+  font-weight: bold;
+  margin-bottom: 1rem;
+  margin-right: 0.5rem;
+  color: #040273;
+}
+
+.driver_picker__border {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+}
+
+.driver_picker__values {
+  color: #040273;
+}

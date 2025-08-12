@@ -13,6 +13,7 @@ export type OrderStatus =
   | 'confirmed'
   | 'preparing'
   | 'driver_assigned'
+  | 'finding_for_driver'
   | 'ready_for_pickup'
   | 'out_for_delivery'
   | 'delivered'

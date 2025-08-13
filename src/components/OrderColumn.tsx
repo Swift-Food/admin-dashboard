@@ -12,15 +12,15 @@ interface OrderColumnProps {
 }
 
 const actionEventMap: Record<string,string> = {
-  "Preparing": "order-accept",
-  "Finding Driver": "order-pickup",
+  "Finding Driver": "order-accept",
+  "Ready for Pickup": "order-pickup",
   "Out for Delivery": "order-delivered",
 }
 
 const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, driverId }) => {
   const actionLabel = {
-    "Preparing": "Accept",
-    "Finding Driver": "Pick Up",
+    "Finding Driver": "Accept",
+    "Ready for Pickup": "Pick up",
     "Out for Delivery": "Delivered",
   }[title]!;
 
@@ -29,7 +29,8 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
     let payload: any = { orderId: order.id }; 
 
     if (evt === "order-accept") {
-      const assignmentCacheKey = `pending-assignments:${driverId}:${order.id}`;
+      const targetDriverId = (order as any).assignedDriverId || driverId;
+      const assignmentCacheKey = `pending-assignments:${targetDriverId}:${order.id}`;
       payload = {
         orderId: order.id,
         accepted: true,

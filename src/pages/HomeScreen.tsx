@@ -7,6 +7,7 @@ import {type Driver, getDriverDetails} from "../services/driver.service";
 import type {DriverOrder} from "../types/order.types";
 import type { NewAssignmentPayload } from "../types/assignments.types";
  import useSocket from "../hooks/useSocket";
+ import { useDriverAssignments } from "../hooks/useDriverAssignments";
 
 const HomeScreen = () => {
     const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -14,6 +15,15 @@ const HomeScreen = () => {
     const [orders, setOrders] = useState<DriverOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>();
+
+    const driverIds = ["caf6bae1-bae5-4879-a62e-4928227a17e8", 
+                        "9341e533-f1d1-451f-9531-2df70fa55877", 
+                        "68421751-8274-4221-9809-563d4f42db7f",
+                        "737185bd-b011-44f4-9dc3-ac4921f4991e",
+                        "010c7232-8c77-4b8b-896d-6fe3e45c2264",
+                        "8ecec884-8586-448b-8bfe-dd3d4a3733cc"]
+
+    const { assignments, connectionStatus, listeners } = useDriverAssignments(driverIds);
 
     // Load driver details on mount 
     useEffect(() => {
@@ -58,109 +68,78 @@ const HomeScreen = () => {
       return () => clearInterval(id);
   }, [fetchOrders]);
 
-    // 1) Listen for new order assignments from DriverGateway. 
-    // Sockets will reconnect when driverId changes. 
-    const { data: newAssignment, connected, sendEvent } = useSocket<NewAssignmentPayload>(
-    "new-assignment", 
-    { 
-      namespace: "/driver",
-      query: { driverId: selectedDriverId } 
-    }
-  );
-
-   useEffect(() => {
-    if (newAssignment && connected) {
-      console.log("🚨 New order assignment received:", newAssignment);
-      
-      // Convert to your DriverOrder format and add to state
-      const newOrder: DriverOrder = {
-        id: newAssignment.data.orderId,
-        status: 'driver_assigned', // Maps to OrderStatus.DRIVER_ASSIGNED
-        market: {
-          market_name: newAssignment.data.marketName,
-          address: newAssignment.data.marketAddress,
-        },
-        orderItems: newAssignment.data.items.map(item => ({
-          restaurantName: item.restaurantName,
-          restaurantId: item.restaurantId,
-          itemName: item.itemName,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        placedAt: newAssignment.data.assignmentTime,
-        cacheKey: newAssignment.data.cacheKey,
-        otp: newAssignment.data.otp,
-        estimatedCompensation: parseFloat(newAssignment.data.estimatedCompensation),
-        acceptanceDeadline: newAssignment.data.acceptanceDeadline,
-        eventResponseType: newAssignment.data.eventResponseType,
-      };
-      
-      // Add to your orders list
-      setOrders(prev => [newOrder, ...prev]);
-      
-      // Optional: Show notification or modal
-      console.log("📥 New order added:", newOrder);
-    }
-  }, [newAssignment, connected]);
-
-    // const getOrders = () => {
-    //   const response = orderService.getOrdersByDriver(driverId).then(setOrders);
-    //   console.log("Orders", response);
-    // };
+      // Convert assignments to DriverOrder format for Finding Driver column
+    const assignmentOrders: DriverOrder[] = Object.entries(assignments).map(([driverId, assignment]) => ({
+      id: assignment.data.orderId,
+      status: 'new-assignment' as const,
+      market: {
+        market_name: assignment.data.marketName,
+        address: assignment.data.marketAddress,
+      },
+      // ✅ Fix: Items have a different structure
+      orderItems: assignment.data.items.flatMap((item: any) => 
+        item.menuItems.map((menuItem: any) => ({
+          restaurantName: item.restaurantName || "",
+          restaurantId: item.restaurantId || "",
+          itemName: menuItem.name || "", // ✅ Fix: Use menuItem.name
+          quantity: menuItem.quantity || 1, // ✅ Fix: Use menuItem.quantity
+          price: menuItem.unitPrice || 0, // ✅ Fix: Use menuItem.unitPrice
+          totalPrice: menuItem.totalPrice || 0, // ✅ Additional field
+          menuItemId: menuItem.menuItemId || "", // ✅ Additional field
+        }))
+      ),
+      placedAt: assignment.data.assignmentTime,
+      cacheKey: assignment.data.cacheKey,
+      otp: assignment.data.otp || "", // ✅ Fix: otp doesn't exist in payload, provide fallback
+      estimatedCompensation: parseFloat(assignment.data.estimatedCompensation || "0"),
+      acceptanceDeadline: assignment.data.acceptanceDeadline,
+      eventResponseType: assignment.data.eventResponseType,
+      assignedDriverId: driverId,
+      // ✅ Additional fields from the JSON
+      phoneNumber: assignment.data.number || "",
+      retryAttempt: assignment.data.retryAttempt || 0,
+      isRetry: assignment.data.isRetry || false,
+      urgencyLevel: assignment.data.urgencyLevel || "NORMAL",
+    }));
 
     //mapping to each column 
     const buckets: Record<string, DriverOrder[]> = {
-      FINDING_DRIVER: [],
-      PREPARING: [],
+      //Receives orders for new-assignment events. 
+      FINDING_DRIVER: assignmentOrders,
+
+      READY_FOR_PICKUP: [],
       DRIVER_ASSIGNED: [],
       OUT_FOR_DELIVERY: [],
     };
 
-    //driver can only have 3 active orders at a time 
-
-    //First column Finding Driver 
-    // multiple listeners for new-assignment for each driver (driver id)
-    //Take in order cards that we listen from new-assignment 
-    //any 5 driver ids 
-
-    //new column: driver assigned 
-    // for each driver id (add a pickup button, works similarly to ready for pickup)
-
-    //second column Ready for Pickup 
-    //displays orders with the order status ready for pickup 
-
-    //third column out for delivery 
-    // displays order cards that are out for delivery 
-
-
     orders.forEach(o => { 
-      switch (o.status) {
-        case "preparing": 
-          buckets.PREPARING.push(o); 
-          break;
-        
-          //finding for driver   
+      switch (o.status) {        
+        //Orders with status "Ready for Pickup". 
         case "ready_for_pickup": 
           buckets.READY_FOR_PICKUP.push(o); 
           break;
 
+        //Shows orders with an assigned driver.   
         case "driver_assigned": 
           buckets.DRIVER_ASSIGNED.push(o); 
           break; 
 
+        //Shows orders that are out for delivery.   
         case "out_for_delivery":   
           buckets.OUT_FOR_DELIVERY.push(o); 
           break;
       }
 });
 
-  if (loading) return <div>Loading orders...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
+    const sendEvent = Object.values(listeners)[0]?.sendEvent || (() => {});
+
+    if (loading) return <div>Loading orders...</div>;
+    if (error) return <div className="text-red-500">Error: {error}</div>;
 
 
    return (
     <div className="p-4 h-screen bg-[#ccdaf5]">
-      {!connected && (
+      {/* {!connected && (
         <div className="text-yellow-600">Reconnecting to live updates...</div>)}
 
         {newAssignment && (
@@ -168,21 +147,38 @@ const HomeScreen = () => {
           🚨 New order: <strong>{newAssignment.data.orderId}</strong> at{" "}
           <strong>{newAssignment.data.marketName}</strong>
           </div>
-        )}
+        )} */}
 
-      <h1 className="text-xl font-bold mb-4">Orders</h1>
+      <h1 className="text-xl font-bold mb-4">Order Dashboard</h1>
 
       <DriverPicker
         drivers={drivers}
         value={selectedDriverId}
         onChange={(id) => setSelectedDriverId(id)}
       />
+
+        {/* Connection Status Display */}
+      {/* <div className="mb-4 p-2 bg-gray-100 rounded">
+        <h3 className="font-semibold black-text">Driver Connections:</h3>
+        <div className="grid grid-cols-5 gap-2">
+          {driverIds.map(driverId => (
+            <div key={driverId} className="text-sm">
+              Driver {driverId.slice(0, 8)}...: {connectionStatus[driverId] ? '🟢' : '🔴'}
+              {assignments[driverId] && (
+                <div className="text-xs text-green-600">
+                  📦 {assignments[driverId].data.orderId.slice(0, 8)}...
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div> */}
       
       <div className="flex gap-4">
-        <OrderColumn title="Finding Driver" orders={buckets.PREPARING} sendEvent={sendEvent} driverId={driverId}/>
-        <OrderColumn title="Ready for Pickup" orders={buckets.READY_FOR_PICKUP} sendEvent={sendEvent} driverId={driverId}/>
-        <OrderColumn title="Driver Assigned" orders={buckets.FINDING_DRIVER} sendEvent={sendEvent} driverId={driverId}/>
-        <OrderColumn title="Out for Delivery" orders={buckets.OUT_FOR_DELIVERY} sendEvent={sendEvent} driverId={driverId}/>
+        <OrderColumn title="Finding Driver" orders={buckets.FINDING_DRIVER} sendEvent={sendEvent} driverId={selectedDriverId}/>
+        <OrderColumn title="Ready for Pickup" orders={buckets.READY_FOR_PICKUP} sendEvent={sendEvent} driverId={selectedDriverId}/>
+        <OrderColumn title="Driver Assigned" orders={buckets.DRIVER_ASSIGNED} sendEvent={sendEvent} driverId={selectedDriverId}/>
+        <OrderColumn title="Out for Delivery" orders={buckets.OUT_FOR_DELIVERY} sendEvent={sendEvent} driverId={selectedDriverId}/>
       </div>
     </div>
   );

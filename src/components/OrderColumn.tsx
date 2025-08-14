@@ -2,7 +2,7 @@ import OrderCard from "./OrderCard";
 import { driverId } from "../constants";
 import type { DriverOrder } from "../types/order.types";
 import React from "react";
-import "../App.css"
+import type { NewAssignmentPayload } from "../types/assignments.types";
 
 interface OrderColumnProps {
   title: string;
@@ -29,12 +29,12 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
     let payload: any = { orderId: order.id }; 
 
     if (evt === "order-accept") {
-      const targetDriverId = (order as any).assignedDriverId || driverId;
-      const assignmentCacheKey = `pending-assignments:${targetDriverId}:${order.id}`;
+      //const targetDriverId = (order as any).assignedDriverId || driverId;
+      //const assignmentCacheKey = `pending-assignment:${driverId}:${order.id}`;
       payload = {
         orderId: order.id,
         accepted: true,
-        cacheKey: assignmentCacheKey 
+        cacheKey: order.cacheKey
       };
 
     } else if (evt === "order-pickup") {

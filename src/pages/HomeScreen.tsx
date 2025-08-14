@@ -112,6 +112,23 @@ const HomeScreen = () => {
       OUT_FOR_DELIVERY: [],
     };
 
+    //driver can only have 3 active orders at a time 
+
+    //First column Finding Driver 
+    // multiple listeners for new-assignment for each driver (driver id)
+    //Take in order cards that we listen from new-assignment 
+    //any 5 driver ids 
+
+    //new column: driver assigned 
+    // for each driver id (add a pickup button, works similarly to ready for pickup)
+
+    //second column Ready for Pickup 
+    //displays orders with the order status ready for pickup 
+
+    //third column out for delivery 
+    // displays order cards that are out for delivery 
+
+
     orders.forEach(o => { 
       switch (o.status) {        
         //Orders with status "Ready for Pickup". 

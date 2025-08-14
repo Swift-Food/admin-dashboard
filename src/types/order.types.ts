@@ -17,6 +17,7 @@ export type OrderStatus =
   | 'ready_for_pickup'
   | 'out_for_delivery'
   | 'delivered'
+  | 'new-assignment'
   | 'cancelled'
 ;
 

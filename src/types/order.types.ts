@@ -24,6 +24,8 @@ export type OrderStatus =
 export interface DriverOrder {
     id: string;
     cacheKey?: string;
+    assignedDriverId?: string; // Optional, used for filtering
+    driverId?: string; // Optional, used for filtering
     otp?: string;
     status: OrderStatus;
     placedAt: string;

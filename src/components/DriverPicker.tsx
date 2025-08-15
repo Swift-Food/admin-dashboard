@@ -8,7 +8,7 @@ type DriverPickerProps = {
     disabled?: boolean;
 }
 
-const DriverPickers: React.FC<DriverPickerProps> = ({drivers, value, onChange, disabled}) => {
+const DriverPicker: React.FC<DriverPickerProps> = ({drivers, value, onChange, disabled}) => {
     return (
         <div className = "outer-div">
             <label className = "driver_picker__label">Driver:</label>
@@ -31,4 +31,4 @@ const DriverPickers: React.FC<DriverPickerProps> = ({drivers, value, onChange, d
     )
 }
 
-export default DriverPickers;
+export default DriverPicker;

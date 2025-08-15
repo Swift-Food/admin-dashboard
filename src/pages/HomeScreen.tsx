@@ -5,9 +5,7 @@ import OrderColumn from "../components/OrderColumn";
 import DriverPicker from "../components/DriverPicker";
 import {type Driver, getDriverDetails} from "../services/driver.service";
 import type {DriverOrder} from "../types/order.types";
-import type { NewAssignmentPayload } from "../types/assignments.types";
- import useSocket from "../hooks/useSocket";
- import { useDriverAssignments } from "../hooks/useDriverAssignments";
+import { useDriverAssignments } from "../hooks/useDriverAssignments";
 
 const HomeScreen = () => {
     const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -106,28 +104,10 @@ const HomeScreen = () => {
     const buckets: Record<string, DriverOrder[]> = {
       //Receives orders for new-assignment events. 
       FINDING_DRIVER: assignmentOrders,
-
       READY_FOR_PICKUP: [],
       DRIVER_ASSIGNED: [],
       OUT_FOR_DELIVERY: [],
     };
-
-    //driver can only have 3 active orders at a time 
-
-    //First column Finding Driver 
-    // multiple listeners for new-assignment for each driver (driver id)
-    //Take in order cards that we listen from new-assignment 
-    //any 5 driver ids 
-
-    //new column: driver assigned 
-    // for each driver id (add a pickup button, works similarly to ready for pickup)
-
-    //second column Ready for Pickup 
-    //displays orders with the order status ready for pickup 
-
-    //third column out for delivery 
-    // displays order cards that are out for delivery 
-
 
     orders.forEach(o => { 
       switch (o.status) {        
@@ -148,7 +128,28 @@ const HomeScreen = () => {
       }
 });
 
+    // Create a Set of order IDs that are already assigned/picked up/delivered
+    const processedOrderIds = new Set([
+      ...buckets.DRIVER_ASSIGNED.map(o => o.id),
+      ...buckets.READY_FOR_PICKUP.map(o => o.id),
+      ...buckets.OUT_FOR_DELIVERY.map(o => o.id)
+    ]);
+
+    // Only show assignments that haven't been processed yet
+    buckets.FINDING_DRIVER = assignmentOrders.filter(order => 
+      !processedOrderIds.has(order.id)
+    );
+
     const sendEvent = Object.values(listeners)[0]?.sendEvent || (() => {});
+
+    // Sort all buckets by placedAt timestamp (earliest first)
+    Object.keys(buckets).forEach(key => {
+      buckets[key].sort((a, b) => {
+        const aTime = new Date(a.placedAt).getTime();
+        const bTime = new Date(b.placedAt).getTime();
+        return aTime - bTime; // Earliest first (ascending order)
+      });
+    });
 
     if (loading) return <div>Loading orders...</div>;
     if (error) return <div className="text-red-500">Error: {error}</div>;
@@ -193,8 +194,8 @@ const HomeScreen = () => {
       
       <div className="flex gap-4">
         <OrderColumn title="Finding Driver" orders={buckets.FINDING_DRIVER} sendEvent={sendEvent} driverId={selectedDriverId}/>
-        <OrderColumn title="Ready for Pickup" orders={buckets.READY_FOR_PICKUP} sendEvent={sendEvent} driverId={selectedDriverId}/>
         <OrderColumn title="Driver Assigned" orders={buckets.DRIVER_ASSIGNED} sendEvent={sendEvent} driverId={selectedDriverId}/>
+        <OrderColumn title="Ready for Pickup" orders={buckets.READY_FOR_PICKUP} sendEvent={sendEvent} driverId={selectedDriverId}/>
         <OrderColumn title="Out for Delivery" orders={buckets.OUT_FOR_DELIVERY} sendEvent={sendEvent} driverId={selectedDriverId}/>
       </div>
     </div>

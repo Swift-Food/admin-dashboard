@@ -1,6 +1,7 @@
+import React, { useState } from "react";
 import OrderCard from "./OrderCard";
 import type { DriverOrder } from "../types/order.types";
-import React from "react";
+
 
 interface OrderColumnProps {
   title: string;
@@ -16,6 +17,8 @@ const actionEventMap: Record<string,string> = {
 }
 
 const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, driverId }) => {
+
+  const [pressedOrders, setPressedOrders] = useState<Set<string>>(new Set());
   const actionLabel = {
     "Finding Driver": "Accept",
     "Ready for Pickup": "Pick up",
@@ -23,6 +26,9 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
   }[title]!;
 
   const handleAction = (order: DriverOrder) => {
+    // Mark this order as pressed
+    setPressedOrders(prev => new Set(prev).add(order.id));
+
     const evt = actionEventMap[title];
     let payload: any = { orderId: order.id }; 
 
@@ -83,6 +89,7 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
           order={order}
           actionLabel={actionLabel}
           onAction={() => handleAction(order)}
+          isPressed={pressedOrders.has(order.id)}
         />
       ))}
     </div>

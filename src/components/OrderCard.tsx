@@ -6,9 +6,10 @@ interface OrderCardProps {
   order: DriverOrder;
   actionLabel?: string;
   onAction?: () => void;
+  isPressed?: boolean; // Optional prop to indicate if the order is pressed
 }
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel, onAction }) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel, onAction, isPressed = false }) => {
   // extract the restaurant name from the first orderItem
   const restaurantName = order.orderItems[0]?.restaurantName || "—";
 
@@ -36,7 +37,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel, onAction }) =
       <p className = "order-card__status">{orderStatus}</p>
       <p className="order-card__timestamp">{formatted}</p>
       {actionLabel && onAction && (
-        <button className="order-card__btn" onClick={onAction}>{actionLabel}</button>
+        <button 
+          className={`order-card__btn ${isPressed ? 'order-card__btn--pressed' : ''}`} 
+          onClick={onAction}
+          >
+            {actionLabel}
+          </button>
       )}
     </div>
   );

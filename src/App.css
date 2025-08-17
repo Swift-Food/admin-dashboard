@@ -124,11 +124,14 @@
   background-color: #ffbb00;   
 }
 
-/* active (pressed) state */
-.order-card__btn:active {
-  background-color: #91d578;   
-  color: #000;
-  transform: scale(0.98);
+.order-card__btn--pressed {
+  background-color: #3dc10d; /* Darker pressed color */
+  opacity: 0.8;
+  /* Keep this color even on hover */
+}
+
+.order-card__btn--pressed:hover {
+  background-color: #3dc10d; /* Same color on hover */
 }
 
 /* focus outline for accessibility */

@@ -111,7 +111,6 @@ const HomeScreen = () => {
 
       //Filter orders by selected driver ID for the other columns
     orders
-      .filter(o => o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId)
       .forEach(o => { 
         switch (o.status) {        
           case "ready_for_pickup": 
@@ -136,6 +135,17 @@ const HomeScreen = () => {
     // Only show assignments that haven't been processed yet
     buckets.FINDING_DRIVER = assignmentOrders.filter(order => 
       !processedOrderIds.has(order.id)
+    );
+
+    // ✅ NOW filter the other columns by selected driver
+    buckets.DRIVER_ASSIGNED = buckets.DRIVER_ASSIGNED.filter(o => 
+      o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
+    );
+    buckets.READY_FOR_PICKUP = buckets.READY_FOR_PICKUP.filter(o => 
+      o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
+    );
+    buckets.OUT_FOR_DELIVERY = buckets.OUT_FOR_DELIVERY.filter(o => 
+      o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
     );
 
     const sendEvent = listeners[selectedDriverId]?.sendEvent || (() => {

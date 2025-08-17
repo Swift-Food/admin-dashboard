@@ -14,6 +14,7 @@ const HomeScreen = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>();
 
+    //Selected 6 Driver Ids 
     const driverIds = ["caf6bae1-bae5-4879-a62e-4928227a17e8", 
                         "9341e533-f1d1-451f-9531-2df70fa55877", 
                         "68421751-8274-4221-9809-563d4f42db7f",
@@ -21,9 +22,9 @@ const HomeScreen = () => {
                         "010c7232-8c77-4b8b-896d-6fe3e45c2264",
                         "8ecec884-8586-448b-8bfe-dd3d4a3733cc"]
 
-    const { assignments, connectionStatus, listeners } = useDriverAssignments(driverIds);
+    const { assignments, listeners } = useDriverAssignments(driverIds);
 
-    // Load driver details on mount 
+    // Load driver details on mount with the selected Driver Ids
     useEffect(() => {
       (async () => {
         try {
@@ -37,7 +38,7 @@ const HomeScreen = () => {
           console.error(e)
         }
       })();
-    }, []);
+    }, [selectedDriverId]);
 
     //rest fetch function for selected drivers 
     const fetchOrders = useCallback(async() => {
@@ -79,21 +80,20 @@ const HomeScreen = () => {
         item.menuItems.map((menuItem: any) => ({
           restaurantName: item.restaurantName || "",
           restaurantId: item.restaurantId || "",
-          itemName: menuItem.name || "", // ✅ Fix: Use menuItem.name
-          quantity: menuItem.quantity || 1, // ✅ Fix: Use menuItem.quantity
-          price: menuItem.unitPrice || 0, // ✅ Fix: Use menuItem.unitPrice
-          totalPrice: menuItem.totalPrice || 0, // ✅ Additional field
-          menuItemId: menuItem.menuItemId || "", // ✅ Additional field
+          itemName: menuItem.name || "", 
+          quantity: menuItem.quantity || 1, 
+          price: menuItem.unitPrice || 0, // 
+          totalPrice: menuItem.totalPrice || 0, 
+          menuItemId: menuItem.menuItemId || "", 
         }))
       ),
       placedAt: assignment.data.assignmentTime,
       cacheKey: assignment.data.cacheKey,
-      otp: assignment.data.otp || "", // ✅ Fix: otp doesn't exist in payload, provide fallback
+      otp: assignment.data.otp || "", 
       estimatedCompensation: parseFloat(assignment.data.estimatedCompensation || "0"),
       acceptanceDeadline: assignment.data.acceptanceDeadline,
       eventResponseType: assignment.data.eventResponseType,
       assignedDriverId: driverId,
-      // ✅ Additional fields from the JSON
       phoneNumber: assignment.data.number || "",
       retryAttempt: assignment.data.retryAttempt || 0,
       isRetry: assignment.data.isRetry || false,
@@ -109,24 +109,22 @@ const HomeScreen = () => {
       OUT_FOR_DELIVERY: [],
     };
 
-    orders.forEach(o => { 
-      switch (o.status) {        
-        //Orders with status "Ready for Pickup". 
-        case "ready_for_pickup": 
-          buckets.READY_FOR_PICKUP.push(o); 
-          break;
-
-        //Shows orders with an assigned driver.   
-        case "driver_assigned": 
-          buckets.DRIVER_ASSIGNED.push(o); 
-          break; 
-
-        //Shows orders that are out for delivery.   
-        case "out_for_delivery":   
-          buckets.OUT_FOR_DELIVERY.push(o); 
-          break;
-      }
-});
+      //Filter orders by selected driver ID for the other columns
+    orders
+      .filter(o => o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId)
+      .forEach(o => { 
+        switch (o.status) {        
+          case "ready_for_pickup": 
+            buckets.READY_FOR_PICKUP.push(o); 
+            break;
+          case "driver_assigned": 
+            buckets.DRIVER_ASSIGNED.push(o); 
+            break; 
+          case "out_for_delivery":   
+            buckets.OUT_FOR_DELIVERY.push(o); 
+            break;
+        }
+      });
 
     // Create a Set of order IDs that are already assigned/picked up/delivered
     const processedOrderIds = new Set([
@@ -140,7 +138,9 @@ const HomeScreen = () => {
       !processedOrderIds.has(order.id)
     );
 
-    const sendEvent = Object.values(listeners)[0]?.sendEvent || (() => {});
+    const sendEvent = listeners[selectedDriverId]?.sendEvent || (() => {
+      console.warn(`No event listener for driver ${selectedDriverId}`);
+    });
 
     // Sort all buckets by placedAt timestamp (earliest first)
     Object.keys(buckets).forEach(key => {
@@ -157,16 +157,6 @@ const HomeScreen = () => {
 
    return (
     <div className="p-4 h-screen bg-[#ccdaf5]">
-      {/* {!connected && (
-        <div className="text-yellow-600">Reconnecting to live updates...</div>)}
-
-        {newAssignment && (
-          <div className="mb-4 p-2 bg-green-200 rounded">
-          🚨 New order: <strong>{newAssignment.data.orderId}</strong> at{" "}
-          <strong>{newAssignment.data.marketName}</strong>
-          </div>
-        )} */}
-
       <h1 className="text-xl font-bold mb-4">Order Dashboard</h1>
 
       <DriverPicker
@@ -174,23 +164,6 @@ const HomeScreen = () => {
         value={selectedDriverId}
         onChange={(id) => setSelectedDriverId(id)}
       />
-
-        {/* Connection Status Display */}
-      {/* <div className="mb-4 p-2 bg-gray-100 rounded">
-        <h3 className="font-semibold black-text">Driver Connections:</h3>
-        <div className="grid grid-cols-5 gap-2">
-          {driverIds.map(driverId => (
-            <div key={driverId} className="text-sm">
-              Driver {driverId.slice(0, 8)}...: {connectionStatus[driverId] ? '🟢' : '🔴'}
-              {assignments[driverId] && (
-                <div className="text-xs text-green-600">
-                  📦 {assignments[driverId].data.orderId.slice(0, 8)}...
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div> */}
       
       <div className="flex gap-4">
         <OrderColumn title="Finding Driver" orders={buckets.FINDING_DRIVER} sendEvent={sendEvent} driverId={selectedDriverId}/>

@@ -53,8 +53,6 @@ export const useDriverAssignments = (driverIds: string[]) => {
     
     Object.entries(listeners).forEach(([driverId, listener]) => {
       if (listener.data) {
-        console.log(`📨 Assignment for driver ${driverId}:`, listener.data);
-        console.log(`🔑 Cache key:`, listener.data.data.cacheKey);
         hasNewData = true;
         setAssignments(prev => ({
           ...prev,

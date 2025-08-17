@@ -1,8 +1,6 @@
 import OrderCard from "./OrderCard";
-import { driverId } from "../constants";
 import type { DriverOrder } from "../types/order.types";
 import React from "react";
-import type { NewAssignmentPayload } from "../types/assignments.types";
 
 interface OrderColumnProps {
   title: string;
@@ -29,25 +27,41 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
     let payload: any = { orderId: order.id }; 
 
     if (evt === "order-accept") {
-      //const targetDriverId = (order as any).assignedDriverId || driverId;
-      //const assignmentCacheKey = `pending-assignment:${driverId}:${order.id}`;
-      payload = {
+      const payload = {
         orderId: order.id,
         accepted: true,
         cacheKey: order.cacheKey
       };
 
+      console.log(`🛰️ Emitting ${evt}:`, payload);
+      sendEvent(evt, payload, (response: any) => {
+        console.log(`✅ ${evt} response:`, response);
+      });
+
     } else if (evt === "order-pickup") {
-      payload = {
-        orderId: order.id,
-        restaurantId: order.orderItems[0]?.restaurantId,
-      };
+      // ✅ Send separate events for each restaurant
+      order.orderItems.forEach((orderItem, index) => {
+        const payload = {
+          orderId: order.id,
+          restaurantId: orderItem.restaurantId,
+        };
+
+        console.log(`🛰️ Emitting ${evt} for restaurant ${index + 1}:`, payload);
+        sendEvent(evt, payload, (response: any) => {
+          console.log(`✅ ${evt} response for restaurant ${index + 1}:`, response);
+        });
+      });
 
     } else if (evt === "order-delivered") {
-      payload = {
+      const payload = {
         orderId: order.id,
         otp: order.otp
       };
+
+      console.log(`🛰️ Emitting ${evt}:`, payload);
+      sendEvent(evt, payload, (response: any) => {
+        console.log(`✅ ${evt} response:`, response);
+      });
 
     } else {
       return;

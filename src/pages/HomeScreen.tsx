@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import orderService from "../services/order.service";
-import { driverId as DEFAULT_DRIVER, driverId } from "../constants";
+import { driverId as DEFAULT_DRIVER, driverId, longitude, latitude, sampleOrderId } from "../constants";
 import OrderColumn from "../components/OrderColumn";
 import DriverPicker from "../components/DriverPicker";
 import {type Driver, getDriverDetails} from "../services/driver.service";
@@ -15,12 +15,15 @@ const HomeScreen = () => {
     const [error, setError] = useState<string>();
 
     //Selected 6 Driver Ids 
-    const driverIds = ["caf6bae1-bae5-4879-a62e-4928227a17e8", 
+    const driverIds = [ "caf6bae1-bae5-4879-a62e-4928227a17e8", 
                         "9341e533-f1d1-451f-9531-2df70fa55877", 
                         "68421751-8274-4221-9809-563d4f42db7f",
                         "737185bd-b011-44f4-9dc3-ac4921f4991e",
                         "010c7232-8c77-4b8b-896d-6fe3e45c2264",
-                        "8ecec884-8586-448b-8bfe-dd3d4a3733cc"]
+                        "8ecec884-8586-448b-8bfe-dd3d4a3733cc",
+                        "ccdc5ca3-be6a-4d82-acb8-fe216086ed7d",
+                        "dd971698-b0bc-47cc-8d1b-f356b49d5b48"
+                    ]
 
     const { assignments, listeners } = useDriverAssignments(driverIds);
 
@@ -47,6 +50,28 @@ const HomeScreen = () => {
         const data = await orderService.getOrdersByDriver(selectedDriverId);
         setOrders(data);
         setError(undefined);
+
+        //send update-location emit for each driver in the list when polling occurs. 
+
+        driverIds.forEach(driverId => {
+          const currentSendEvent = listeners[driverId]?.sendEvent; 
+          
+          if (currentSendEvent) {
+            const locationPayload = {
+              longitude: longitude,
+              latitude: latitude,
+              orderCache: `${driverId}:${sampleOrderId}:location`,
+              timestamp: Date.now()
+            };
+
+            currentSendEvent("update-location", locationPayload, (response: any) => {
+              console.log(`✅ update-location response for driver ${driverId}:`, response);
+            });
+          } else {
+            console.warn(`No sendEvent function available for driver ${driverId}`);
+          }
+        });
+
       } catch (e: any) {
         setError(e?.message || "Failed to load");
       }

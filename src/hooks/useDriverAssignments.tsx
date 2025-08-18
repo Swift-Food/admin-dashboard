@@ -31,6 +31,16 @@ export const useDriverAssignments = (driverIds: string[]) => {
     query: { driverId: driverIds[5] }
   });
 
+  const driver7 = useSocket<NewAssignmentPayload>("new-assignment", {
+    namespace: "/driver", 
+    query: { driverId: driverIds[6] }
+  });
+
+  const driver8 = useSocket<NewAssignmentPayload>("new-assignment", {
+    namespace: "/driver", 
+    query: { driverId: driverIds[7] }
+  });
+
   // ... repeat for each driver
 
   const listeners = {
@@ -40,6 +50,8 @@ export const useDriverAssignments = (driverIds: string[]) => {
     [driverIds[3]]: driver4,
     [driverIds[4]]: driver5,
     [driverIds[5]]: driver6,
+    [driverIds[6]]: driver7,
+    [driverIds[7]]: driver8,
   };
 
   // Log only when component mounts
@@ -64,7 +76,7 @@ export const useDriverAssignments = (driverIds: string[]) => {
     if (hasNewData) {
       console.log(`🔍 FRONTEND: Checking for new assignments...`);
     }
-  }, [driver1.data, driver2.data, driver3.data, driver4.data, driver5.data, driver6.data]);
+  }, [driver1.data, driver2.data, driver3.data, driver4.data, driver5.data, driver6.data, driver7.data, driver8.data]);
 
   return {
     assignments,

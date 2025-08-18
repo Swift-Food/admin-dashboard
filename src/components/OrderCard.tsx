@@ -11,7 +11,10 @@ interface OrderCardProps {
 
 const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel, onAction, isPressed = false }) => {
   // extract the restaurant name from the first orderItem
-  const restaurantName = order.orderItems[0]?.restaurantName || "—";
+  const restaurantNames = [...new Set(order.orderItems.map(item => item.restaurantName))];
+  const displayName = restaurantNames.length > 1 
+    ? `${restaurantNames.join(", ")} (${restaurantNames.length} restaurants)`
+    : restaurantNames[0] || "—";
 
   // extract the market name
   const marketName = order.market.market_name;
@@ -32,7 +35,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel, onAction, isP
   return (
     <div className="order-card">
       <p className="order-card__id">Order #{order.id}</p>
-      <p className="order-card__name">{restaurantName}</p>
+      <p className="order-card__name">{displayName}</p>
       <p className="order-card__address">{marketName}</p>
       <p className = "order-card__status">{orderStatus}</p>
       <p className="order-card__timestamp">{formatted}</p>

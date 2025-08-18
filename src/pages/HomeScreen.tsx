@@ -44,8 +44,18 @@ const HomeScreen = () => {
     }, [selectedDriverId]);
 
     const sendLocationUpdates = () => {
+      console.log('🔍 Debugging listeners:', Object.keys(listeners));
+      console.log('🔍 Driver IDs:', driverIds);
+
       driverIds.forEach(driverId => {
-          const currentSendEvent = listeners[driverId]?.sendEvent;
+        const listener = listeners[driverId];
+        const currentSendEvent = listener?.sendEvent;
+
+        console.log(`🔍 Driver ${driverId}:`, {
+          hasListener: !!listener,
+          hasConnection: listener?.connected,
+          hasSendEvent: !!currentSendEvent
+        });
 
           if (currentSendEvent && listeners[driverId]?.connected) {
             const locationPayload = {
@@ -59,7 +69,11 @@ const HomeScreen = () => {
               console.log(`✅ update-location response for driver ${driverId}:`, response);
             });
           } else {
-            console.warn(`No sendEvent function available for driver ${driverId}`);
+            console.warn(`No sendEvent function available for driver ${driverId}:`, {
+              reason: !listener ? 'No listener' : 
+                      !currentSendEvent ? 'No sendEvent function' :
+                      !listener.connected ? 'Not connected' : 'Unknown'
+            });
           }
         });
     }

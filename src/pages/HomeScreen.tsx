@@ -22,7 +22,7 @@ const HomeScreen = () => {
                         "010c7232-8c77-4b8b-896d-6fe3e45c2264",
                         "8ecec884-8586-448b-8bfe-dd3d4a3733cc",
                         "ccdc5ca3-be6a-4d82-acb8-fe216086ed7d",
-                        "dd971698-b0bc-47cc-8d1b-f356b49d5b48"
+                        "dd971698-b0bc-47cc-8d1b-f356b49d5b48",
                     ]
 
     const { assignments, listeners } = useDriverAssignments(driverIds);
@@ -43,20 +43,11 @@ const HomeScreen = () => {
       })();
     }, [selectedDriverId]);
 
-    //rest fetch function for selected drivers 
-    const fetchOrders = useCallback(async() => {
-      if (!selectedDriverId) return;
-      try {
-        const data = await orderService.getOrdersByDriver(selectedDriverId);
-        setOrders(data);
-        setError(undefined);
+    const sendLocationUpdates = () => {
+      driverIds.forEach(driverId => {
+          const currentSendEvent = listeners[driverId]?.sendEvent;
 
-        //send update-location emit for each driver in the list when polling occurs. 
-
-        driverIds.forEach(driverId => {
-          const currentSendEvent = listeners[driverId]?.sendEvent; 
-          
-          if (currentSendEvent) {
+          if (currentSendEvent && listeners[driverId]?.connected) {
             const locationPayload = {
               longitude: longitude,
               latitude: latitude,
@@ -71,6 +62,18 @@ const HomeScreen = () => {
             console.warn(`No sendEvent function available for driver ${driverId}`);
           }
         });
+    }
+
+    //rest fetch function for selected drivers 
+    const fetchOrders = useCallback(async() => {
+      if (!selectedDriverId) return;
+      try {
+        const data = await orderService.getOrdersByDriver(selectedDriverId);
+        setOrders(data);
+        setError(undefined);
+
+        //calls to send location updates. 
+        sendLocationUpdates();
 
       } catch (e: any) {
         setError(e?.message || "Failed to load");

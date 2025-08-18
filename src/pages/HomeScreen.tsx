@@ -44,9 +44,8 @@ const HomeScreen = () => {
     }, [selectedDriverId]);
 
     const sendLocationUpdates = () => {
-      console.log('🔍 Debugging listeners:', Object.keys(listeners));
-      console.log('🔍 Driver IDs:', driverIds);
-
+      console.log('🔍 Starting location updates for all drivers...');
+      
       driverIds.forEach(driverId => {
         const listener = listeners[driverId];
         const currentSendEvent = listener?.sendEvent;
@@ -108,6 +107,24 @@ const HomeScreen = () => {
       const id = setInterval(fetchOrders, 20_000);
       return () => clearInterval(id);
   }, [fetchOrders]);
+
+  //to retry connections 
+    useEffect(() => {
+    const retryConnections = () => {
+      const connectedCount = driverIds.filter(id => listeners[id]?.connected).length;
+      
+      if (connectedCount === 0) {
+        console.log('🔄 No sockets connected, this might be due to React Strict Mode. Connections should establish shortly...');
+      } else {
+        console.log(`✅ ${connectedCount}/${driverIds.length} sockets connected`);
+      }
+    };
+
+    // Check connection status after a short delay
+    const timer = setTimeout(retryConnections, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [listeners, driverIds]);
 
       // Convert assignments to DriverOrder format for Finding Driver column
     const assignmentOrders: DriverOrder[] = Object.entries(assignments).map(([driverId, assignment]) => ({

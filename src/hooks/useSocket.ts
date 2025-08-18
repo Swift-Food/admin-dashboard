@@ -31,7 +31,7 @@ export default function useSocket<T>(eventName: string,
       const handleConnect = () => {
           if (mountedRef.current) {
             setConnected(true);
-            console.log(`✅ Socket connected for driver ${query.driverId || 'unknown'}`);
+           //console.log(`✅ Socket connected for driver ${query.driverId || 'unknown'}`);
           }
       };
   

@@ -65,7 +65,7 @@ const HomeScreen = () => {
             };
 
             currentSendEvent("update-location", locationPayload, (response: any) => {
-              console.log(`✅ update-location response for driver ${driverId}:`, response);
+              //console.log(`✅ update-location response for driver ${driverId}:`, response);
             });
           } else {
             console.warn(`No sendEvent function available for driver ${driverId}:`, {
@@ -126,39 +126,51 @@ const HomeScreen = () => {
     return () => clearTimeout(timer);
   }, [listeners, driverIds]);
 
-      // Convert assignments to DriverOrder format for Finding Driver column
-    const assignmentOrders: DriverOrder[] = Object.entries(assignments).map(([driverId, assignment]) => ({
-      id: assignment.data.orderId,
-      status: 'new-assignment' as const,
-      market: {
-        market_name: assignment.data.marketName,
-        address: assignment.data.marketAddress,
-      },
-      // ✅ Fix: Items have a different structure
-      orderItems: assignment.data.items.flatMap((item: any) => 
-        item.menuItems.map((menuItem: any) => ({
-          restaurantName: item.restaurantName || "",
-          restaurantId: item.restaurantId || "",
-          itemName: menuItem.name || "", 
-          quantity: menuItem.quantity || 1, 
-          price: menuItem.unitPrice || 0, // 
-          totalPrice: menuItem.totalPrice || 0, 
-          menuItemId: menuItem.menuItemId || "", 
-        }))
-      ),
-      placedAt: assignment.data.assignmentTime,
-      cacheKey: assignment.data.cacheKey,
-      otp: assignment.data.otp || "", 
-      estimatedCompensation: parseFloat(assignment.data.estimatedCompensation || "0"),
-      acceptanceDeadline: assignment.data.acceptanceDeadline,
-      eventResponseType: assignment.data.eventResponseType,
-      assignedDriverId: driverId,
-      phoneNumber: assignment.data.number || "",
-      retryAttempt: assignment.data.retryAttempt || 0,
-      isRetry: assignment.data.isRetry || false,
-      urgencyLevel: assignment.data.urgencyLevel || "NORMAL",
-    }));
+  // Convert assignments to DriverOrder format and ensure uniqueness
+  const assignmentOrdersMap = new Map<string, DriverOrder>();
 
+  Object.entries(assignments).forEach(([driverId, assignment]) => {
+    const orderId = assignment.data.orderId;
+    
+    // Only add if we haven't seen this order ID before
+    if (!assignmentOrdersMap.has(orderId)) {
+      assignmentOrdersMap.set(orderId, {
+        id: orderId,
+        status: 'new-assignment' as const,
+        market: {
+          market_name: assignment.data.marketName,
+          address: assignment.data.marketAddress,
+        },
+        orderItems: assignment.data.items.flatMap((item: any) => 
+          item.menuItems.map((menuItem: any) => ({
+            restaurantName: item.restaurantName || "",
+            restaurantId: item.restaurantId || "",
+            itemName: menuItem.name || "", 
+            quantity: menuItem.quantity || 1, 
+            price: menuItem.unitPrice || 0,
+            totalPrice: menuItem.totalPrice || 0, 
+            menuItemId: menuItem.menuItemId || "", 
+          }))
+        ),
+        placedAt: assignment.data.assignmentTime,
+        cacheKey: assignment.data.cacheKey,
+        otp: assignment.data.otp || "", 
+        estimatedCompensation: parseFloat(assignment.data.estimatedCompensation || "0"),
+        acceptanceDeadline: assignment.data.acceptanceDeadline,
+        eventResponseType: assignment.data.eventResponseType,
+        assignedDriverId: driverId,
+        phoneNumber: assignment.data.number || "",
+        retryAttempt: assignment.data.retryAttempt || 0,
+        isRetry: assignment.data.isRetry || false,
+        urgencyLevel: assignment.data.urgencyLevel || "NORMAL",
+      });
+    } else {
+      console.log(`🔍 Skipping duplicate assignment for order ${orderId} from driver ${driverId}`);
+    }
+  });
+
+    const assignmentOrders = Array.from(assignmentOrdersMap.values());
+    
     //mapping to each column 
     const buckets: Record<string, DriverOrder[]> = {
       //Receives orders for new-assignment events. 
@@ -184,19 +196,28 @@ const HomeScreen = () => {
         }
       });
 
-    // Create a Set of order IDs that are already assigned/picked up/delivered
-    const processedOrderIds = new Set([
-      ...buckets.DRIVER_ASSIGNED.map(o => o.id),
-      ...buckets.READY_FOR_PICKUP.map(o => o.id),
-      ...buckets.OUT_FOR_DELIVERY.map(o => o.id)
-    ]);
+      // ✅ Create a Set of order IDs from REST API buckets only
+      const restApiOrderIds = new Set([
+        ...buckets.DRIVER_ASSIGNED.map(o => o.id),
+        ...buckets.READY_FOR_PICKUP.map(o => o.id),
+        ...buckets.OUT_FOR_DELIVERY.map(o => o.id)
+      ]);
 
-    // Only show assignments that haven't been processed yet
-    buckets.FINDING_DRIVER = assignmentOrders.filter(order => 
-      !processedOrderIds.has(order.id)
-    );
+      // ✅ Only remove assignment orders that exist in REST API buckets
+      const duplicateAssignmentIds = assignmentOrders
+        .filter(order => restApiOrderIds.has(order.id))
+        .map(order => order.id);
 
-    // ✅ NOW filter the other columns by selected driver
+      if (duplicateAssignmentIds.length > 0) {
+        console.log('🔍 Found assignment orders that exist in REST API:', duplicateAssignmentIds);
+        
+        // Remove duplicates from FINDING_DRIVER
+        buckets.FINDING_DRIVER = buckets.FINDING_DRIVER.filter(order => 
+          !restApiOrderIds.has(order.id)
+        );
+      }
+
+    // filter the other columns by selected driver
     buckets.DRIVER_ASSIGNED = buckets.DRIVER_ASSIGNED.filter(o => 
       o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
     );

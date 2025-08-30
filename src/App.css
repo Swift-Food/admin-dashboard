@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/*Order Card*/
+
+.order-card {
+  background-color: #4d4afb;       
+  padding: 1.25rem;
+  border-radius: 1rem;           
+  margin-bottom: 0.75rem;  
+  text-align: left;    
+  color: #FFFFFF;  
+  font-weight: bold;  
+  display: flex;
+  flex-direction: column;
+}
+
+.order-card__id {                           
+  font-size: 0.55em;             
+}
+
+.order-card__name {
+  font-size: 0.875rem;             
+  padding-top: 0.6rem;
+}
+
+.order-card__address {
+  font-size: 0.875rem; 
+}
+
+.order-card__status {
+  padding-top: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.5rem; 
+}
+
+/*Order Columns */
+
+.order-column__header {
+  font-size: 1em;         
+  font-weight: 600;       
+  margin: 0.25rem;        
+  text-align: left;       
+  color: #040273;         
+  padding-bottom: 0.5rem; 
+}
+
+.order-column__background {
+   flex: 1;                              
+  background-color: #ffffff;            
+  padding: 1rem;                        
+  overflow-y: auto;                     
+  max-height: 80vh;                     
+  border-radius: 1.5rem;                
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.order-card__timestamp {
+  padding-top: 1rem;
+  margin-top: auto;
+  color: #07056a;  
+  font-size: 0.55em;   
+}
+
+/* default state */
+.order-card__btn {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #fbcd4e;   
+  color: #000;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* hover state */
+.order-card__btn:hover {
+  background-color: #ffbb00;   
+}
+
+.order-card__btn--pressed {
+  background-color: #3dc10d; /* Darker pressed color */
+  opacity: 0.8;
+  /* Keep this color even on hover */
+}
+
+.order-card__btn--pressed:hover {
+  background-color: #3dc10d; /* Same color on hover */
+}
+
+/* focus outline for accessibility */
+.order-card__btn:focus {
+  outline: 2px solid #3ba13b;  
+  outline-offset: 2px;
+}
+
+.outer-div {
+  margin-bottom: 2rem;
+  font: #000000;
+  
+}
+
+.driver_picker__label {
+  font-weight: bold;
+  margin-bottom: 1rem;
+  margin-right: 0.5rem;
+  color: #040273;
+}
+
+.driver_picker__border {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+}
+
+.driver_picker__values {
+  color: #040273;
+}

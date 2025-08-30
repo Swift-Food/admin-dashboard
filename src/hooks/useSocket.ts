@@ -38,13 +38,13 @@ export default function useSocket<T>(eventName: string,
       const handleDisconnect = () => {
           if (mountedRef.current) {
             setConnected(false);
-            console.log(`❌ Socket disconnected for driver ${query.driverId || 'unknown'}`);
+            //console.log(`❌ Socket disconnected for driver ${query.driverId || 'unknown'}`);
           }
       };
   
       const handleEvent = (payload: T) => {
         if (mountedRef.current) {
-            console.log(`📥 ${eventName} received for driver ${query.driverId}:`, payload);
+            //console.log(`📥 ${eventName} received for driver ${query.driverId}:`, payload);
             setData(payload);
         }
       };
@@ -64,7 +64,7 @@ export default function useSocket<T>(eventName: string,
           socket.off("disconnect", handleDisconnect);
           socket.off(eventName, handleEvent);
                 
-          console.log(`🧹 Cleaning up socket for driver ${query.driverId || 'unknown'}`);
+          //console.log(`🧹 Cleaning up socket for driver ${query.driverId || 'unknown'}`);
           socket.disconnect();
         }
 
@@ -104,12 +104,12 @@ export default function useSocket<T>(eventName: string,
             return;
         }
 
-      console.log(`📤 Emitting ${evt} for driver ${query.driverId}:`, payload);  
+      //console.log(`📤 Emitting ${evt} for driver ${query.driverId}:`, payload);  
           
       if (callback) {
           const timeoutId = setTimeout(() => {
               if (mountedRef.current) {
-                  console.warn(`${evt} acknowledgment timeout for driver ${query.driverId}`);
+                  //console.warn(`${evt} acknowledgment timeout for driver ${query.driverId}`);
                   callback({ error: 'Timeout' });
               }
           }, 10000);
@@ -117,7 +117,7 @@ export default function useSocket<T>(eventName: string,
           socketRef.current!.emit(evt, payload, (response: any) => {
               clearTimeout(timeoutId);
               if (mountedRef.current) {
-                  console.log(`📥 ${evt} acknowledgment for driver ${query.driverId}:`, response);
+                  //console.log(`📥 ${evt} acknowledgment for driver ${query.driverId}:`, response);
                   callback(response);
               }
           });

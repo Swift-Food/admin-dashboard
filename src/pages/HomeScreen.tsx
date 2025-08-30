@@ -13,6 +13,7 @@ const HomeScreen = () => {
     const [orders, setOrders] = useState<DriverOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>();
+    const [isPageVisible, setIsPageVisible] = useState(!document.hidden);
 
     //Selected 6 Driver Ids 
     const driverIds = [ "caf6bae1-bae5-4879-a62e-4928227a17e8", 
@@ -44,17 +45,17 @@ const HomeScreen = () => {
     }, [selectedDriverId]);
 
     const sendLocationUpdates = () => {
-      console.log('🔍 Starting location updates for all drivers...');
+      //console.log('🔍 Starting location updates for all drivers...');
       
       driverIds.forEach(driverId => {
         const listener = listeners[driverId];
         const currentSendEvent = listener?.sendEvent;
 
-        console.log(`🔍 Driver ${driverId}:`, {
-          hasListener: !!listener,
-          hasConnection: listener?.connected,
-          hasSendEvent: !!currentSendEvent
-        });
+        //console.log(`🔍 Driver ${driverId}:`, {
+        //  hasListener: !!listener,
+        //  hasConnection: listener?.connected,
+        //  hasSendEvent: !!currentSendEvent
+        //});
 
           if (currentSendEvent && listeners[driverId]?.connected) {
             const locationPayload = {
@@ -68,11 +69,11 @@ const HomeScreen = () => {
               //console.log(`✅ update-location response for driver ${driverId}:`, response);
             });
           } else {
-            console.warn(`No sendEvent function available for driver ${driverId}:`, {
-              reason: !listener ? 'No listener' : 
-                      !currentSendEvent ? 'No sendEvent function' :
-                      !listener.connected ? 'Not connected' : 'Unknown'
-            });
+            // console.warn(`No sendEvent function available for driver ${driverId}:`, {
+            //   reason: !listener ? 'No listener' : 
+            //           !currentSendEvent ? 'No sendEvent function' :
+            //           !listener.connected ? 'Not connected' : 'Unknown'
+            // });
           }
         });
     }
@@ -97,16 +98,53 @@ const HomeScreen = () => {
     }, [selectedDriverId]);
 
     //initial load 
-    useEffect(() => {
-      setLoading(true);
-      fetchOrders();
-    }, [fetchOrders]);
+    // useEffect(() => {
+    //   setLoading(true);
+    //   fetchOrders();
+    // }, [fetchOrders]);
 
-    //poll every 20 seconds 
+    //poll every 1 seconds when page is visible.  
     useEffect(() => {
-      const id = setInterval(fetchOrders, 20_000);
-      return () => clearInterval(id);
+      const handleVisibilityChange = () => {
+        const isVisible = !document.hidden;
+        setIsPageVisible(isVisible);
+
+        if (isVisible) {
+          console.log("Page became visible - poll every second. ");
+
+          //immediately fetch when page becomes visible 
+          fetchOrders();
+        } else {
+          console.log("Page became hidden - stop polling.");
+        }
+      };
+
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      // const id = setInterval(fetchOrders, 20_000);
+      return () => {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      };
   }, [fetchOrders]);
+
+    useEffect(() => {
+      if (!isPageVisible) {
+        console.log("Page is not visible - skipping fetch.");
+        return;
+      }
+
+      console.log('Polling available, page is visible. ')
+      const id = setInterval(() => {
+        if (!document.hidden) { // Double-check visibility
+          fetchOrders();
+        }
+      }, 1_000);
+
+      return () => {
+        console.log('clearing polling interval');
+        clearInterval(id);
+      };
+    }, [fetchOrders, isPageVisible]);
 
   //to retry connections 
     useEffect(() => {
@@ -114,9 +152,9 @@ const HomeScreen = () => {
       const connectedCount = driverIds.filter(id => listeners[id]?.connected).length;
       
       if (connectedCount === 0) {
-        console.log('🔄 No sockets connected, this might be due to React Strict Mode. Connections should establish shortly...');
+        //console.log('🔄 No sockets connected, this might be due to React Strict Mode. Connections should establish shortly...');
       } else {
-        console.log(`✅ ${connectedCount}/${driverIds.length} sockets connected`);
+        //console.log(`✅ ${connectedCount}/${driverIds.length} sockets connected`);
       }
     };
 
@@ -229,7 +267,7 @@ const HomeScreen = () => {
     );
 
     const sendEvent = listeners[selectedDriverId]?.sendEvent || (() => {
-      console.warn(`No event listener for driver ${selectedDriverId}`);
+      //console.warn(`No event listener for driver ${selectedDriverId}`);
     });
 
     // Sort all buckets by placedAt timestamp (earliest first)

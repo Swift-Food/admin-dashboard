@@ -2,14 +2,14 @@ import React, { useEffect, useState, useCallback } from "react";
 import orderService from "../services/order.service";
 import { driverId as DEFAULT_DRIVER, driverId, longitude, latitude, sampleOrderId } from "../constants";
 import OrderColumn from "../components/OrderColumn";
-import DriverPicker from "../components/DriverPicker";
+//import DriverPicker from "../components/DriverPicker";
 import {type Driver, getDriverDetails} from "../services/driver.service";
 import type {DriverOrder} from "../types/order.types";
 import { useDriverAssignments } from "../hooks/useDriverAssignments";
 
 const HomeScreen = () => {
     const [drivers, setDrivers] = useState<Driver[]>([]);
-    const [selectedDriverId, setSelectedDriverId] = useState<string>(DEFAULT_DRIVER);
+    //const [selectedDriverId, setSelectedDriverId] = useState<string>(DEFAULT_DRIVER);
     const [orders, setOrders] = useState<DriverOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>();
@@ -29,20 +29,32 @@ const HomeScreen = () => {
     const { assignments, listeners } = useDriverAssignments(driverIds);
 
     // Load driver details on mount with the selected Driver Ids
+    // useEffect(() => {
+    //   (async () => {
+    //     try {
+    //       const list = await getDriverDetails();
+    //       setDrivers(list);
+
+    //       if (!list.find(d => d.id === selectedDriverId) && list[0]) {
+    //         setSelectedDriverId(list[0].id);
+    //       }
+    //     } catch(e: any) {
+    //       console.error(e)
+    //     }
+    //   })();
+    // }, [selectedDriverId]);
+
+    // Load driver details on mount
     useEffect(() => {
       (async () => {
         try {
           const list = await getDriverDetails();
           setDrivers(list);
-
-          if (!list.find(d => d.id === selectedDriverId) && list[0]) {
-            setSelectedDriverId(list[0].id);
-          }
         } catch(e: any) {
           console.error(e)
         }
       })();
-    }, [selectedDriverId]);
+    }, []);
 
     const sendLocationUpdates = () => {
       //console.log('🔍 Starting location updates for all drivers...');
@@ -79,14 +91,46 @@ const HomeScreen = () => {
     }
 
     //rest fetch function for selected drivers 
+    // const fetchOrders = useCallback(async() => {
+    //   if (!selectedDriverId) return;
+    //   try {
+    //     const data = await orderService.getOrdersByDriver(selectedDriverId);
+    //     setOrders(data);
+    //     setError(undefined);
+
+    //     //calls to send location updates. 
+    //     sendLocationUpdates();
+
+    //   } catch (e: any) {
+    //     setError(e?.message || "Failed to load");
+    //   }
+    //   finally {
+    //     setLoading(false);
+    //   }
+    // }, [selectedDriverId]);
+
     const fetchOrders = useCallback(async() => {
-      if (!selectedDriverId) return;
       try {
-        const data = await orderService.getOrdersByDriver(selectedDriverId);
-        setOrders(data);
+        // Fetch orders from all drivers and combine them
+        const allOrdersPromises = driverIds.map(driverId => 
+          orderService.getOrdersByDriver(driverId).catch(err => {
+            console.error(`Failed to fetch orders for driver ${driverId}:`, err);
+            return []; // Return empty array if this driver's orders fail
+          })
+        );
+
+        const allOrdersArrays = await Promise.all(allOrdersPromises);
+        const allOrders = allOrdersArrays.flat(); // Flatten the array of arrays
+
+        // Remove duplicates based on order ID
+        const uniqueOrders = allOrders.filter((order, index, array) => 
+          index === array.findIndex(o => o.id === order.id)
+        );
+
+        setOrders(uniqueOrders);
         setError(undefined);
 
-        //calls to send location updates. 
+        // Send location updates
         sendLocationUpdates();
 
       } catch (e: any) {
@@ -95,7 +139,7 @@ const HomeScreen = () => {
       finally {
         setLoading(false);
       }
-    }, [selectedDriverId]);
+    }, []);
 
     //initial load 
     // useEffect(() => {
@@ -103,7 +147,7 @@ const HomeScreen = () => {
     //   fetchOrders();
     // }, [fetchOrders]);
 
-    //poll every 1 seconds when page is visible.  
+    //poll every 1 seconds when page is visible and handle visibility changes
     useEffect(() => {
       const handleVisibilityChange = () => {
         const isVisible = !document.hidden;
@@ -255,20 +299,34 @@ const HomeScreen = () => {
         );
       }
 
+      //driver ID specific code 
     // filter the other columns by selected driver
-    buckets.DRIVER_ASSIGNED = buckets.DRIVER_ASSIGNED.filter(o => 
-      o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
-    );
-    buckets.READY_FOR_PICKUP = buckets.READY_FOR_PICKUP.filter(o => 
-      o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
-    );
-    buckets.OUT_FOR_DELIVERY = buckets.OUT_FOR_DELIVERY.filter(o => 
-      o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
-    );
+    // buckets.DRIVER_ASSIGNED = buckets.DRIVER_ASSIGNED.filter(o => 
+    //   o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
+    // );
+    // buckets.READY_FOR_PICKUP = buckets.READY_FOR_PICKUP.filter(o => 
+    //   o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
+    // );
+    // buckets.OUT_FOR_DELIVERY = buckets.OUT_FOR_DELIVERY.filter(o => 
+    //   o.driverId === selectedDriverId || o.assignedDriverId === selectedDriverId
+    // );
 
-    const sendEvent = listeners[selectedDriverId]?.sendEvent || (() => {
-      //console.warn(`No event listener for driver ${selectedDriverId}`);
-    });
+    // const sendEvent = listeners[selectedDriverId]?.sendEvent || (() => {
+    //   //console.warn(`No event listener for driver ${selectedDriverId}`);
+    // });
+
+    // Use a generic sendEvent function that tries to find the right listener
+    const sendEvent = (evt: string, payload: any, callback?: (response: any) => void) => {
+      const driverId = payload.driverId || payload.assignedDriverId;
+      const listener = listeners[driverId];
+      
+      if (listener?.sendEvent && listener.connected) {
+        listener.sendEvent(evt, payload, callback);
+      } else {
+        console.warn(`No event listener available for driver ${driverId}`);
+        if (callback) callback({ success: false, reason: 'No listener' });
+      }
+    };
 
     // Sort all buckets by placedAt timestamp (earliest first)
     Object.keys(buckets).forEach(key => {
@@ -285,19 +343,20 @@ const HomeScreen = () => {
 
    return (
     <div className="p-4 h-screen bg-[#ccdaf5]">
-      <h1 className="text-xl font-bold mb-4">Order Dashboard</h1>
+      <h1 className="text-xl font-bold mb-4">Admin Dashboard</h1>
 
-      <DriverPicker
+        {/* remove driver picker for now. */}
+      {/* <DriverPicker
         drivers={drivers}
         value={selectedDriverId}
         onChange={(id) => setSelectedDriverId(id)}
-      />
+      /> */}
       
       <div className="flex gap-4">
-        <OrderColumn title="Finding Driver" orders={buckets.FINDING_DRIVER} sendEvent={sendEvent} driverId={selectedDriverId}/>
-        <OrderColumn title="Driver Assigned" orders={buckets.DRIVER_ASSIGNED} sendEvent={sendEvent} driverId={selectedDriverId}/>
-        <OrderColumn title="Ready for Pickup" orders={buckets.READY_FOR_PICKUP} sendEvent={sendEvent} driverId={selectedDriverId}/>
-        <OrderColumn title="Out for Delivery" orders={buckets.OUT_FOR_DELIVERY} sendEvent={sendEvent} driverId={selectedDriverId}/>
+        <OrderColumn title="Finding Driver" orders={buckets.FINDING_DRIVER} sendEvent={sendEvent} driverId="all"/>
+        <OrderColumn title="Driver Assigned" orders={buckets.DRIVER_ASSIGNED} sendEvent={sendEvent} driverId="all"/>
+        <OrderColumn title="Ready for Pickup" orders={buckets.READY_FOR_PICKUP} sendEvent={sendEvent} driverId="all"/>
+        <OrderColumn title="Out for Delivery" orders={buckets.OUT_FOR_DELIVERY} sendEvent={sendEvent} driverId="all"/>
       </div>
     </div>
   );

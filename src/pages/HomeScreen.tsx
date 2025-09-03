@@ -14,19 +14,52 @@ const HomeScreen = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>();
     const [isPageVisible, setIsPageVisible] = useState(!document.hidden);
+    const [activeDriverIds, setActiveDriverIds] = useState<string[]>([]);
 
-    //Selected 6 Driver Ids 
-    const driverIds = [ "caf6bae1-bae5-4879-a62e-4928227a17e8", 
-                        "9341e533-f1d1-451f-9531-2df70fa55877", 
-                        "68421751-8274-4221-9809-563d4f42db7f",
-                        "737185bd-b011-44f4-9dc3-ac4921f4991e",
-                        "010c7232-8c77-4b8b-896d-6fe3e45c2264",
-                        "8ecec884-8586-448b-8bfe-dd3d4a3733cc",
-                        "ccdc5ca3-be6a-4d82-acb8-fe216086ed7d",
-                        "dd971698-b0bc-47cc-8d1b-f356b49d5b48",
-                    ]
+    // Load driver details and filter for available/occupied drivers
+    useEffect(() => {
+      (async () => {
+        try {
+          const list = await getDriverDetails();
+          setDrivers(list);
+          
+          // Filter drivers that are available or occupied
+          const activeDrivers = list.filter(driver => 
+            driver.status === 'available' || driver.status === 'occupied'
+          );
+          
+          const activeIds = activeDrivers.map(driver => driver.id);
+          setActiveDriverIds(activeIds);
+          
+          console.log(`📋 Found ${activeIds.length} active drivers (available/occupied):`, activeIds);
+          
+        } catch(e: any) {
+          console.error('Failed to fetch drivers:', e);
+        }
+      })();
+    }, []);
 
-    const { assignments, listeners } = useDriverAssignments(driverIds);
+    const { assignments, listeners } = useDriverAssignments(activeDriverIds);
+
+    const sendLocationUpdates = () => {
+      activeDriverIds.forEach(driverId => {
+        const listener = listeners[driverId];
+        const currentSendEvent = listener?.sendEvent;
+
+        if (currentSendEvent && listeners[driverId]?.connected) {
+          const locationPayload = {
+            longitude: longitude,
+            latitude: latitude,
+            orderCache: `${driverId}:${sampleOrderId}:location`,
+            timestamp: Date.now()
+          };
+
+          currentSendEvent("update-location", locationPayload, (response: any) => {
+            // console.log(`✅ update-location response for driver ${driverId}:`, response);
+          });
+        }
+      });
+    }
 
     // Load driver details on mount with the selected Driver Ids
     // useEffect(() => {
@@ -56,39 +89,6 @@ const HomeScreen = () => {
       })();
     }, []);
 
-    const sendLocationUpdates = () => {
-      //console.log('🔍 Starting location updates for all drivers...');
-      
-      driverIds.forEach(driverId => {
-        const listener = listeners[driverId];
-        const currentSendEvent = listener?.sendEvent;
-
-        //console.log(`🔍 Driver ${driverId}:`, {
-        //  hasListener: !!listener,
-        //  hasConnection: listener?.connected,
-        //  hasSendEvent: !!currentSendEvent
-        //});
-
-          if (currentSendEvent && listeners[driverId]?.connected) {
-            const locationPayload = {
-              longitude: longitude,
-              latitude: latitude,
-              orderCache: `${driverId}:${sampleOrderId}:location`,
-              timestamp: Date.now()
-            };
-
-            currentSendEvent("update-location", locationPayload, (response: any) => {
-              //console.log(`✅ update-location response for driver ${driverId}:`, response);
-            });
-          } else {
-            // console.warn(`No sendEvent function available for driver ${driverId}:`, {
-            //   reason: !listener ? 'No listener' : 
-            //           !currentSendEvent ? 'No sendEvent function' :
-            //           !listener.connected ? 'Not connected' : 'Unknown'
-            // });
-          }
-        });
-    }
 
     //rest fetch function for selected drivers 
     // const fetchOrders = useCallback(async() => {
@@ -112,7 +112,7 @@ const HomeScreen = () => {
     const fetchOrders = useCallback(async() => {
       try {
         // Fetch orders from all drivers and combine them
-        const allOrdersPromises = driverIds.map(driverId => 
+        const allOrdersPromises = activeDriverIds.map(driverId => 
           orderService.getOrdersByDriver(driverId).catch(err => {
             console.error(`Failed to fetch orders for driver ${driverId}:`, err);
             return []; // Return empty array if this driver's orders fail
@@ -172,8 +172,8 @@ const HomeScreen = () => {
   }, [fetchOrders]);
 
     useEffect(() => {
-      if (!isPageVisible) {
-        console.log("Page is not visible - skipping fetch.");
+      if (!isPageVisible || activeDriverIds.length === 0) {
+        console.log("Page is not visible or no active drivers - skipping fetch.");
         return;
       }
 
@@ -182,31 +182,59 @@ const HomeScreen = () => {
         if (!document.hidden) { // Double-check visibility
           fetchOrders();
         }
-      }, 1_000);
+      }, 30_000);
 
       return () => {
         console.log('clearing polling interval');
         clearInterval(id);
       };
-    }, [fetchOrders, isPageVisible]);
+    }, [fetchOrders, isPageVisible, activeDriverIds]);
 
   //to retry connections 
     useEffect(() => {
     const retryConnections = () => {
-      const connectedCount = driverIds.filter(id => listeners[id]?.connected).length;
-      
-      if (connectedCount === 0) {
-        //console.log('🔄 No sockets connected, this might be due to React Strict Mode. Connections should establish shortly...');
+      const connectedCount = activeDriverIds.filter(id => listeners[id]?.connected).length;
+
+      if (connectedCount === 0 && activeDriverIds.length > 0) {
+        console.log('🔄 No sockets connected, this might be due to React Strict Mode. Connections should establish shortly...');
       } else {
-        //console.log(`✅ ${connectedCount}/${driverIds.length} sockets connected`);
+        console.log(`✅ ${connectedCount}/${activeDriverIds.length} sockets connected`);
       }
     };
 
     // Check connection status after a short delay
     const timer = setTimeout(retryConnections, 2000);
-    
     return () => clearTimeout(timer);
-  }, [listeners, driverIds]);
+  }, [listeners, activeDriverIds]);
+
+    // Refresh driver list periodically to catch status changes
+    useEffect(() => {
+      const refreshDrivers = async () => {
+        try {
+          const list = await getDriverDetails();
+          setDrivers(list);
+          
+          const activeDrivers = list.filter(driver => 
+            driver.status === 'available' || driver.status === 'occupied'
+          );
+          
+          const newActiveIds = activeDrivers.map(driver => driver.id);
+          
+          // Only update if the list has changed
+          if (JSON.stringify(newActiveIds.sort()) !== JSON.stringify(activeDriverIds.sort())) {
+            console.log(`🔄 Active drivers changed. Old: ${activeDriverIds.length}, New: ${newActiveIds.length}`);
+            setActiveDriverIds(newActiveIds);
+          }
+          
+        } catch(e: any) {
+          console.error('Failed to refresh drivers:', e);
+        }
+      };
+
+      // Refresh driver list every 30 seconds
+      const interval = setInterval(refreshDrivers, 30000);
+      return () => clearInterval(interval);
+    }, [activeDriverIds]);
 
   // Convert assignments to DriverOrder format and ensure uniqueness
   const assignmentOrdersMap = new Map<string, DriverOrder>();

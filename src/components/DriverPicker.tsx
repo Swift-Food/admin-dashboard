@@ -22,7 +22,7 @@ const DriverPicker: React.FC<DriverPickerProps> = ({drivers, value, onChange, di
             </option>    
             {drivers.map(d => (
                 <option key={d.id} value={d.id}>
-                {d.name ? `${d.name} (${d.id.slice(0,8)}…)` : d.id}
+                {d.user?.username ? `${d.user?.id} (${d.id.slice(0,8)}…)` : d.id}
                 </option>
             ))}
             </select>

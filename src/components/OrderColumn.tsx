@@ -90,6 +90,7 @@ const OrderColumn: React.FC<OrderColumnProps> = ({ title, orders, sendEvent, dri
           actionLabel={actionLabel}
           onAction={() => handleAction(order)}
           isPressed={pressedOrders.has(order.id)}
+          driverId={driverId}
         />
       ))}
     </div>

@@ -3,7 +3,9 @@ import {io, Socket } from "socket.io-client";
 import {BASE_URL} from "../constants";
 
 export default function useSocket<T>(eventName: string, 
-    opts: { namespace?: string; query?: Record<string,string> } = {}
+    opts: { namespace?: string; 
+            query?: Record<string,string> 
+            enabled?:boolean;} = {}
 ) {
     const { namespace = "", query = {} } = opts;
     const socketRef = useRef<Socket | null>(null);
@@ -31,20 +33,20 @@ export default function useSocket<T>(eventName: string,
       const handleConnect = () => {
           if (mountedRef.current) {
             setConnected(true);
-           //console.log(`✅ Socket connected for driver ${query.driverId || 'unknown'}`);
+           console.log(`✅ Socket connected for driver ${query.driverId || 'unknown'}`);
           }
       };
   
       const handleDisconnect = () => {
           if (mountedRef.current) {
             setConnected(false);
-            //console.log(`❌ Socket disconnected for driver ${query.driverId || 'unknown'}`);
+            console.log(`❌ Socket disconnected for driver ${query.driverId || 'unknown'}`);
           }
       };
   
       const handleEvent = (payload: T) => {
         if (mountedRef.current) {
-            //console.log(`📥 ${eventName} received for driver ${query.driverId}:`, payload);
+            console.log(`📥 ${eventName} received for driver ${query.driverId}:`, payload);
             setData(payload);
         }
       };

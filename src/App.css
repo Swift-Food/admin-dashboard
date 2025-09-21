@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
 
 #root {
   max-width: 1280px;
@@ -45,7 +46,7 @@
 
 /*Order Card*/
 
-.order-card {
+.order-card, .driver-card {
   background-color: #4d4afb;       
   padding: 1.25rem;
   border-radius: 1rem;           
@@ -57,16 +58,16 @@
   flex-direction: column;
 }
 
-.order-card__id {                           
+.order-card__id, .driver-card__id {                           
   font-size: 0.55em;             
 }
 
-.order-card__name {
+.order-card__name, .driver-card__username {
   font-size: 0.875rem;             
   padding-top: 0.6rem;
 }
 
-.order-card__address {
+.order-card__address, .driver-card__status {
   font-size: 0.875rem; 
 }
 
@@ -87,7 +88,7 @@
   padding-bottom: 0.5rem; 
 }
 
-.order-column__background {
+.order-column__background, .driver-row__background {
    flex: 1;                              
   background-color: #ffffff;            
   padding: 1rem;                        

@@ -182,7 +182,7 @@ const HomeScreen = () => {
         if (!document.hidden) { // Double-check visibility
           fetchOrders();
         }
-      }, 30_000);
+      }, 15_000);
 
       return () => {
         console.log('clearing polling interval');
@@ -275,7 +275,7 @@ const HomeScreen = () => {
         urgencyLevel: assignment.data.urgencyLevel || "NORMAL",
       });
     } else {
-      console.log(`🔍 Skipping duplicate assignment for order ${orderId} from driver ${driverId}`);
+      //console.log(`🔍 Skipping duplicate assignment for order ${orderId} from driver ${driverId}`);
     }
   });
 
@@ -306,14 +306,14 @@ const HomeScreen = () => {
         }
       });
 
-      // ✅ Create a Set of order IDs from REST API buckets only
+      //Create a Set of order IDs from REST API buckets only
       const restApiOrderIds = new Set([
         ...buckets.DRIVER_ASSIGNED.map(o => o.id),
         ...buckets.READY_FOR_PICKUP.map(o => o.id),
         ...buckets.OUT_FOR_DELIVERY.map(o => o.id)
       ]);
 
-      // ✅ Only remove assignment orders that exist in REST API buckets
+      //Only remove assignment orders that exist in REST API buckets
       const duplicateAssignmentIds = assignmentOrders
         .filter(order => restApiOrderIds.has(order.id))
         .map(order => order.id);
@@ -344,17 +344,75 @@ const HomeScreen = () => {
     // });
 
     // Use a generic sendEvent function that tries to find the right listener
-    const sendEvent = (evt: string, payload: any, callback?: (response: any) => void) => {
-      const driverId = payload.driverId || payload.assignedDriverId;
-      const listener = listeners[driverId];
-      
+   const sendEvent = (evt: string, payload: any, callback?: (response: any) => void) => {
+  // For order-accept, broadcast to ALL connected drivers
+  if (evt === "order-accept") {
+    console.log(`📡 Broadcasting ${evt} to all connected drivers:`, payload);
+    
+    let responseCount = 0;
+    const totalListeners = Object.keys(listeners).length;
+    const responses: any[] = [];
+
+    if (totalListeners === 0) {
+      console.warn(`No listeners available for broadcasting ${evt}`);
+      if (callback) callback({ success: false, reason: 'No listeners available' });
+      return;
+    }
+
+    // Send to all connected drivers
+    Object.entries(listeners).forEach(([driverId, listener]) => {
       if (listener?.sendEvent && listener.connected) {
-        listener.sendEvent(evt, payload, callback);
+        listener.sendEvent(evt, payload, (response: any) => {
+          responseCount++;
+          responses.push({ driverId, response });
+          console.log(`📨 ${evt} response from driver ${driverId}:`, response);
+          
+          // Call callback with combined results when all responses received
+          if (responseCount === totalListeners && callback) {
+            callback({ 
+              success: true, 
+              broadcasted: true,
+              responses: responses,
+              totalSent: totalListeners
+            });
+          }
+        });
       } else {
-        console.warn(`No event listener available for driver ${driverId}`);
-        if (callback) callback({ success: false, reason: 'No listener' });
+        responseCount++;
+        console.warn(`Skipping driver ${driverId} - not connected`);
+        
+        if (responseCount === totalListeners && callback) {
+          callback({ 
+            success: true, 
+            broadcasted: true,
+            responses: responses,
+            totalSent: responses.length
+          });
+        }
       }
-    };
+    });
+
+    return; // Exit early for order-accept
+  }
+
+  // For other events, try to find specific driver (existing logic)
+  const driverId = payload.driverId || payload.assignedDriverId;
+  
+  if (!driverId) {
+    console.error(`❌ No driver ID found in payload for ${evt}:`, payload);
+    if (callback) callback({ success: false, reason: 'No driver ID' });
+    return;
+  }
+
+  const listener = listeners[driverId];
+  
+  if (listener?.sendEvent && listener.connected) {
+    listener.sendEvent(evt, payload, callback);
+  } else {
+    console.warn(`No event listener available for driver ${driverId}`);
+    if (callback) callback({ success: false, reason: 'No listener' });
+  }
+};
 
     // Sort all buckets by placedAt timestamp (earliest first)
     Object.keys(buckets).forEach(key => {

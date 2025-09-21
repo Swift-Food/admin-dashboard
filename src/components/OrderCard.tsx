@@ -5,21 +5,26 @@ import React from "react";
 interface OrderCardProps {
   order: DriverOrder;
   actionLabel?: string;
+  sendEvent?: (evt: string, payload: any, callback?: (response: any) => void) => void;
   onAction?: () => void;
   isPressed?: boolean; // Optional prop to indicate if the order is pressed
+  driverId: string;
 }
 
 const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel, onAction, isPressed = false }) => {
+  // Add safety check for orderItems
+  const orderItems = order.orderItems || [];
+
   // extract the restaurant name from the first orderItem
-  const restaurantNames = [...new Set(order.orderItems.map(item => item.restaurantName))];
+  const restaurantNames = [...new Set(orderItems.map(item => item.restaurantName))];
   const displayName = restaurantNames.length > 1 
     ? `${restaurantNames.join(", ")} (${restaurantNames.length} restaurants)`
     : restaurantNames[0] || "—";
 
   // extract the market name
-  const marketName = order.market.market_name;
+  const marketName = order.market?.market_name || "—";
 
-  // extract the order status 
+  // extract the order status xw
   const orderStatus = order.status;
 
   // format the creation timestamp

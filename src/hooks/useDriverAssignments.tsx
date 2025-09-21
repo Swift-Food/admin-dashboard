@@ -1,74 +1,84 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useSocket from './useSocket';
 import type { NewAssignmentPayload } from '../types/assignments.types';
 
 export const useDriverAssignments = (driverIds: string[]) => {
   const [assignments, setAssignments] = useState<Record<string, any>>({});
+  const [listeners, setListeners] = useState<Record<string, any>>({});
+  const prevDriverIds = useRef<string[]>([]);
 
-  // Create individual socket connections
-  const driver1 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver",
-    query: { driverId: driverIds[0] }
-  });
-  const driver2 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver", 
-    query: { driverId: driverIds[1] }
-  });
-  const driver3 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver", 
-    query: { driverId: driverIds[2] }
-  });
-  const driver4 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver", 
-    query: { driverId: driverIds[3] }
-  });
-  const driver5 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver", 
-    query: { driverId: driverIds[4] }
-  });
-  const driver6 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver", 
-    query: { driverId: driverIds[5] }
+  // Maximum number of concurrent socket connections (adjust as needed)
+  const MAX_CONNECTIONS = 20;
+
+  // Create socket connections for up to MAX_CONNECTIONS drivers
+  const socketConnections = Array.from({ length: MAX_CONNECTIONS }, (_, index) => {
+    const driverId = driverIds[index] || null;
+    
+    return {
+      index,
+      driverId,
+      socket: useSocket<NewAssignmentPayload>("new-assignment", {
+        namespace: "/driver",
+        query: { driverId: driverId || '' }, // Pass empty string if no driver
+        enabled: !!driverId // Only connect if we have a valid driverId
+      }),
+      enabled: !!driverId
+    };
   });
 
-  const driver7 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver", 
-    query: { driverId: driverIds[6] }
-  });
 
-  const driver8 = useSocket<NewAssignmentPayload>("new-assignment", {
-    namespace: "/driver", 
-    query: { driverId: driverIds[7] }
-  });
-
-  // ... repeat for each driver
-
-  const listeners = {
-    [driverIds[0]]: driver1,
-    [driverIds[1]]: driver2,
-    [driverIds[2]]: driver3,
-    [driverIds[3]]: driver4,
-    [driverIds[4]]: driver5,
-    [driverIds[5]]: driver6,
-    [driverIds[6]]: driver7,
-    [driverIds[7]]: driver8,
-  };
-
-  // Log only when component mounts
   useEffect(() => {
-    console.log(`🎯 FRONTEND: Setting up listeners for ${driverIds.length} drivers:`, driverIds);
-  }, []); // Empty dependency array
+    // Check if driver list has changed
+    const currentIds = [...driverIds].sort();
+    const previousIds = [...prevDriverIds.current].sort();
+    
+    if (JSON.stringify(currentIds) !== JSON.stringify(previousIds)) {
+      console.log('🔄 Driver list changed:', {
+        previous: previousIds,
+        current: currentIds,
+        added: currentIds.filter(id => !previousIds.includes(id)),
+        removed: previousIds.filter(id => !currentIds.includes(id))
+      });
 
-  // Update assignments when any listener receives data
+      // Clear assignments for removed drivers
+      const removedDrivers = previousIds.filter(id => !currentIds.includes(id));
+      if (removedDrivers.length > 0) {
+        setAssignments(prev => {
+          const newAssignments = { ...prev };
+          removedDrivers.forEach(driverId => {
+            delete newAssignments[driverId];
+          });
+          return newAssignments;
+        });
+      }
+    }
+
+    prevDriverIds.current = driverIds;
+
+    // Update listeners object
+    const newListeners: Record<string, any> = {};
+    
+    socketConnections.forEach(({ driverId, socket, enabled }) => {
+      if (enabled && driverId) {
+        newListeners[driverId] = socket;
+      }
+    });
+
+    setListeners(newListeners);
+
+    console.log(`🎯 FRONTEND: Setting up listeners for ${Object.keys(newListeners).length} drivers:`, Object.keys(newListeners));
+  }, [driverIds, ...socketConnections.map(conn => conn.socket.connected)]);
+
+  // Update assignments when any socket receives data
   useEffect(() => {
     let hasNewData = false;
     
-    Object.entries(listeners).forEach(([driverId, listener]) => {
-      if (listener.data) {
+    socketConnections.forEach(({ driverId, socket, enabled }) => {
+      if (enabled && driverId && socket.data) {
         hasNewData = true;
         setAssignments(prev => ({
           ...prev,
-          [driverId]: listener.data
+          [driverId]: socket.data
         }));
       }
     });
@@ -76,7 +86,7 @@ export const useDriverAssignments = (driverIds: string[]) => {
     if (hasNewData) {
       console.log(`🔍 FRONTEND: Checking for new assignments...`);
     }
-  }, [driver1.data, driver2.data, driver3.data, driver4.data, driver5.data, driver6.data, driver7.data, driver8.data]);
+  }, [...socketConnections.map(conn => conn.socket.data)]);
 
   return {
     assignments,
@@ -86,5 +96,7 @@ export const useDriverAssignments = (driverIds: string[]) => {
     )
   };
 };
+
+
 
 export default useDriverAssignments;

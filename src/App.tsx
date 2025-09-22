@@ -6,7 +6,7 @@ import type { SidebarPage } from './components/Sidebar';
 import HomeScreen from './pages/HomeScreen';
 import DriverStatusScreen from './pages/DriverStatusScreen';
 // import StatisticsScreen from './pages/StatisticsScreen';
-import MapScreen from './pages/MapScreen';
+//import MapScreen from './pages/MapScreen';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>('home');
@@ -19,8 +19,8 @@ function App() {
         return <DriverStatusScreen />;
       // case 'statistics':
       //   return <StatisticsScreen />;
-      case 'map':
-        return <MapScreen />;
+      // case 'map':
+      //   return <MapScreen />;
       default:
         return <HomeScreen />;
     }

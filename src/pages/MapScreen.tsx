@@ -56,7 +56,8 @@ const MapScreen: React.FC = () => {
   const trackableDrivers = React.useMemo(() => 
     drivers.filter(driver => 
       driver.currentLocation && 
-      (driver.status === 'available' || driver.status === 'occupied')
+      (driver.status === 'available' || driver.status === 'occupied' || driver.status === 'unavailable'
+      )
     ), [drivers]
   );
 
@@ -209,7 +210,7 @@ const MapScreen: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ 
                 width: 12, 
-                height: 12, 
+                height: 12,
                 backgroundColor: '#22c55e', 
                 borderRadius: '50%',
               }}></div>

@@ -19,6 +19,11 @@ const getDriverActiveOrders = async (driverId: string): Promise<ActiveOrderRespo
   return res.data;
 }
 
+const getDriverLocation = async () : Promise<null> => {
+  const res = await http.get<null>('/driver-user/allLocations');
+  return res.data;;
+}
+
 export { getDriverDetails, getDriverDetailsById, getDriverActiveOrders };
 export type { Driver, DriverOrder };
 

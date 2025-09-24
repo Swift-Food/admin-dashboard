@@ -47,4 +47,12 @@ export interface ActiveOrderResponse {
   };
 }
 
+export interface DriverLocation {
+  id: string;
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+  source: string;
+};
+
 export type {Driver};

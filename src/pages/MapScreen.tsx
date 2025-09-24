@@ -41,12 +41,16 @@ const MapScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isPageVisible, setIsPageVisible] = useState(!document.hidden);
-  const [mapReady, setMapReady] = useState<boolean>(false); 
+
+  console.log('mapscreen render:', {
+    driversCount: drivers.length, 
+    loading,
+    error
+  });
   
   // Refs for tracking previous data to prevent unnecessary re-renders
   const previousDriversRef = useRef<Driver[]>([]);
   const intervalRef = useRef<number | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoized filter to prevent recalculation on every render
   const trackableDrivers = React.useMemo(() => 
@@ -62,6 +66,10 @@ const MapScreen: React.FC = () => {
       setError(null);
       const driverData = await getDriverDetails();
       
+      // Debug the fetched data
+      console.log('📍 Fetched driver data:', driverData);
+      console.log('📍 First driver with location:', driverData.find(d => d.currentLocation));
+      
       // Only update if data actually changed
       const hasChanged = JSON.stringify(driverData) !== JSON.stringify(previousDriversRef.current);
       
@@ -70,8 +78,13 @@ const MapScreen: React.FC = () => {
         setLastUpdated(new Date());
         previousDriversRef.current = driverData;
         console.log(`📍 Updated ${driverData.length} driver locations`);
-      } else {
-        console.log('📍 No driver location changes detected');
+        
+        // Log trackable drivers
+        const trackable = driverData.filter(driver => 
+          driver.currentLocation && 
+          (driver.status === 'available' || driver.status === 'occupied')
+        );
+        console.log(`📍 Found ${trackable.length} trackable drivers`);
       }
     } catch (err: any) {
       console.error('Failed to fetch driver locations:', err);
@@ -81,7 +94,8 @@ const MapScreen: React.FC = () => {
     }
   }, []);
 
-   useEffect(() => {
+  // Page Visibility API
+  useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsPageVisible(isVisible);
@@ -98,35 +112,12 @@ const MapScreen: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [fetchDriverLocations]);
 
+  // Initial fetch
   useEffect(() => {
-    // Wait for DOM to be ready, then initialize map
-    const initializeMap = () => {
-      if (mapContainerRef.current) {
-        console.log('📍 Map container found, initializing map...');
-        setMapReady(true);
-      } else {
-        console.log('📍 Map container not ready, retrying...');
-        // Retry after a short delay
-        setTimeout(initializeMap, 100);
-      }
-    };
+    fetchDriverLocations();
+  }, [fetchDriverLocations]);
 
-    // Small delay to ensure DOM is fully rendered
-    const timeoutId = setTimeout(initializeMap, 200);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, []); // Run once on mount
-
-  // ✅ Fetch drivers only after map is ready
-  useEffect(() => {
-    if (mapReady) {
-      fetchDriverLocations();
-    }
-  }, [mapReady, fetchDriverLocations]);
-
-  // Optimized polling - only when page is visible
+  // Polling
   useEffect(() => {
     if (!isPageVisible) {
       if (intervalRef.current) {
@@ -136,7 +127,6 @@ const MapScreen: React.FC = () => {
       return;
     }
 
-    // Shorter interval for more real-time tracking (3 seconds instead of 5)
     intervalRef.current = setInterval(() => {
       if (!document.hidden) {
         fetchDriverLocations();
@@ -151,24 +141,12 @@ const MapScreen: React.FC = () => {
     };
   }, [fetchDriverLocations, isPageVisible]);
 
+  const centralLondonBounds: [[number, number], [number, number]] = [
+    [51.4700, -0.2300], // Southwest corner (latitude, longitude)
+    [51.5400, -0.0500]  // Northeast corner (latitude, longitude)
+  ];
 
-    // Calculate map bounds to show all drivers
-  const mapBounds = React.useMemo(() => {
-    if (trackableDrivers.length === 0) return null;
-    
-    const lats = trackableDrivers.map(d => d.currentLocation!.latitude);
-    const lngs = trackableDrivers.map(d => d.currentLocation!.longitude);
-    
-    return {
-      north: Math.max(...lats),
-      south: Math.min(...lats),
-      east: Math.max(...lngs),
-      west: Math.min(...lngs),
-    };
-  }, [trackableDrivers]);
-
-  // Default center (London)
-  const defaultCenter: [number, number] = [51.5074, -0.1278];
+  const centralLondonCenter: [number, number] = [51.5074, -0.1278]; // London center
 
   // Enhanced statistics
   const stats = React.useMemo(() => ({
@@ -179,7 +157,9 @@ const MapScreen: React.FC = () => {
     trackable: trackableDrivers.length
   }), [drivers, trackableDrivers]);
 
-  if (loading || !mapReady) {
+  // Only show loading if we haven't fetched any data yet
+  if (loading && drivers.length === 0) {
+    console.log('🔄 Initial loading...');
     return (
       <div style={{ 
         display: 'flex', 
@@ -188,115 +168,125 @@ const MapScreen: React.FC = () => {
         height: '100vh',
         fontSize: '18px'
       }}>
-        {!mapReady ? '🗺️ Preparing map...' : 'Loading driver locations...'}
+        🗺️ Loading driver locations...
       </div>
     );
   }
 
+  console.log('🗺️ Rendering map with', trackableDrivers.length, 'trackable drivers');
+
   return (
-     <div style={{ height: '100vh', width: '100%', position: 'relative' }}>
-    {/* Enhanced Header with better statistics */}
-    <div style={{
-      position: 'absolute',
-      top: 16,
-      left: 16,
-      right: 16,
-      zIndex: 1000,
-      backgroundColor: 'white',
-      padding: 16,
-      borderRadius: 8,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 'bold' }}>
-            Driver Location Tracker
-          </h1>
-          <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: 14 }}>
-            Tracking {stats.trackable}/{stats.total} drivers • 
-            Last updated: {lastUpdated.toLocaleTimeString()}
-            {!isPageVisible && ' (⏸️ Paused)'}
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ 
-              width: 12, 
-              height: 12, 
-              backgroundColor: '#22c55e', 
-              borderRadius: '50%' 
-            }}></div>
-            <span style={{ fontSize: 13 }}>Available ({stats.available})</span>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ 
-              width: 12, 
-              height: 12, 
-              backgroundColor: '#ef4444', 
-              borderRadius: '50%' 
-            }}></div>
-            <span style={{ fontSize: 13 }}>Occupied ({stats.occupied})</span>
-          </div>
+    <div style={{ height: '100vh', width: '100%', position: 'relative' }}>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ 
-              width: 12, 
-              height: 12, 
-              backgroundColor: '#6b7280', 
-              borderRadius: '50%' 
-            }}></div>
-            <span style={{ fontSize: 13 }}>Unavailable ({stats.unavailable})</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Error banner */}
-    {error && (
+      {/* Header to display available, occupied and unavailable drivers */}
       <div style={{
         position: 'absolute',
-        top: 100,
+        top: 16,
         left: 16,
         right: 16,
         zIndex: 1000,
-        backgroundColor: '#fef2f2',
-        border: '1px solid #fecaca',
-        color: '#dc2626',
-        padding: 12,
+        backgroundColor: 'white',
+        padding: 16,
         borderRadius: 8,
-        fontSize: 14
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       }}>
-        {error}
-      </div>
-    )}
+        <div style={{ display: 'flex', 
+          flexDirection: 'column', // Stack title and content vertically
+          alignItems: 'center',    // Center everything horizontally
+          gap: 12  }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 'bold' }}>
+              Driver Location Tracker
+            </h1>
+            <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: 14 }}>
+              Tracking {stats.trackable}/{stats.total} drivers • 
+              Last updated: {lastUpdated.toLocaleTimeString()}
+              {!isPageVisible && ' (⏸️ Paused)'}
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ 
+                width: 12, 
+                height: 12, 
+                backgroundColor: '#22c55e', 
+                borderRadius: '50%',
+              }}></div>
+              <span style={{ fontSize: 13, color: '#000000' }}>Available ({stats.available})</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6}}>
+              <div style={{ 
+                width: 12, 
+                height: 12, 
+                backgroundColor: '#ef4444', 
+                borderRadius: '50%' 
+              }}></div>
+              <span style={{ fontSize: 13, color: '#000000' }}>Occupied ({stats.occupied})</span>
+            </div>
 
-    {/* Map Container - Full height with proper positioning */}
-    <div 
-    ref={mapContainerRef}
-    style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 1,
-    }}>
-    {mapReady && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ 
+                width: 12, 
+                height: 12, 
+                backgroundColor: '#6b7280', 
+                borderRadius: '50%' 
+              }}></div>
+              <span style={{ fontSize: 13, color: '#000000' }}>Unavailable ({stats.unavailable})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Error banner */}
+      {error && (
+        <div style={{
+          position: 'absolute',
+          top: 100,
+          left: 16,
+          right: 16,
+          zIndex: 1000,
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          color: '#dc2626',
+          padding: 12,
+          borderRadius: 8,
+          fontSize: 14
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Map Container */}
       <MapContainer
-        center={mapBounds ? 
-          [(mapBounds.north + mapBounds.south) / 2, (mapBounds.east + mapBounds.west) / 2] : 
-          defaultCenter
-        }
-        zoom={mapBounds ? 11 : 12}
-        style={{ height: '100vh', width: '100%' }}
+        center={centralLondonCenter}
+        zoom={13} // Higher zoom for city view
+        minZoom={11} // Prevent zooming out too far
+        maxZoom={18} // Allow detailed street view
+        maxBounds={centralLondonBounds} // Restrict panning outside London
+        maxBoundsViscosity={1.0} // Make bounds "sticky"
+        style={{ 
+          height: '100vh', 
+          width: '100%'
+        }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          minZoom={11} // Match map minZoom
+          maxZoom={18} // Match map maxZoom
         />
         
+        {/* Always show a test marker first */}
+        <Marker position={centralLondonCenter}>
+          <Popup>
+            📍 London Test Marker<br/>
+            Found {trackableDrivers.length} trackable drivers
+          </Popup>
+        </Marker>
+        
+        {/* Render driver markers */}
         {trackableDrivers.map((driver) => (
           <Marker
             key={`${driver.id}-${driver.currentLocation!.latitude}-${driver.currentLocation!.longitude}`}
@@ -335,7 +325,7 @@ const MapScreen: React.FC = () => {
                   </p>
                   
                   <p style={{ margin: '4px 0', fontSize: 12, color: '#999' }}>
-                    ID: {driver.id.slice(0, 8)}...
+                    ID: {driver.id.slice(0, 8)}
                   </p>
                 </div>
               </div>
@@ -343,10 +333,8 @@ const MapScreen: React.FC = () => {
           </Marker>
         ))}
       </MapContainer>
-    )}
     </div>
-  </div>
-);
+  );
 };
 
 export default MapScreen;

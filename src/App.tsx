@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './App.css';
+import 'leaflet/dist/leaflet.css';
 import Sidebar from './components/Sidebar';
 import type { SidebarPage } from './components/Sidebar';
 import HomeScreen from './pages/HomeScreen';

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { getDriverDetails, getDriverLocation } from '../services/driver.service';
+import { getDriverDetails, getDriverLocations, getDriversWithLocations } from '../services/driver.service';
 import type { Driver } from '../types/driver.types';
 
 // Fix for default markers in React Leaflet
@@ -61,12 +61,11 @@ const MapScreen: React.FC = () => {
     ), [drivers]
   );
 
-  //driver-user/allLocations
   // Optimized fetch function with comparison
   const fetchDriverLocations = useCallback(async () => {
     try {
       setError(null);
-      const driverData = await getDriverDetails();
+      const driverData = await getDriversWithLocations();
       
       // Debug the fetched data
       console.log('📍 Fetched driver data:', driverData);

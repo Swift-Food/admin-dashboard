@@ -65,6 +65,6 @@ const getDriversWithLocations = async (): Promise<Driver[]> => {
   }
 };
 
-export { getDriverDetails, getDriverDetailsById, getDriverActiveOrders, getDriverLocations };
+export { getDriverDetails, getDriverDetailsById, getDriverActiveOrders, getDriverLocations, getDriversWithLocations };
 export type { Driver, DriverOrder, LocationData, DriverLocationsResponse, ActiveOrderResponse };
 

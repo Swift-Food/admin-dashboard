@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import orderService from "../services/order.service";
-import { driverId as DEFAULT_DRIVER, driverId, longitude, latitude, sampleOrderId } from "../constants";
+import { driverId as longitude, latitude, sampleOrderId } from "../constants";
 import OrderColumn from "../components/OrderColumn";
 //import DriverPicker from "../components/DriverPicker";
 import {type Driver, getDriverDetails} from "../services/driver.service";

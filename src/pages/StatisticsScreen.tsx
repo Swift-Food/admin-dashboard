@@ -83,13 +83,13 @@ const StatisticsScreen: React.FC = () => {
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
   return (
-    <div style={{ padding: 24, backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+    <div style={{ padding: 24, backgroundColor: '#ccdaf5', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+        <h1 className = "text-xl font-bold mb-4">
           Driver Statistics
         </h1>
-        <p style={{ color: '#6b7280', fontSize: 16, margin: '8px 0 0 0' }}>
+        <p style={{ color: '#000000', fontSize: 16, margin: '8px 0 0 0' }}>
           Analyze driver performance, earnings, and delivery metrics
         </p>
       </div>

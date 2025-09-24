@@ -9,8 +9,20 @@ type DriverPickerProps = {
 }
 
 const DriverPicker: React.FC<DriverPickerProps> = ({drivers, value, onChange, disabled}) => {
+
+    const selectedDriver = drivers.find(d => d.id === value);
+
     return (
         <div className = "outer-div">
+
+             {selectedDriver && (
+                <div className="selected-driver-display">
+                    <strong>Selected Driver:</strong> {selectedDriver.user?.username || `Driver ${selectedDriver.id.slice(0,8)}…`} 
+                    <br />
+                    <small>ID: {selectedDriver.id}</small>
+                </div>
+            )}
+            
             <label className = "driver_picker__label">Driver:</label>
             <select className = "driver_picker__border"
                 value={value ?? ""}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { getDriverDetails, getDriverLocations, getDriversWithLocations } from '../services/driver.service';
+import {getDriversWithLocations } from '../services/driver.service';
 import type { Driver } from '../types/driver.types';
 
 // Fix for default markers in React Leaflet
@@ -28,6 +28,15 @@ const availableIcon = new L.Icon({
 
 const occupiedIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const unavailableIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
   shadowUrl: markerShadow,
   iconSize: [25, 41],
   iconAnchor: [12, 41],

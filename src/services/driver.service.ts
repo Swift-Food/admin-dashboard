@@ -1,5 +1,5 @@
 import http from "./http";
-import type { Driver, ActiveOrderResponse} from "../types/driver.types";
+import type { Driver, ActiveOrderResponse, DriverLocationsResponse, LocationData} from "../types/driver.types";
 import type { DriverOrder } from "../types/order.types";
 
 const getDriverDetails = async () : Promise<Driver[]> => {
@@ -19,14 +19,52 @@ const getDriverActiveOrders = async (driverId: string): Promise<ActiveOrderRespo
   return res.data;
 }
 
-const getDriverLocation = async () : Promise<null> => {
-  const res = await http.get<null>('/driver-user/allLocations');
-  return res.data;;
+const getDriverLocations = async (): Promise<DriverLocationsResponse> => {
+  const res = await http.get<DriverLocationsResponse>('/driver-user/allLocations');
+  console.log("Driver Locations:", res.data);
+  return res.data;
 }
 
-export { getDriverDetails, getDriverDetailsById, getDriverActiveOrders };
-export type { Driver, DriverOrder };
+const getDriversWithLocations = async (): Promise<Driver[]> => {
+  try {
+    // Fetch both driver details and locations
+    const [driversRes, locationsRes] = await Promise.all([
+      getDriverDetails(),
+      getDriverLocations()
+    ]);
 
+    const drivers = driversRes;
+    const locations = locationsRes;
 
+    // Merge location data with driver data
+    const driversWithLocations = drivers.map(driver => {
+      const locationData = locations[driver.id];
+      
+      if (locationData) {
+        return {
+          ...driver,
+          currentLocation: {
+            latitude: locationData.latitude,
+            longitude: locationData.longitude
+          },
+          locationTimestamp: locationData.timestamp,
+          locationSource: locationData.source
+        };
+      }
+      
+      return driver; // Return driver without location if not found
+    });
 
+    console.log(`📍 Merged ${driversWithLocations.length} drivers with location data`);
+    console.log(`📍 Drivers with locations: ${driversWithLocations.filter(d => d.currentLocation).length}`);
+    
+    return driversWithLocations;
+  } catch (error) {
+    console.error('Error fetching drivers with locations:', error);
+    throw error;
+  }
+};
+
+export { getDriverDetails, getDriverDetailsById, getDriverActiveOrders, getDriverLocations };
+export type { Driver, DriverOrder, LocationData, DriverLocationsResponse, ActiveOrderResponse };
 

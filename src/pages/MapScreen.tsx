@@ -301,7 +301,8 @@ const MapScreen: React.FC = () => {
           <Marker
             key={`${driver.id}-${driver.currentLocation!.latitude}-${driver.currentLocation!.longitude}`}
             position={[driver.currentLocation!.latitude, driver.currentLocation!.longitude]}
-            icon={driver.status === 'available' ? availableIcon : occupiedIcon}
+            icon={driver.status === 'available' ? availableIcon : 
+              driver.status === "occupied" ? occupiedIcon : unavailableIcon}
           >
             <Popup>
               <div style={{ minWidth: 200 }}>
@@ -313,7 +314,8 @@ const MapScreen: React.FC = () => {
                   <p style={{ margin: '4px 0' }}>
                     <strong>Status:</strong> 
                     <span style={{ 
-                      color: driver.status === 'available' ? '#22c55e' : '#ef4444',
+                      color: driver.status === 'available' ? '#22c55e' :
+                      driver.status === 'occupied' ? '#ef4444' : '#6b7280',
                       marginLeft: 4,
                       textTransform: 'capitalize'
                     }}>

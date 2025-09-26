@@ -14,6 +14,9 @@ const navItems = [
   { id: 'home', label: 'Admin Dashboard', icon: (
     <FontAwesomeIcon icon={faHome} style={iconCommonStyle} />
   ) },
+  { id: 'orders', label: 'Orders Screen', icon: (
+    <FontAwesomeIcon icon={faHome} style={iconCommonStyle} />
+  ) },
   { id: 'driver-status', label: 'Driver Status', icon: (
     <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />
   ) },

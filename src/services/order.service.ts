@@ -7,6 +7,11 @@ const getOrdersByDriver = async (driverId: string): Promise<DriverOrder[]> => {
     return res.data; 
 }
 
+const getOrders = async() => {
+  const res = await http.get('order');
+  return res.data;
+}
+
 const getOrderById = async (orderId: string): Promise<DriverOrder> => {
   const response = await http.get<DriverOrder>(`/order/${orderId}`);
   return response.data;
@@ -14,5 +19,6 @@ const getOrderById = async (orderId: string): Promise<DriverOrder> => {
 
 export default {
   getOrdersByDriver,
-  getOrderById
+  getOrderById,
+  getOrders
 };

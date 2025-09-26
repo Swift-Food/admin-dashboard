@@ -7,6 +7,7 @@ import HomeScreen from './pages/HomeScreen';
 import DriverStatusScreen from './pages/DriverStatusScreen';
 import MapScreen from './pages/MapScreen';
 import StatisticsScreen from './pages/StatisticsScreen';
+import AllOrdersScreen from './pages/OrdersScreen';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>('home');
@@ -15,6 +16,8 @@ function App() {
     switch (currentPage) {
       case 'home':
         return <HomeScreen />;
+      case 'orders':
+        return <AllOrdersScreen/>
       case 'driver-status':
         return <DriverStatusScreen />;
       case 'statistics':

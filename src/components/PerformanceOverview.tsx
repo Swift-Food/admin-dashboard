@@ -8,7 +8,6 @@ interface PerformanceOverviewProps {
 }
 
 const PerformanceOverview: React.FC<PerformanceOverviewProps> = ({ driver, stats }) => {
-  // Add error boundary and null checks
   if (!driver) {
     return (
       <div style={{ 
@@ -43,62 +42,95 @@ const PerformanceOverview: React.FC<PerformanceOverviewProps> = ({ driver, stats
         <div style={{ padding: 40, color: '#6b7280' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
           <p style={{ fontSize: 16, margin: 0 }}>No performance data available</p>
-          <p style={{ fontSize: 14, margin: '8px 0 0 0' }}>Statistics will appear here once the driver completes deliveries.</p>
         </div>
       </div>
     );
   }
 
-  // Helper function to safely format numbers
+  // Helper functions with correct API data handling
   const safeNumber = (value: number | null | undefined, defaultValue = 0): number => {
-    return typeof value === 'number' && !isNaN(value) ? value : defaultValue;
+    if (value === null || value === undefined || isNaN(value)) {
+      return defaultValue;
+    }
+    return Number(value);
   };
 
-  // Helper function to safely format percentages
+  // For API data that's already a percentage (87.5 = 87.5%)
   const safePercentage = (value: number | null | undefined): string => {
-    const num = safeNumber(value);
-    return `${(num * 100).toFixed(1)}%`;
+    const num = safeNumber(value, 0);
+    return `${num.toFixed(1)}%`;
   };
 
-  // Create stat cards with safe data access
+  // Map API response to our display values
+  const totalDeliveries = safeNumber(stats.totalDeliveries);
+  const totalEarnings = safeNumber(stats.totalEarnings);
+  const onTimeRate = safeNumber(stats.onTimeRate); // Already a percentage from API
+  const customerRating = safeNumber(stats.averageCustomerRating);
+  const restaurantRating = safeNumber(stats.averageRestaurantRating);
+  const totalDistance = safeNumber(stats.totalDistance); // Note: API uses totalDistance, not totalDistanceKm
+  const completionRate = safeNumber(stats.completionRate, 0);
+  const avgDeliveryTime = safeNumber(stats.averageDeliveryTime, 0);
+
   const statCards = [
     {
       title: 'Total Deliveries',
-      value: safeNumber(stats.totalDeliveries),
+      value: totalDeliveries.toString(),
       icon: '📦',
       color: '#3b82f6'
     },
     {
       title: 'Total Earnings',
-      value: `£${safeNumber(stats.totalEarnings).toFixed(2)}`,
+      value: `£${totalEarnings.toFixed(2)}`,
       icon: '💰',
       color: '#10b981'
     },
     {
       title: 'On-Time Rate',
-      value: safePercentage(stats.onTimeDeliveryRate),
+      value: safePercentage(onTimeRate),
       icon: '⏰',
-      color: '#f59e0b'
+      color: onTimeRate >= 80 ? '#10b981' : onTimeRate >= 60 ? '#f59e0b' : '#ef4444'
     },
     {
       title: 'Customer Rating',
-      value: `${safeNumber(stats.averageCustomerRating).toFixed(1)} ⭐`,
+      value: customerRating > 0 ? `${customerRating.toFixed(1)} ⭐` : 'No ratings yet',
       icon: '👥',
-      color: '#8b5cf6'
+      color: customerRating > 0 ? '#8b5cf6' : '#6b7280'
     },
     {
       title: 'Distance Covered',
-      value: `${safeNumber(stats.totalDistanceKm).toFixed(1)} km`,
+      value: `${totalDistance.toFixed(1)} km`,
       icon: '🛣️',
       color: '#06b6d4'
-    },
-    {
-      title: 'Completion Rate',
-      value: safePercentage(stats.completionRate),
-      icon: '✅',
-      color: '#84cc16'
     }
   ];
+
+  // Only add these if they exist in the API response
+  if (restaurantRating > 0) {
+    statCards.push({
+      title: 'Restaurant Rating',
+      value: `${restaurantRating.toFixed(1)} ⭐`,
+      icon: '🏪',
+      color: '#84cc16'
+    });
+  }
+
+  if (completionRate > 0) {
+    statCards.push({
+      title: 'Completion Rate',
+      value: safePercentage(completionRate),
+      icon: '✅',
+      color: '#f97316'
+    });
+  }
+
+  if (avgDeliveryTime > 0) {
+    statCards.push({
+      title: 'Avg Delivery Time',
+      value: `${avgDeliveryTime.toFixed(0)} min`,
+      icon: '⏱️',
+      color: '#e11d48'
+    });
+  }
 
   return (
     <div style={{ 
@@ -113,14 +145,14 @@ const PerformanceOverview: React.FC<PerformanceOverviewProps> = ({ driver, stats
           Performance Overview
         </h2>
         <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0 0' }}>
-          {driver.user?.username || 'Unknown Driver'} • Driver ID: {driver.id || 'N/A'}
+          {driver.user?.username || 'Unknown Driver'} • Driver ID: {driver.id?.slice(0, 8) || 'N/A'}
         </p>
       </div>
 
       {/* Stats Grid */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: 16 
       }}>
         {statCards.map((stat, index) => (
@@ -149,9 +181,9 @@ const PerformanceOverview: React.FC<PerformanceOverviewProps> = ({ driver, stats
               {stat.icon}
             </div>
             
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={{ 
-                fontSize: 24, 
+                fontSize: 20, 
                 fontWeight: 'bold', 
                 color: stat.color 
               }}>

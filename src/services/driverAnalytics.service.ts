@@ -17,15 +17,17 @@ export interface DriverAnalytic {
   comments?: string;
 }
 
+// Update your interface in driverAnalytics.service.ts
 export interface DriverPerformanceStats {
+  driverId: string;  
   totalDeliveries: number;
   totalEarnings: number;
-  onTimeDeliveryRate: number;
+  onTimeRate: number;  
   averageCustomerRating: number;
-  averageRestaurantRating: number;
-  totalDistanceKm: number;
-  completionRate: number;
-  averageDeliveryTime: number; // in minutes
+  averageRestaurantRating?: number;  
+  totalDistance: number;  
+  completionRate?: number;  
+  averageDeliveryTime?: number;  
 }
 
 export interface DailyStats {

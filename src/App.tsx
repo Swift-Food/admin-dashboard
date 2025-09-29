@@ -8,6 +8,7 @@ import DriverStatusScreen from './pages/DriverStatusScreen';
 import MapScreen from './pages/MapScreen';
 import StatisticsScreen from './pages/StatisticsScreen';
 import AllOrdersScreen from './pages/OrdersScreen';
+import RestaurantAdminDashboard from './pages/RestaurantScreen';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>('home');
@@ -18,6 +19,8 @@ function App() {
         return <HomeScreen />;
       case 'orders':
         return <AllOrdersScreen/>
+      case 'restaurant':
+        return <RestaurantAdminDashboard/>
       case 'driver-status':
         return <DriverStatusScreen />;
       case 'statistics':

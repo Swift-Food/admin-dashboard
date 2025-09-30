@@ -10,50 +10,28 @@ import {
   ShoppingBag,
   Clock,
 } from "lucide-react";
-import "./RestaurantScreen.css";
-
-// API service
-const restaurantAPI = {
-  getAllRestaurants: async () => {
-    const response = await fetch(
-      "https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant"
-    );
-    if (!response.ok) throw new Error("Failed to fetch restaurants");
-    return response.json();
-  },
-
-  updateAvailability: async (id, isOpen) => {
-    const response = await fetch(
-      `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/${id}/availability`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isOpen, deviceToken: null }),
-      }
-    );
-    if (!response.ok) throw new Error("Failed to update availability");
-    return response.json();
-  },
-
-  getRestaurantOrders: async (restaurantId) => {
-    const response = await fetch(
-      `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/getOrders/${restaurantId}`
-    );
-    if (!response.ok) throw new Error("Failed to fetch orders");
-    return response.json();
-  },
-};
+import {
+  getAllRestaurants,
+  toggleRestaurantStatus,
+  getRestaurantOrders,
+} from "./services/restaurant.service";
+import type { RestaurantResponse } from "./services/restaurant.service";
+import "./RestaurantAdminDashboard.css";
 
 const RestaurantAdminDashboard = () => {
-  const [restaurants, setRestaurants] = useState([]);
+  const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [updatingId, setUpdatingId] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
-  const [showPassword, setShowPassword] = useState({});
-  const [copiedField, setCopiedField] = useState(null);
-  const [restaurantOrders, setRestaurantOrders] = useState({});
-  const [loadingOrders, setLoadingOrders] = useState({});
+  const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [restaurantOrders, setRestaurantOrders] = useState<
+    Record<string, any[]>
+  >({});
+  const [loadingOrders, setLoadingOrders] = useState<Record<string, boolean>>(
+    {}
+  );
 
   useEffect(() => {
     fetchRestaurants();
@@ -62,48 +40,51 @@ const RestaurantAdminDashboard = () => {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const data = await restaurantAPI.getAllRestaurants();
+      const data = await getAllRestaurants();
       setRestaurants(data);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  const updateAvailability = async (id, isOpen) => {
+  const updateAvailability = async (id: string, isOpen: boolean) => {
     try {
       setUpdatingId(id);
-      await restaurantAPI.updateAvailability(id, isOpen);
+      await toggleRestaurantStatus(id, isOpen);
       setRestaurants(
         restaurants.map((r) => (r.id === id ? { ...r, isOpen } : r))
       );
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      alert(
+        `Error: ${err instanceof Error ? err.message : "An error occurred"}`
+      );
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const togglePasswordVisibility = (id) => {
+  const togglePasswordVisibility = (id: string) => {
     setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const copyToClipboard = (text, field) => {
+  const copyToClipboard = (text: string | undefined, field: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const fetchRestaurantOrders = async (restaurantId) => {
+  const fetchRestaurantOrders = async (restaurantId: string) => {
     if (restaurantOrders[restaurantId]) return;
 
     try {
       setLoadingOrders((prev) => ({ ...prev, [restaurantId]: true }));
-      const data = await restaurantAPI.getRestaurantOrders(restaurantId);
+      const data = await getRestaurantOrders(restaurantId);
 
-      const orders = [];
+      const orders: any[] = [];
       Object.values(data).forEach((restaurantOrders) => {
         Object.values(restaurantOrders).forEach((order) => {
           orders.push(order);
@@ -119,7 +100,7 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
-  const handleExpandRestaurant = (restaurantId) => {
+  const handleExpandRestaurant = (restaurantId: string) => {
     const newExpandedId = expandedId === restaurantId ? null : restaurantId;
     setExpandedId(newExpandedId);
 
@@ -128,8 +109,8 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
       PENDING: "status-pending",
       PREPARING: "status-preparing",
       READY: "status-ready",
@@ -139,7 +120,7 @@ const RestaurantAdminDashboard = () => {
     return colors[status] || "status-default";
   };
 
-  const formatDate = (date) => {
+  const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleString("en-US", {
       month: "short",
       day: "numeric",

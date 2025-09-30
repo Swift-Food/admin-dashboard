@@ -5,22 +5,109 @@ import type {
 } from "../types/restaurant.types";
 
 // ============================================
+// TYPE DEFINITIONS FOR API RESPONSES
+// ============================================
+
+type OrderStatus =
+  | "placed"
+  | "confirmed"
+  | "preparing"
+  | "driver_assigned"
+  | "ready_for_pickup"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled";
+
+interface RestaurantUser {
+  id: string;
+  username: string;
+  password: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  verified: boolean;
+  profilePicture?: string;
+  adminOtp?: string;
+}
+
+interface Address {
+  id: string;
+  name: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  zipcode: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+interface Market {
+  id: string;
+  name: string;
+}
+
+interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  category?: string;
+  available: boolean;
+}
+
+interface RestaurantResponse {
+  id: string;
+  restaurant_name: string;
+  isOpen: boolean;
+  restaurant_description?: string;
+  restaurantType: "restaurant" | "stall";
+  featured: boolean;
+  phoneNumber?: string;
+  email?: string;
+  averageRating?: number;
+  commission?: number;
+  restaurantNumber?: string;
+  fsa?: number;
+  fsaLink?: string;
+  autoAccept?: boolean;
+  owner?: RestaurantUser;
+  menuItems?: MenuItem[];
+  address?: Address;
+  market?: Market;
+  marketId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+interface RestaurantOrdersResponse {
+  [orderId: string]: OrderStatus;
+}
+
+// ============================================
 // READ OPERATIONS
 // ============================================
 
-const getAllRestaurants = async (): Promise<Restaurant[]> => {
-  const res = await http.get<Restaurant[]>("/restaurant");
+const getAllRestaurants = async (): Promise<RestaurantResponse[]> => {
+  const res = await http.get<RestaurantResponse[]>("/restaurant");
   console.log("Restaurants:", res);
   return res.data;
 };
 
-const getRestaurantById = async (id: string): Promise<Restaurant | null> => {
-  const res = await http.get<Restaurant>(`/restaurant/${id}`);
+const getRestaurantById = async (
+  id: string
+): Promise<RestaurantResponse | null> => {
+  const res = await http.get<RestaurantResponse>(`/restaurant/${id}`);
   return res.data;
 };
 
-const getRestaurantOrders = async (restaurantId: string): Promise<any> => {
-  const res = await http.get<any>(`/restaurant/getOrders/${restaurantId}`);
+const getRestaurantOrders = async (
+  restaurantId: string
+): Promise<RestaurantOrdersResponse> => {
+  const res = await http.get<RestaurantOrdersResponse>(
+    `/restaurant/getOrders/${restaurantId}`
+  );
   return res.data;
 };
 
@@ -31,8 +118,8 @@ const getRestaurantOrders = async (restaurantId: string): Promise<any> => {
 const updateRestaurantAvailability = async (
   id: string,
   updateDto: UpdateAvailabilityDto
-): Promise<Restaurant> => {
-  const res = await http.patch<Restaurant>(
+): Promise<RestaurantResponse> => {
+  const res = await http.patch<RestaurantResponse>(
     `/restaurant/${id}/availability`,
     updateDto
   );
@@ -43,7 +130,7 @@ const updateRestaurantAvailability = async (
 const toggleRestaurantStatus = async (
   id: string,
   isOpen: boolean
-): Promise<Restaurant> => {
+): Promise<RestaurantResponse> => {
   return updateRestaurantAvailability(id, {
     isOpen,
     deviceToken: null,
@@ -162,8 +249,8 @@ const createAddress = async (
 
 const createRestaurant = async (
   dto: CreateRestaurantDto
-): Promise<Restaurant> => {
-  const res = await http.post<Restaurant>("/restaurant", dto);
+): Promise<RestaurantResponse> => {
+  const res = await http.post<RestaurantResponse>("/restaurant", dto);
   return res.data;
 };
 
@@ -181,7 +268,7 @@ const createRestaurant = async (
  */
 const createCompleteRestaurant = async (
   data: CreateCompleteRestaurantDto
-): Promise<Restaurant> => {
+): Promise<RestaurantResponse> => {
   // Step 1: Create Restaurant User
   const userResult = await createRestaurantUser({
     userDetails: {
@@ -264,4 +351,11 @@ export type {
   CreateAddressDto,
   CreateRestaurantDto,
   CreateCompleteRestaurantDto,
+  RestaurantResponse,
+  RestaurantUser,
+  Address,
+  Market,
+  MenuItem,
+  OrderStatus,
+  RestaurantOrdersResponse,
 };

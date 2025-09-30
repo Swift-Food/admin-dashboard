@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { AlertCircle, Check, X, Eye, EyeOff, Copy, CheckCircle, ShoppingBag, Clock } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  AlertCircle,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  Copy,
+  CheckCircle,
+  ShoppingBag,
+  Clock,
+} from "lucide-react";
 
 const RestaurantAdminDashboard = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -20,8 +30,10 @@ const RestaurantAdminDashboard = () => {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant');
-      if (!response.ok) throw new Error('Failed to fetch restaurants');
+      const response = await fetch(
+        "https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant"
+      );
+      if (!response.ok) throw new Error("Failed to fetch restaurants");
       const data = await response.json();
       setRestaurants(data);
       setError(null);
@@ -35,23 +47,26 @@ const RestaurantAdminDashboard = () => {
   const updateAvailability = async (id, isOpen) => {
     try {
       setUpdatingId(id);
-      const response = await fetch(`https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/${id}/availability`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isOpen,
-          deviceToken: null
-        }),
-      });
+      const response = await fetch(
+        `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/${id}/availability`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            isOpen,
+            deviceToken: null,
+          }),
+        }
+      );
 
-      if (!response.ok) throw new Error('Failed to update availability');
+      if (!response.ok) throw new Error("Failed to update availability");
 
       // Update local state
-      setRestaurants(restaurants.map(r => 
-        r.id === id ? { ...r, isOpen } : r
-      ));
+      setRestaurants(
+        restaurants.map((r) => (r.id === id ? { ...r, isOpen } : r))
+      );
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -60,9 +75,9 @@ const RestaurantAdminDashboard = () => {
   };
 
   const togglePasswordVisibility = (id) => {
-    setShowPassword(prev => ({
+    setShowPassword((prev) => ({
       ...prev,
-      [id]: !prev[id]
+      [id]: !prev[id],
     }));
   };
 
@@ -78,41 +93,41 @@ const RestaurantAdminDashboard = () => {
     }
 
     try {
-      setLoadingOrders(prev => ({ ...prev, [restaurantId]: true }));
+      setLoadingOrders((prev) => ({ ...prev, [restaurantId]: true }));
       const response = await fetch(
         `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/getOrders/${restaurantId}`
       );
-      if (!response.ok) throw new Error('Failed to fetch orders');
-      
+      if (!response.ok) throw new Error("Failed to fetch orders");
+
       const data = await response.json();
-      
+
       // Extract orders from nested structure
       const orders = [];
-      Object.values(data).forEach(restaurantOrders => {
-        Object.values(restaurantOrders).forEach(order => {
+      Object.values(data).forEach((restaurantOrders) => {
+        Object.values(restaurantOrders).forEach((order) => {
           orders.push(order);
         });
       });
-      
-      setRestaurantOrders(prev => ({
+
+      setRestaurantOrders((prev) => ({
         ...prev,
-        [restaurantId]: orders
+        [restaurantId]: orders,
       }));
     } catch (err) {
-      console.error('Error fetching orders:', err);
-      setRestaurantOrders(prev => ({
+      console.error("Error fetching orders:", err);
+      setRestaurantOrders((prev) => ({
         ...prev,
-        [restaurantId]: []
+        [restaurantId]: [],
       }));
     } finally {
-      setLoadingOrders(prev => ({ ...prev, [restaurantId]: false }));
+      setLoadingOrders((prev) => ({ ...prev, [restaurantId]: false }));
     }
   };
 
   const handleExpandRestaurant = (restaurantId) => {
     const newExpandedId = expandedId === restaurantId ? null : restaurantId;
     setExpandedId(newExpandedId);
-    
+
     if (newExpandedId && !restaurantOrders[restaurantId]) {
       fetchRestaurantOrders(restaurantId);
     }
@@ -120,21 +135,21 @@ const RestaurantAdminDashboard = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      PREPARING: 'bg-blue-100 text-blue-800',
-      READY: 'bg-green-100 text-green-800',
-      COMPLETED: 'bg-gray-100 text-gray-800',
-      CANCELLED: 'bg-red-100 text-red-800'
+      PENDING: "bg-yellow-100 text-yellow-800",
+      PREPARING: "bg-blue-100 text-blue-800",
+      READY: "bg-green-100 text-green-800",
+      COMPLETED: "bg-gray-100 text-gray-800",
+      CANCELLED: "bg-red-100 text-red-800",
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || "bg-gray-100 text-gray-800";
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(date).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -175,8 +190,12 @@ const RestaurantAdminDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Restaurant Management</h1>
-          <p className="text-gray-600 mt-2">Manage restaurant availability and view login credentials</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Restaurant Management
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Manage restaurant availability and view login credentials
+          </p>
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -184,12 +203,24 @@ const RestaurantAdminDashboard = () => {
             <table className="w-full">
               <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Restaurant</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Type</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Market</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Contact</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Restaurant
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Type
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Market
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Contact
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -198,7 +229,9 @@ const RestaurantAdminDashboard = () => {
                     <tr className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4">
                         <div>
-                          <div className="font-medium text-gray-900">{restaurant.restaurant_name}</div>
+                          <div className="font-medium text-gray-900">
+                            {restaurant.restaurant_name}
+                          </div>
                           {restaurant.featured && (
                             <span className="inline-block mt-1 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
                               Featured
@@ -212,29 +245,46 @@ const RestaurantAdminDashboard = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {restaurant.market?.name || 'N/A'}
+                        {restaurant.market?.name || "N/A"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        <div>{restaurant.phoneNumber || 'N/A'}</div>
-                        <div className="text-xs text-gray-500">{restaurant.email || 'N/A'}</div>
+                        <div>{restaurant.phoneNumber || "N/A"}</div>
+                        <div className="text-xs text-gray-500">
+                          {restaurant.email || "N/A"}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${restaurant.isOpen ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                          <span className={`text-sm font-medium ${restaurant.isOpen ? 'text-green-700' : 'text-red-700'}`}>
-                            {restaurant.isOpen ? 'Open' : 'Closed'}
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              restaurant.isOpen ? "bg-green-500" : "bg-red-500"
+                            }`}
+                          ></div>
+                          <span
+                            className={`text-sm font-medium ${
+                              restaurant.isOpen
+                                ? "text-green-700"
+                                : "text-red-700"
+                            }`}
+                          >
+                            {restaurant.isOpen ? "Open" : "Closed"}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => updateAvailability(restaurant.id, !restaurant.isOpen)}
+                            onClick={() =>
+                              updateAvailability(
+                                restaurant.id,
+                                !restaurant.isOpen
+                              )
+                            }
                             disabled={updatingId === restaurant.id}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                               restaurant.isOpen
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : 'bg-green-600 hover:bg-green-700 text-white'
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : "bg-green-600 hover:bg-green-700 text-white"
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
                             {updatingId === restaurant.id ? (
@@ -243,16 +293,19 @@ const RestaurantAdminDashboard = () => {
                                 Updating...
                               </span>
                             ) : restaurant.isOpen ? (
-                              'Close'
+                              "Close"
                             ) : (
-                              'Open'
+                              "Open"
                             )}
                           </button>
                           <button
-                            onClick={() => handleExpandRestaurant(restaurant.id)}
+                            onClick={() =>
+                              handleExpandRestaurant(restaurant.id)
+                            }
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
                           >
-                            {expandedId === restaurant.id ? 'Hide' : 'Show'} Details
+                            {expandedId === restaurant.id ? "Hide" : "Show"}{" "}
+                            Details
                           </button>
                         </div>
                       </td>
@@ -263,92 +316,176 @@ const RestaurantAdminDashboard = () => {
                           <div className="space-y-4">
                             {/* Login Credentials Section */}
                             <div className="bg-white rounded-lg p-4 border border-gray-200">
-                              <h3 className="font-semibold text-gray-900 mb-3">Login Credentials</h3>
+                              <h3 className="font-semibold text-gray-900 mb-3">
+                                Login Credentials
+                              </h3>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Username
+                                  </label>
                                   <div className="flex items-center gap-2">
                                     <input
                                       type="text"
-                                      value={restaurant.owner?.username || 'N/A'}
+                                      value={
+                                        restaurant.owner?.username || "N/A"
+                                      }
                                       readOnly
                                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
                                     />
                                     <button
-                                      onClick={() => copyToClipboard(restaurant.owner?.username, `username-${restaurant.id}`)}
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          restaurant.owner?.username,
+                                          `username-${restaurant.id}`
+                                        )
+                                      }
                                       className="p-2 hover:bg-gray-100 rounded-lg transition"
                                       title="Copy username"
                                     >
-                                      {copiedField === `username-${restaurant.id}` ? (
-                                        <CheckCircle size={18} className="text-green-600" />
+                                      {copiedField ===
+                                      `username-${restaurant.id}` ? (
+                                        <CheckCircle
+                                          size={18}
+                                          className="text-green-600"
+                                        />
                                       ) : (
-                                        <Copy size={18} className="text-gray-600" />
+                                        <Copy
+                                          size={18}
+                                          className="text-gray-600"
+                                        />
                                       )}
                                     </button>
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Password
+                                  </label>
                                   <div className="flex items-center gap-2">
                                     <input
-                                      type={showPassword[restaurant.id] ? 'text' : 'password'}
-                                      value={restaurant.owner?.password || 'N/A'}
+                                      type={
+                                        showPassword[restaurant.id]
+                                          ? "text"
+                                          : "password"
+                                      }
+                                      value={
+                                        restaurant.owner?.password || "N/A"
+                                      }
                                       readOnly
                                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
                                     />
                                     <button
-                                      onClick={() => togglePasswordVisibility(restaurant.id)}
+                                      onClick={() =>
+                                        togglePasswordVisibility(restaurant.id)
+                                      }
                                       className="p-2 hover:bg-gray-100 rounded-lg transition"
-                                      title={showPassword[restaurant.id] ? 'Hide password' : 'Show password'}
+                                      title={
+                                        showPassword[restaurant.id]
+                                          ? "Hide password"
+                                          : "Show password"
+                                      }
                                     >
                                       {showPassword[restaurant.id] ? (
-                                        <EyeOff size={18} className="text-gray-600" />
+                                        <EyeOff
+                                          size={18}
+                                          className="text-gray-600"
+                                        />
                                       ) : (
-                                        <Eye size={18} className="text-gray-600" />
+                                        <Eye
+                                          size={18}
+                                          className="text-gray-600"
+                                        />
                                       )}
                                     </button>
                                     <button
-                                      onClick={() => copyToClipboard(restaurant.owner?.password, `password-${restaurant.id}`)}
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          restaurant.owner?.password,
+                                          `password-${restaurant.id}`
+                                        )
+                                      }
                                       className="p-2 hover:bg-gray-100 rounded-lg transition"
                                       title="Copy password"
                                     >
-                                      {copiedField === `password-${restaurant.id}` ? (
-                                        <CheckCircle size={18} className="text-green-600" />
+                                      {copiedField ===
+                                      `password-${restaurant.id}` ? (
+                                        <CheckCircle
+                                          size={18}
+                                          className="text-green-600"
+                                        />
                                       ) : (
-                                        <Copy size={18} className="text-gray-600" />
+                                        <Copy
+                                          size={18}
+                                          className="text-gray-600"
+                                        />
                                       )}
                                     </button>
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Admin OTP</label>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Admin OTP
+                                  </label>
                                   <div className="flex items-center gap-2">
                                     <input
-                                      type={showPassword[`otp-${restaurant.id}`] ? 'text' : 'password'}
-                                      value={restaurant.owner?.adminOtp || 'N/A'}
+                                      type={
+                                        showPassword[`otp-${restaurant.id}`]
+                                          ? "text"
+                                          : "password"
+                                      }
+                                      value={
+                                        restaurant.owner?.adminOtp || "N/A"
+                                      }
                                       readOnly
                                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
                                     />
                                     <button
-                                      onClick={() => togglePasswordVisibility(`otp-${restaurant.id}`)}
+                                      onClick={() =>
+                                        togglePasswordVisibility(
+                                          `otp-${restaurant.id}`
+                                        )
+                                      }
                                       className="p-2 hover:bg-gray-100 rounded-lg transition"
-                                      title={showPassword[`otp-${restaurant.id}`] ? 'Hide OTP' : 'Show OTP'}
+                                      title={
+                                        showPassword[`otp-${restaurant.id}`]
+                                          ? "Hide OTP"
+                                          : "Show OTP"
+                                      }
                                     >
                                       {showPassword[`otp-${restaurant.id}`] ? (
-                                        <EyeOff size={18} className="text-gray-600" />
+                                        <EyeOff
+                                          size={18}
+                                          className="text-gray-600"
+                                        />
                                       ) : (
-                                        <Eye size={18} className="text-gray-600" />
+                                        <Eye
+                                          size={18}
+                                          className="text-gray-600"
+                                        />
                                       )}
                                     </button>
                                     <button
-                                      onClick={() => copyToClipboard(restaurant.owner?.adminOtp, `otp-${restaurant.id}`)}
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          restaurant.owner?.adminOtp,
+                                          `otp-${restaurant.id}`
+                                        )
+                                      }
                                       className="p-2 hover:bg-gray-100 rounded-lg transition"
                                       title="Copy OTP"
                                     >
-                                      {copiedField === `otp-${restaurant.id}` ? (
-                                        <CheckCircle size={18} className="text-green-600" />
+                                      {copiedField ===
+                                      `otp-${restaurant.id}` ? (
+                                        <CheckCircle
+                                          size={18}
+                                          className="text-green-600"
+                                        />
                                       ) : (
-                                        <Copy size={18} className="text-gray-600" />
+                                        <Copy
+                                          size={18}
+                                          className="text-gray-600"
+                                        />
                                       )}
                                     </button>
                                   </div>
@@ -357,20 +494,34 @@ const RestaurantAdminDashboard = () => {
                               <div className="mt-4 pt-4 border-t border-gray-200">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                   <div>
-                                    <span className="text-gray-600">Rating:</span>
-                                    <span className="ml-2 font-medium">{restaurant.averageRating}/5</span>
+                                    <span className="text-gray-600">
+                                      Rating:
+                                    </span>
+                                    <span className="ml-2 font-medium">
+                                      {restaurant.averageRating}/5
+                                    </span>
                                   </div>
                                   <div>
-                                    <span className="text-gray-600">Commission:</span>
-                                    <span className="ml-2 font-medium">{restaurant.commission}%</span>
+                                    <span className="text-gray-600">
+                                      Commission:
+                                    </span>
+                                    <span className="ml-2 font-medium">
+                                      {restaurant.commission}%
+                                    </span>
                                   </div>
                                   <div>
-                                    <span className="text-gray-600">Restaurant #:</span>
-                                    <span className="ml-2 font-medium">{restaurant.restaurantNumber || 'N/A'}</span>
+                                    <span className="text-gray-600">
+                                      Restaurant #:
+                                    </span>
+                                    <span className="ml-2 font-medium">
+                                      {restaurant.restaurantNumber || "N/A"}
+                                    </span>
                                   </div>
                                   <div>
                                     <span className="text-gray-600">FSA:</span>
-                                    <span className="ml-2 font-medium">{restaurant.fsa || 'N/A'}</span>
+                                    <span className="ml-2 font-medium">
+                                      {restaurant.fsa || "N/A"}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -380,8 +531,13 @@ const RestaurantAdminDashboard = () => {
                             <div className="bg-white rounded-lg p-4 border border-gray-200">
                               <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
-                                  <ShoppingBag size={20} className="text-gray-700" />
-                                  <h3 className="font-semibold text-gray-900">Ongoing Orders</h3>
+                                  <ShoppingBag
+                                    size={20}
+                                    className="text-gray-700"
+                                  />
+                                  <h3 className="font-semibold text-gray-900">
+                                    Ongoing Orders
+                                  </h3>
                                 </div>
                                 {loadingOrders[restaurant.id] && (
                                   <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -393,59 +549,97 @@ const RestaurantAdminDashboard = () => {
 
                               {restaurantOrders[restaurant.id]?.length > 0 ? (
                                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                                  {restaurantOrders[restaurant.id].map((order) => (
-                                    <div key={order.orderId} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition">
-                                      <div className="flex items-start justify-between mb-2">
-                                        <div>
-                                          <div className="font-medium text-gray-900">Order #{order.orderId.slice(0, 8)}</div>
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <Clock size={14} className="text-gray-500" />
-                                            <span className="text-xs text-gray-600">{formatDate(order.timestamp)}</span>
+                                  {restaurantOrders[restaurant.id].map(
+                                    (order) => (
+                                      <div
+                                        key={order.orderId}
+                                        className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition"
+                                      >
+                                        <div className="flex items-start justify-between mb-2">
+                                          <div>
+                                            <div className="font-medium text-gray-900">
+                                              Order #{order.orderId.slice(0, 8)}
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                              <Clock
+                                                size={14}
+                                                className="text-gray-500"
+                                              />
+                                              <span className="text-xs text-gray-600">
+                                                {formatDate(order.timestamp)}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <span
+                                            className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                                              order.status
+                                            )}`}
+                                          >
+                                            {order.status}
+                                          </span>
+                                        </div>
+
+                                        <div className="space-y-1 mb-2">
+                                          {order.items.map((item, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="flex justify-between text-sm"
+                                            >
+                                              <span className="text-gray-700">
+                                                {item.quantity}x {item.name}
+                                              </span>
+                                              <span className="text-gray-900 font-medium">
+                                                $
+                                                {(
+                                                  item.price * item.quantity
+                                                ).toFixed(2)}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {order.specialInstructions && (
+                                          <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+                                            <p className="text-xs text-yellow-800">
+                                              <span className="font-medium">
+                                                Special Instructions:
+                                              </span>{" "}
+                                              {order.specialInstructions}
+                                            </p>
+                                          </div>
+                                        )}
+
+                                        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                          <div className="text-sm">
+                                            {order.prepTimeMinutes && (
+                                              <span className="text-gray-600">
+                                                Prep Time:{" "}
+                                                {order.prepTimeMinutes} min
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="text-right">
+                                            <div className="text-sm text-gray-600">
+                                              Total:{" "}
+                                              <span className="font-semibold text-gray-900">
+                                                ${order.totalPrice.toFixed(2)}
+                                              </span>
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                              Restaurant Cost: $
+                                              {order.restaurantCost.toFixed(2)}
+                                            </div>
                                           </div>
                                         </div>
-                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
-                                          {order.status}
-                                        </span>
                                       </div>
-
-                                      <div className="space-y-1 mb-2">
-                                        {order.items.map((item, idx) => (
-                                          <div key={idx} className="flex justify-between text-sm">
-                                            <span className="text-gray-700">
-                                              {item.quantity}x {item.name}
-                                            </span>
-                                            <span className="text-gray-900 font-medium">
-                                              ${(item.price * item.quantity).toFixed(2)}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-
-                                      {order.specialInstructions && (
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
-                                          <p className="text-xs text-yellow-800">
-                                            <span className="font-medium">Special Instructions:</span> {order.specialInstructions}
-                                          </p>
-                                        </div>
-                                      )}
-
-                                      <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                                        <div className="text-sm">
-                                          {order.prepTimeMinutes && (
-                                            <span className="text-gray-600">Prep Time: {order.prepTimeMinutes} min</span>
-                                          )}
-                                        </div>
-                                        <div className="text-right">
-                                          <div className="text-sm text-gray-600">Total: <span className="font-semibold text-gray-900">${order.totalPrice.toFixed(2)}</span></div>
-                                          <div className="text-xs text-gray-500">Restaurant Cost: ${order.restaurantCost.toFixed(2)}</div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
+                                    )
+                                  )}
                                 </div>
                               ) : (
                                 <div className="text-center py-6 text-gray-500">
-                                  {loadingOrders[restaurant.id] ? 'Loading orders...' : 'No ongoing orders'}
+                                  {loadingOrders[restaurant.id]
+                                    ? "Loading orders..."
+                                    : "No ongoing orders"}
                                 </div>
                               )}
                             </div>

@@ -1,43 +1,224 @@
 import http from "./http";
-import type { Restaurant, UpdateAvailabilityDto } from "../types/restaurant.types";
+import type {
+  Restaurant,
+  UpdateAvailabilityDto,
+} from "../types/restaurant.types";
 
+// Existing functions
 const getAllRestaurants = async (): Promise<Restaurant[]> => {
-    const res = await http.get<Restaurant[]>('/restaurant');
-    console.log("Restaurants:", res);
-    return res.data;
-}
+  const res = await http.get<Restaurant[]>("/restaurant");
+  console.log("Restaurants:", res);
+  return res.data;
+};
 
 const getRestaurantById = async (id: string): Promise<Restaurant | null> => {
-    const res = await http.get<Restaurant>(`/restaurant/${id}`);
-    return res.data;
-}
+  const res = await http.get<Restaurant>(`/restaurant/${id}`);
+  return res.data;
+};
 
 const updateRestaurantAvailability = async (
-    id: string, 
-    updateDto: UpdateAvailabilityDto
+  id: string,
+  updateDto: UpdateAvailabilityDto
 ): Promise<Restaurant> => {
-    const res = await http.patch<Restaurant>(
-        `/restaurant/${id}/availability`,
-        updateDto
-    );
-    console.log("Updated Restaurant:", res);
-    return res.data;
-}
+  const res = await http.patch<Restaurant>(
+    `/restaurant/${id}/availability`,
+    updateDto
+  );
+  console.log("Updated Restaurant:", res);
+  return res.data;
+};
 
 const toggleRestaurantStatus = async (
-    id: string, 
-    isOpen: boolean
+  id: string,
+  isOpen: boolean
 ): Promise<Restaurant> => {
-    return updateRestaurantAvailability(id, {
-        isOpen,
-        deviceToken: null
-    });
+  return updateRestaurantAvailability(id, {
+    isOpen,
+    deviceToken: null,
+  });
+};
+
+// New creation functions
+interface CreateRestaurantUserDto {
+  userDetails: {
+    username: string;
+    password: string;
+    email: string;
+    phoneNumber: string;
+    role: "restaurant_owner";
+    verified: boolean;
+    profilePicture?: string;
+  };
+  bankingInformation: {
+    bankName: string;
+    accountNumber: string;
+    routingNumber: string;
+  };
+  rating: number;
 }
 
-export { 
-    getAllRestaurants, 
-    getRestaurantById, 
-    updateRestaurantAvailability,
-    toggleRestaurantStatus 
+interface CreateAddressDto {
+  userId: string;
+  name: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  zipcode: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+interface CreateRestaurantDto {
+  restaurant_name: string;
+  isOpen: boolean;
+  restaurant_description: string;
+  restaurantType: "restaurant" | "stall";
+  featured: boolean;
+  addressId: string;
+  phoneNumber: string;
+  email: string;
+  openingHours: Array<{
+    day: string;
+    open: string;
+    close: string;
+  }>;
+  images: string[];
+  ownerId: string;
+  marketId: string;
+  restaurantNumber?: string;
+  fsa?: number;
+  fsaLink?: string;
+  autoAccept?: boolean;
+}
+
+const createRestaurantUser = async (
+  dto: CreateRestaurantUserDto
+): Promise<{ id: string }> => {
+  const res = await http.post<{ id: string }>("/restaurant-user", dto);
+  return res.data;
 };
-export type { Restaurant, UpdateAvailabilityDto };
+
+const createAddress = async (
+  dto: CreateAddressDto
+): Promise<{ id: string }> => {
+  const res = await http.post<{ id: string }>("/address", dto);
+  return res.data;
+};
+
+const createRestaurant = async (
+  dto: CreateRestaurantDto
+): Promise<Restaurant> => {
+  const res = await http.post<Restaurant>("/restaurant", dto);
+  return res.data;
+};
+
+// Helper function to create complete restaurant with all dependencies
+const createCompleteRestaurant = async (data: {
+  // User details
+  username: string;
+  password: string;
+  email: string;
+  phoneNumber: string;
+  bankName: string;
+  accountNumber: string;
+  routingNumber: string;
+  profilePicture?: string;
+
+  // Address details
+  addressName: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  zipcode: string;
+  latitude: number;
+  longitude: number;
+
+  // Restaurant details
+  restaurant_name: string;
+  restaurant_description: string;
+  restaurantType: "restaurant" | "stall";
+  featured: boolean;
+  openingHours: Array<{ day: string; open: string; close: string }>;
+  images: string[];
+  marketId: string;
+  restaurantNumber?: string;
+  fsa?: number;
+  fsaLink?: string;
+  autoAccept?: boolean;
+}): Promise<Restaurant> => {
+  // Step 1: Create Restaurant User
+  const userResult = await createRestaurantUser({
+    userDetails: {
+      username: data.username,
+      password: data.password,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      role: "restaurant_owner",
+      verified: true,
+      profilePicture: data.profilePicture,
+    },
+    bankingInformation: {
+      bankName: data.bankName,
+      accountNumber: data.accountNumber,
+      routingNumber: data.routingNumber,
+    },
+    rating: 5.0,
+  });
+
+  // Step 2: Create Address
+  const addressResult = await createAddress({
+    userId: userResult.id,
+    name: data.addressName,
+    addressLine1: data.addressLine1,
+    addressLine2: data.addressLine2,
+    city: data.city,
+    zipcode: data.zipcode,
+    location: {
+      latitude: data.latitude,
+      longitude: data.longitude,
+    },
+  });
+
+  // Step 3: Create Restaurant
+  const restaurant = await createRestaurant({
+    restaurant_name: data.restaurant_name,
+    isOpen: true,
+    restaurant_description: data.restaurant_description,
+    restaurantType: data.restaurantType,
+    featured: data.featured,
+    addressId: addressResult.id,
+    phoneNumber: data.phoneNumber,
+    email: data.email,
+    openingHours: data.openingHours,
+    images: data.images,
+    ownerId: userResult.id,
+    marketId: data.marketId,
+    restaurantNumber: data.restaurantNumber,
+    fsa: data.fsa,
+    fsaLink: data.fsaLink,
+    autoAccept: data.autoAccept ?? true,
+  });
+
+  return restaurant;
+};
+
+export {
+  getAllRestaurants,
+  getRestaurantById,
+  updateRestaurantAvailability,
+  toggleRestaurantStatus,
+  createRestaurantUser,
+  createAddress,
+  createRestaurant,
+  createCompleteRestaurant,
+};
+
+export type {
+  Restaurant,
+  UpdateAvailabilityDto,
+  CreateRestaurantUserDto,
+  CreateAddressDto,
+  CreateRestaurantDto,
+};

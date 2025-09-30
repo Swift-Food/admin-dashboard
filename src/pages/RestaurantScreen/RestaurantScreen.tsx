@@ -10,6 +10,39 @@ import {
   ShoppingBag,
   Clock,
 } from "lucide-react";
+import "./RestaurantScreen.css";
+
+// API service
+const restaurantAPI = {
+  getAllRestaurants: async () => {
+    const response = await fetch(
+      "https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant"
+    );
+    if (!response.ok) throw new Error("Failed to fetch restaurants");
+    return response.json();
+  },
+
+  updateAvailability: async (id, isOpen) => {
+    const response = await fetch(
+      `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/${id}/availability`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isOpen, deviceToken: null }),
+      }
+    );
+    if (!response.ok) throw new Error("Failed to update availability");
+    return response.json();
+  },
+
+  getRestaurantOrders: async (restaurantId) => {
+    const response = await fetch(
+      `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/getOrders/${restaurantId}`
+    );
+    if (!response.ok) throw new Error("Failed to fetch orders");
+    return response.json();
+  },
+};
 
 const RestaurantAdminDashboard = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -22,7 +55,6 @@ const RestaurantAdminDashboard = () => {
   const [restaurantOrders, setRestaurantOrders] = useState({});
   const [loadingOrders, setLoadingOrders] = useState({});
 
-  // Fetch restaurants on component mount
   useEffect(() => {
     fetchRestaurants();
   }, []);
@@ -30,11 +62,7 @@ const RestaurantAdminDashboard = () => {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant"
-      );
-      if (!response.ok) throw new Error("Failed to fetch restaurants");
-      const data = await response.json();
+      const data = await restaurantAPI.getAllRestaurants();
       setRestaurants(data);
       setError(null);
     } catch (err) {
@@ -47,23 +75,7 @@ const RestaurantAdminDashboard = () => {
   const updateAvailability = async (id, isOpen) => {
     try {
       setUpdatingId(id);
-      const response = await fetch(
-        `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/${id}/availability`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            isOpen,
-            deviceToken: null,
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to update availability");
-
-      // Update local state
+      await restaurantAPI.updateAvailability(id, isOpen);
       setRestaurants(
         restaurants.map((r) => (r.id === id ? { ...r, isOpen } : r))
       );
@@ -75,10 +87,7 @@ const RestaurantAdminDashboard = () => {
   };
 
   const togglePasswordVisibility = (id) => {
-    setShowPassword((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const copyToClipboard = (text, field) => {
@@ -88,20 +97,12 @@ const RestaurantAdminDashboard = () => {
   };
 
   const fetchRestaurantOrders = async (restaurantId) => {
-    if (restaurantOrders[restaurantId]) {
-      return; // Already fetched
-    }
+    if (restaurantOrders[restaurantId]) return;
 
     try {
       setLoadingOrders((prev) => ({ ...prev, [restaurantId]: true }));
-      const response = await fetch(
-        `https://swiftfoods-32981ec7b5a4.herokuapp.com/restaurant/getOrders/${restaurantId}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch orders");
+      const data = await restaurantAPI.getRestaurantOrders(restaurantId);
 
-      const data = await response.json();
-
-      // Extract orders from nested structure
       const orders = [];
       Object.values(data).forEach((restaurantOrders) => {
         Object.values(restaurantOrders).forEach((order) => {
@@ -109,16 +110,10 @@ const RestaurantAdminDashboard = () => {
         });
       });
 
-      setRestaurantOrders((prev) => ({
-        ...prev,
-        [restaurantId]: orders,
-      }));
+      setRestaurantOrders((prev) => ({ ...prev, [restaurantId]: orders }));
     } catch (err) {
       console.error("Error fetching orders:", err);
-      setRestaurantOrders((prev) => ({
-        ...prev,
-        [restaurantId]: [],
-      }));
+      setRestaurantOrders((prev) => ({ ...prev, [restaurantId]: [] }));
     } finally {
       setLoadingOrders((prev) => ({ ...prev, [restaurantId]: false }));
     }
@@ -135,13 +130,13 @@ const RestaurantAdminDashboard = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      PENDING: "bg-yellow-100 text-yellow-800",
-      PREPARING: "bg-blue-100 text-blue-800",
-      READY: "bg-green-100 text-green-800",
-      COMPLETED: "bg-gray-100 text-gray-800",
-      CANCELLED: "bg-red-100 text-red-800",
+      PENDING: "status-pending",
+      PREPARING: "status-preparing",
+      READY: "status-ready",
+      COMPLETED: "status-completed",
+      CANCELLED: "status-cancelled",
     };
-    return colors[status] || "bg-gray-100 text-gray-800";
+    return colors[status] || "status-default";
   };
 
   const formatDate = (date) => {
@@ -155,10 +150,10 @@ const RestaurantAdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading restaurants...</p>
+      <div className="loading-container">
+        <div className="loading-content">
+          <div className="spinner"></div>
+          <p className="loading-text">Loading restaurants...</p>
         </div>
       </div>
     );
@@ -166,19 +161,16 @@ const RestaurantAdminDashboard = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="text-red-600" size={24} />
+      <div className="error-container">
+        <div className="error-card">
+          <div className="error-header">
+            <AlertCircle className="error-icon" size={24} />
             <div>
-              <h3 className="font-semibold text-red-900">Error Loading Data</h3>
-              <p className="text-red-700 text-sm mt-1">{error}</p>
+              <h3 className="error-title">Error Loading Data</h3>
+              <p className="error-message">{error}</p>
             </div>
           </div>
-          <button
-            onClick={fetchRestaurants}
-            className="mt-4 w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-          >
+          <button onClick={fetchRestaurants} className="retry-button">
             Retry
           </button>
         </div>
@@ -187,92 +179,78 @@ const RestaurantAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Restaurant Management
-          </h1>
-          <p className="text-gray-600 mt-2">
+    <div className="dashboard-container">
+      <div className="dashboard-content">
+        <div className="dashboard-header">
+          <h1 className="dashboard-title">Restaurant Management</h1>
+          <p className="dashboard-subtitle">
             Manage restaurant availability and view login credentials
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b border-gray-200">
+        <div className="table-container">
+          <div className="table-wrapper">
+            <table className="restaurants-table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Restaurant
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Type
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Market
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Contact
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Actions
-                  </th>
+                  <th>Restaurant</th>
+                  <th>Type</th>
+                  <th>Market</th>
+                  <th>Contact</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {restaurants.map((restaurant) => (
                   <React.Fragment key={restaurant.id}>
-                    <tr className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4">
+                    <tr className="restaurant-row">
+                      <td>
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="restaurant-name">
                             {restaurant.restaurant_name}
                           </div>
                           {restaurant.featured && (
-                            <span className="inline-block mt-1 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
-                              Featured
-                            </span>
+                            <span className="featured-badge">Featured</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                      <td>
+                        <span className="type-badge">
                           {restaurant.restaurantType}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="market-cell">
                         {restaurant.market?.name || "N/A"}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="contact-cell">
                         <div>{restaurant.phoneNumber || "N/A"}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="contact-email">
                           {restaurant.email || "N/A"}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                      <td>
+                        <div className="status-indicator">
                           <div
-                            className={`w-3 h-3 rounded-full ${
-                              restaurant.isOpen ? "bg-green-500" : "bg-red-500"
+                            className={`status-dot ${
+                              restaurant.isOpen
+                                ? "status-dot-open"
+                                : "status-dot-closed"
                             }`}
                           ></div>
                           <span
-                            className={`text-sm font-medium ${
+                            className={`status-text ${
                               restaurant.isOpen
-                                ? "text-green-700"
-                                : "text-red-700"
+                                ? "status-text-open"
+                                : "status-text-closed"
                             }`}
                           >
                             {restaurant.isOpen ? "Open" : "Closed"}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                      <td>
+                        <div className="action-buttons">
                           <button
                             onClick={() =>
                               updateAvailability(
@@ -281,15 +259,13 @@ const RestaurantAdminDashboard = () => {
                               )
                             }
                             disabled={updatingId === restaurant.id}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                              restaurant.isOpen
-                                ? "bg-red-600 hover:bg-red-700 text-white"
-                                : "bg-green-600 hover:bg-green-700 text-white"
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`btn ${
+                              restaurant.isOpen ? "btn-close" : "btn-open"
+                            }`}
                           >
                             {updatingId === restaurant.id ? (
-                              <span className="flex items-center gap-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              <span className="btn-loading">
+                                <div className="btn-spinner"></div>
                                 Updating...
                               </span>
                             ) : restaurant.isOpen ? (
@@ -302,7 +278,7 @@ const RestaurantAdminDashboard = () => {
                             onClick={() =>
                               handleExpandRestaurant(restaurant.id)
                             }
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+                            className="btn btn-details"
                           >
                             {expandedId === restaurant.id ? "Hide" : "Show"}{" "}
                             Details
@@ -312,26 +288,25 @@ const RestaurantAdminDashboard = () => {
                     </tr>
                     {expandedId === restaurant.id && (
                       <tr>
-                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
-                          <div className="space-y-4">
-                            {/* Login Credentials Section */}
-                            <div className="bg-white rounded-lg p-4 border border-gray-200">
-                              <h3 className="font-semibold text-gray-900 mb-3">
+                        <td colSpan="6" className="expanded-cell">
+                          <div className="expanded-content">
+                            <div className="credentials-section">
+                              <h3 className="section-title">
                                 Login Credentials
                               </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <div className="credentials-grid">
+                                <div className="credential-field">
+                                  <label className="field-label">
                                     Username
                                   </label>
-                                  <div className="flex items-center gap-2">
+                                  <div className="input-group">
                                     <input
                                       type="text"
                                       value={
                                         restaurant.owner?.username || "N/A"
                                       }
                                       readOnly
-                                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                                      className="credential-input"
                                     />
                                     <button
                                       onClick={() =>
@@ -340,29 +315,29 @@ const RestaurantAdminDashboard = () => {
                                           `username-${restaurant.id}`
                                         )
                                       }
-                                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                      className="icon-button"
                                       title="Copy username"
                                     >
                                       {copiedField ===
                                       `username-${restaurant.id}` ? (
                                         <CheckCircle
                                           size={18}
-                                          className="text-green-600"
+                                          className="icon-success"
                                         />
                                       ) : (
                                         <Copy
                                           size={18}
-                                          className="text-gray-600"
+                                          className="icon-default"
                                         />
                                       )}
                                     </button>
                                   </div>
                                 </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <div className="credential-field">
+                                  <label className="field-label">
                                     Password
                                   </label>
-                                  <div className="flex items-center gap-2">
+                                  <div className="input-group">
                                     <input
                                       type={
                                         showPassword[restaurant.id]
@@ -373,13 +348,13 @@ const RestaurantAdminDashboard = () => {
                                         restaurant.owner?.password || "N/A"
                                       }
                                       readOnly
-                                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                                      className="credential-input"
                                     />
                                     <button
                                       onClick={() =>
                                         togglePasswordVisibility(restaurant.id)
                                       }
-                                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                      className="icon-button"
                                       title={
                                         showPassword[restaurant.id]
                                           ? "Hide password"
@@ -389,12 +364,12 @@ const RestaurantAdminDashboard = () => {
                                       {showPassword[restaurant.id] ? (
                                         <EyeOff
                                           size={18}
-                                          className="text-gray-600"
+                                          className="icon-default"
                                         />
                                       ) : (
                                         <Eye
                                           size={18}
-                                          className="text-gray-600"
+                                          className="icon-default"
                                         />
                                       )}
                                     </button>
@@ -405,29 +380,29 @@ const RestaurantAdminDashboard = () => {
                                           `password-${restaurant.id}`
                                         )
                                       }
-                                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                      className="icon-button"
                                       title="Copy password"
                                     >
                                       {copiedField ===
                                       `password-${restaurant.id}` ? (
                                         <CheckCircle
                                           size={18}
-                                          className="text-green-600"
+                                          className="icon-success"
                                         />
                                       ) : (
                                         <Copy
                                           size={18}
-                                          className="text-gray-600"
+                                          className="icon-default"
                                         />
                                       )}
                                     </button>
                                   </div>
                                 </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <div className="credential-field">
+                                  <label className="field-label">
                                     Admin OTP
                                   </label>
-                                  <div className="flex items-center gap-2">
+                                  <div className="input-group">
                                     <input
                                       type={
                                         showPassword[`otp-${restaurant.id}`]
@@ -438,7 +413,7 @@ const RestaurantAdminDashboard = () => {
                                         restaurant.owner?.adminOtp || "N/A"
                                       }
                                       readOnly
-                                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                                      className="credential-input"
                                     />
                                     <button
                                       onClick={() =>
@@ -446,7 +421,7 @@ const RestaurantAdminDashboard = () => {
                                           `otp-${restaurant.id}`
                                         )
                                       }
-                                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                      className="icon-button"
                                       title={
                                         showPassword[`otp-${restaurant.id}`]
                                           ? "Hide OTP"
@@ -456,12 +431,12 @@ const RestaurantAdminDashboard = () => {
                                       {showPassword[`otp-${restaurant.id}`] ? (
                                         <EyeOff
                                           size={18}
-                                          className="text-gray-600"
+                                          className="icon-default"
                                         />
                                       ) : (
                                         <Eye
                                           size={18}
-                                          className="text-gray-600"
+                                          className="icon-default"
                                         />
                                       )}
                                     </button>
@@ -472,106 +447,95 @@ const RestaurantAdminDashboard = () => {
                                           `otp-${restaurant.id}`
                                         )
                                       }
-                                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                      className="icon-button"
                                       title="Copy OTP"
                                     >
                                       {copiedField ===
                                       `otp-${restaurant.id}` ? (
                                         <CheckCircle
                                           size={18}
-                                          className="text-green-600"
+                                          className="icon-success"
                                         />
                                       ) : (
                                         <Copy
                                           size={18}
-                                          className="text-gray-600"
+                                          className="icon-default"
                                         />
                                       )}
                                     </button>
                                   </div>
                                 </div>
                               </div>
-                              <div className="mt-4 pt-4 border-t border-gray-200">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                  <div>
-                                    <span className="text-gray-600">
-                                      Rating:
-                                    </span>
-                                    <span className="ml-2 font-medium">
-                                      {restaurant.averageRating}/5
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">
-                                      Commission:
-                                    </span>
-                                    <span className="ml-2 font-medium">
-                                      {restaurant.commission}%
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">
-                                      Restaurant #:
-                                    </span>
-                                    <span className="ml-2 font-medium">
-                                      {restaurant.restaurantNumber || "N/A"}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">FSA:</span>
-                                    <span className="ml-2 font-medium">
-                                      {restaurant.fsa || "N/A"}
-                                    </span>
-                                  </div>
+                              <div className="info-grid">
+                                <div className="info-item">
+                                  <span className="info-label">Rating:</span>
+                                  <span className="info-value">
+                                    {restaurant.averageRating}/5
+                                  </span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">
+                                    Commission:
+                                  </span>
+                                  <span className="info-value">
+                                    {restaurant.commission}%
+                                  </span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">
+                                    Restaurant #:
+                                  </span>
+                                  <span className="info-value">
+                                    {restaurant.restaurantNumber || "N/A"}
+                                  </span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">FSA:</span>
+                                  <span className="info-value">
+                                    {restaurant.fsa || "N/A"}
+                                  </span>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Ongoing Orders Section */}
-                            <div className="bg-white rounded-lg p-4 border border-gray-200">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <ShoppingBag
-                                    size={20}
-                                    className="text-gray-700"
-                                  />
-                                  <h3 className="font-semibold text-gray-900">
+                            <div className="orders-section">
+                              <div className="orders-header">
+                                <div className="orders-title-group">
+                                  <ShoppingBag size={20} />
+                                  <h3 className="section-title">
                                     Ongoing Orders
                                   </h3>
                                 </div>
                                 {loadingOrders[restaurant.id] && (
-                                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                                  <div className="orders-loading">
+                                    <div className="orders-spinner"></div>
                                     Loading...
                                   </div>
                                 )}
                               </div>
 
                               {restaurantOrders[restaurant.id]?.length > 0 ? (
-                                <div className="space-y-3 max-h-96 overflow-y-auto">
+                                <div className="orders-list">
                                   {restaurantOrders[restaurant.id].map(
                                     (order) => (
                                       <div
                                         key={order.orderId}
-                                        className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition"
+                                        className="order-card"
                                       >
-                                        <div className="flex items-start justify-between mb-2">
+                                        <div className="order-header">
                                           <div>
-                                            <div className="font-medium text-gray-900">
+                                            <div className="order-id">
                                               Order #{order.orderId.slice(0, 8)}
                                             </div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                              <Clock
-                                                size={14}
-                                                className="text-gray-500"
-                                              />
-                                              <span className="text-xs text-gray-600">
+                                            <div className="order-time">
+                                              <Clock size={14} />
+                                              <span>
                                                 {formatDate(order.timestamp)}
                                               </span>
                                             </div>
                                           </div>
                                           <span
-                                            className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                                            className={`order-status ${getStatusColor(
                                               order.status
                                             )}`}
                                           >
@@ -579,16 +543,16 @@ const RestaurantAdminDashboard = () => {
                                           </span>
                                         </div>
 
-                                        <div className="space-y-1 mb-2">
+                                        <div className="order-items">
                                           {order.items.map((item, idx) => (
                                             <div
                                               key={idx}
-                                              className="flex justify-between text-sm"
+                                              className="order-item"
                                             >
-                                              <span className="text-gray-700">
+                                              <span className="item-name">
                                                 {item.quantity}x {item.name}
                                               </span>
-                                              <span className="text-gray-900 font-medium">
+                                              <span className="item-price">
                                                 $
                                                 {(
                                                   item.price * item.quantity
@@ -599,9 +563,9 @@ const RestaurantAdminDashboard = () => {
                                         </div>
 
                                         {order.specialInstructions && (
-                                          <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
-                                            <p className="text-xs text-yellow-800">
-                                              <span className="font-medium">
+                                          <div className="special-instructions">
+                                            <p>
+                                              <span className="instructions-label">
                                                 Special Instructions:
                                               </span>{" "}
                                               {order.specialInstructions}
@@ -609,23 +573,23 @@ const RestaurantAdminDashboard = () => {
                                           </div>
                                         )}
 
-                                        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                                          <div className="text-sm">
+                                        <div className="order-footer">
+                                          <div className="prep-time">
                                             {order.prepTimeMinutes && (
-                                              <span className="text-gray-600">
+                                              <span>
                                                 Prep Time:{" "}
                                                 {order.prepTimeMinutes} min
                                               </span>
                                             )}
                                           </div>
-                                          <div className="text-right">
-                                            <div className="text-sm text-gray-600">
+                                          <div className="order-total">
+                                            <div className="total-line">
                                               Total:{" "}
-                                              <span className="font-semibold text-gray-900">
+                                              <span className="total-value">
                                                 ${order.totalPrice.toFixed(2)}
                                               </span>
                                             </div>
-                                            <div className="text-xs text-gray-500">
+                                            <div className="cost-line">
                                               Restaurant Cost: $
                                               {order.restaurantCost.toFixed(2)}
                                             </div>
@@ -636,7 +600,7 @@ const RestaurantAdminDashboard = () => {
                                   )}
                                 </div>
                               ) : (
-                                <div className="text-center py-6 text-gray-500">
+                                <div className="orders-empty">
                                   {loadingOrders[restaurant.id]
                                     ? "Loading orders..."
                                     : "No ongoing orders"}
@@ -655,8 +619,8 @@ const RestaurantAdminDashboard = () => {
         </div>
 
         {restaurants.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No restaurants found</p>
+          <div className="empty-state">
+            <p>No restaurants found</p>
           </div>
         )}
       </div>

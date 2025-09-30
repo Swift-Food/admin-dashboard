@@ -4,7 +4,10 @@ import type {
   UpdateAvailabilityDto,
 } from "../types/restaurant.types";
 
-// Existing functions
+// ============================================
+// READ OPERATIONS
+// ============================================
+
 const getAllRestaurants = async (): Promise<Restaurant[]> => {
   const res = await http.get<Restaurant[]>("/restaurant");
   console.log("Restaurants:", res);
@@ -15,6 +18,15 @@ const getRestaurantById = async (id: string): Promise<Restaurant | null> => {
   const res = await http.get<Restaurant>(`/restaurant/${id}`);
   return res.data;
 };
+
+const getRestaurantOrders = async (restaurantId: string): Promise<any> => {
+  const res = await http.get<any>(`/restaurant/getOrders/${restaurantId}`);
+  return res.data;
+};
+
+// ============================================
+// UPDATE OPERATIONS
+// ============================================
 
 const updateRestaurantAvailability = async (
   id: string,
@@ -38,7 +50,10 @@ const toggleRestaurantStatus = async (
   });
 };
 
-// New creation functions
+// ============================================
+// CREATE OPERATIONS - TYPE DEFINITIONS
+// ============================================
+
 interface CreateRestaurantUserDto {
   userDetails: {
     username: string;
@@ -93,29 +108,7 @@ interface CreateRestaurantDto {
   autoAccept?: boolean;
 }
 
-const createRestaurantUser = async (
-  dto: CreateRestaurantUserDto
-): Promise<{ id: string }> => {
-  const res = await http.post<{ id: string }>("/restaurant-user", dto);
-  return res.data;
-};
-
-const createAddress = async (
-  dto: CreateAddressDto
-): Promise<{ id: string }> => {
-  const res = await http.post<{ id: string }>("/address", dto);
-  return res.data;
-};
-
-const createRestaurant = async (
-  dto: CreateRestaurantDto
-): Promise<Restaurant> => {
-  const res = await http.post<Restaurant>("/restaurant", dto);
-  return res.data;
-};
-
-// Helper function to create complete restaurant with all dependencies
-const createCompleteRestaurant = async (data: {
+interface CreateCompleteRestaurantDto {
   // User details
   username: string;
   password: string;
@@ -147,7 +140,48 @@ const createCompleteRestaurant = async (data: {
   fsa?: number;
   fsaLink?: string;
   autoAccept?: boolean;
-}): Promise<Restaurant> => {
+}
+
+// ============================================
+// CREATE OPERATIONS - API CALLS
+// ============================================
+
+const createRestaurantUser = async (
+  dto: CreateRestaurantUserDto
+): Promise<{ id: string }> => {
+  const res = await http.post<{ id: string }>("/restaurant-user", dto);
+  return res.data;
+};
+
+const createAddress = async (
+  dto: CreateAddressDto
+): Promise<{ id: string }> => {
+  const res = await http.post<{ id: string }>("/address", dto);
+  return res.data;
+};
+
+const createRestaurant = async (
+  dto: CreateRestaurantDto
+): Promise<Restaurant> => {
+  const res = await http.post<Restaurant>("/restaurant", dto);
+  return res.data;
+};
+
+// ============================================
+// COMPLETE RESTAURANT CREATION
+// ============================================
+
+/**
+ * Creates a complete restaurant with all required dependencies:
+ * 1. Restaurant User (owner account)
+ * 2. Address
+ * 3. Restaurant
+ *
+ * This helper function orchestrates all three API calls in the correct order.
+ */
+const createCompleteRestaurant = async (
+  data: CreateCompleteRestaurantDto
+): Promise<Restaurant> => {
   // Step 1: Create Restaurant User
   const userResult = await createRestaurantUser({
     userDetails: {
@@ -204,11 +238,19 @@ const createCompleteRestaurant = async (data: {
   return restaurant;
 };
 
+// ============================================
+// EXPORTS
+// ============================================
+
 export {
+  // Read operations
   getAllRestaurants,
   getRestaurantById,
+  getRestaurantOrders,
+  // Update operations
   updateRestaurantAvailability,
   toggleRestaurantStatus,
+  // Create operations
   createRestaurantUser,
   createAddress,
   createRestaurant,
@@ -221,4 +263,5 @@ export type {
   CreateRestaurantUserDto,
   CreateAddressDto,
   CreateRestaurantDto,
+  CreateCompleteRestaurantDto,
 };

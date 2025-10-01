@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   AlertCircle,
-  Check,
-  X,
   Eye,
   EyeOff,
   Copy,
@@ -11,13 +9,13 @@ import {
   Clock,
   Plus,
 } from "lucide-react";
+
+import type { RestaurantResponse } from "../../services/restaurant.service";
 import {
-  getAllRestaurants,
   getAllRestaurantsAdminDashboard,
   toggleRestaurantStatus,
   getRestaurantOrders,
 } from "../../services/restaurant.service";
-import type { RestaurantResponse } from "../../services/restaurant.service";
 import AddRestaurantModal from "../../components/AddRestaurantModal";
 import "./RestaurantScreen.css";
 

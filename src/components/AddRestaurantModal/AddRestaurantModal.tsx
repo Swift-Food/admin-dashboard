@@ -1,9 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronLeft, Check, AlertCircle } from "lucide-react";
 import "./AddRestaurantModal.css";
-import { createRestaurantUser } from "../../services/restaurant.service";
-import { createAddress } from "../../services/restaurant.service";
-import { createRestaurant } from "../../services/restaurant.service";
+import { createAddress } from "../../services/address.service";
+import {
+  createRestaurant,
+  createRestaurantUser,
+} from "../../services/restaurant.service";
+import { getAllMarkets } from "../../services/market.service";
+
+import type { Market } from "../../types/market.types";
+import type {
+  CreateRestaurantUserDto,
+  CreateRestaurantUserResponse,
+} from "../../types/user.types";
 
 const DAYS = [
   "Monday",
@@ -15,15 +24,25 @@ const DAYS = [
   "Sunday",
 ];
 
-const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
+interface AddRestaurantModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const AddRestaurantModal = ({ isOpen, onClose, onSuccess }: AddRestaurantModalProps) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string>("");
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [loadingMarkets, setLoadingMarkets] = useState(false);
 
   // Store IDs from each step
-  const [createdUserId, setCreatedUserId] = useState(null);
-  const [createdRestaurantUserId, setCreatedRestaurantUserId] = useState(null);
-  const [createdAddressId, setCreatedAddressId] = useState(null);
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
+  const [createdRestaurantUserId, setCreatedRestaurantUserId] = useState<
+    string | null
+  >(null);
+  const [createdAddressId, setCreatedAddressId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     // User details
@@ -59,17 +78,41 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
     autoAccept: true,
   });
 
+  // Fetch markets when modal opens
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      if (isOpen && markets.length === 0) {
+        try {
+          setLoadingMarkets(true);
+          const marketData = await getAllMarkets();
+          setMarkets(marketData);
+        } catch (err) {
+          console.error("Error fetching markets:", err);
+          setError("Failed to load markets. Please try again.");
+        } finally {
+          setLoadingMarkets(false);
+        }
+      }
+    };
+
+    fetchMarkets();
+  }, [isOpen]);
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleHoursChange = (index, field, value) => {
+  const handleHoursChange = (
+    index: number,
+    field: "open" | "close",
+    value: string
+  ) => {
     const newHours = [...formData.openingHours];
     newHours[index][field] = value;
     setFormData((prev) => ({ ...prev, openingHours: newHours }));
   };
 
-  const handleImageChange = (index, value) => {
+  const handleImageChange = (index: number, value: string) => {
     const newImages = [...formData.images];
     newImages[index] = value;
     setFormData((prev) => ({ ...prev, images: newImages }));
@@ -126,13 +169,11 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
     }
 
     setLoading(true);
-    setError(null);
+    setError("");
 
     try {
       if (step === 1) {
-        // Step 1: Create Restaurant User
-
-        const userResult = await createRestaurantUser({
+        const userDto: CreateRestaurantUserDto = {
           userDetails: {
             username: formData.username,
             password: formData.password,
@@ -148,7 +189,10 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
             routingNumber: formData.routingNumber,
           },
           rating: 5.0,
-        });
+        };
+        // Step 1: Create Restaurant User
+        const userResult: CreateRestaurantUserResponse =
+          await createRestaurantUser(userDto);
 
         setCreatedUserId(userResult.user.id);
         setCreatedRestaurantUserId(userResult.id);
@@ -161,7 +205,6 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
           setError("User ID not found. Please start over.");
           return;
         }
-
         const addressResult = await createAddress({
           userId: createdUserId,
           name: formData.addressName,
@@ -193,7 +236,7 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleBack = () => {
     setStep((prev) => prev - 1);
-    setError(null);
+    setError("");
   };
 
   const handleSubmit = async () => {
@@ -208,10 +251,9 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
     }
 
     setLoading(true);
-    setError(null);
+    setError("");
 
     try {
-      // Step 3: Create Restaurant
       const restaurant = await createRestaurant({
         restaurant_name: formData.restaurant_name,
         isOpen: true,
@@ -248,7 +290,7 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleClose = () => {
     setStep(1);
-    setError(null);
+    setError("");
     setCreatedUserId(null);
     setCreatedRestaurantUserId(null);
     setCreatedAddressId(null);
@@ -641,17 +683,27 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
 
                 <div className="form-field">
                   <label className="form-label">
-                    Market ID <span className="form-label-required">*</span>
+                    Market <span className="form-label-required">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.marketId}
                     onChange={(e) =>
                       handleInputChange("marketId", e.target.value)
                     }
-                    className="form-input"
-                    placeholder="market-id"
-                  />
+                    className="form-select"
+                    disabled={loadingMarkets}
+                  >
+                    <option value="">
+                      {loadingMarkets
+                        ? "Loading markets..."
+                        : "Select a market"}
+                    </option>
+                    {markets.map((market) => (
+                      <option key={market.id} value={market.id}>
+                        {market.market_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

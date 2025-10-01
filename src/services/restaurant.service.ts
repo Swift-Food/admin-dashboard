@@ -4,70 +4,18 @@ import type {
   UpdateAvailabilityDto,
 } from "../types/restaurant.types";
 
+import type { Market } from "../types/market.types";
+import type { CreateAddressDto, Address } from "../types/address.types";
+import type { OrderStatus } from "../types/order.types";
+import type {
+  RestaurantUser,
+  CreateRestaurantUserDto,
+} from "../types/user.types";
+
+import { getUserByEmail } from "./userService.service";
 // ============================================
 // BASE TYPE DEFINITIONS
 // ============================================
-
-type OrderStatus =
-  | "placed"
-  | "confirmed"
-  | "preparing"
-  | "driver_assigned"
-  | "ready_for_pickup"
-  | "out_for_delivery"
-  | "delivered"
-  | "cancelled";
-
-interface RestaurantUser {
-  id: string;
-  username: string;
-  password: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-  verified: boolean;
-  profilePicture?: string;
-  adminOtp?: string;
-}
-
-interface Address {
-  id: string;
-  userId: string;
-  name: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  zipcode: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  isDefault: boolean;
-  statsToMarkets: Array<{
-    marketId: string;
-    distance: number;
-    time: number;
-  }>;
-}
-
-interface Market {
-  id: string;
-  market_name: string;
-  market_description?: string;
-  address: Address;
-  addressId: string;
-  openingHours: Array<{
-    day: string;
-    open: string | null;
-    close: string | null;
-  }>;
-  images?: string[];
-  averageRating: number;
-  isOpen: boolean;
-  tags?: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 interface MenuItem {
   id: string;
@@ -106,6 +54,37 @@ interface RestaurantResponse {
   updatedAt?: Date;
 }
 
+// CreateRestaurantDto
+interface CreateRestaurantDto {
+  restaurant_name: string;
+  isOpen?: boolean;
+  restaurant_description?: string;
+  restaurantType: "restaurant" | "stall";
+  featured?: boolean;
+  addressId: string;
+  phoneNumber?: string;
+  email?: string;
+  openingHours: Array<{ day: string; open: string; close: string }>;
+  images?: string[];
+  ownerId: string;
+  marketId: string;
+  restaurantNumber?: string;
+  incomingOrder?: string;
+  happyHour?: {
+    discount: number;
+    freeDrink: boolean;
+    durationMinutes: number;
+    startTime?: string;
+    endTime?: string;
+  };
+  isHappyHour?: boolean;
+  deviceToken?: string;
+  fsa?: number;
+  fsaLink?: string;
+  autoAccept?: boolean;
+}
+
+// RestaurantUser
 interface RestaurantOrdersResponse {
   [orderId: string]: OrderStatus;
 }
@@ -113,60 +92,6 @@ interface RestaurantOrdersResponse {
 // ============================================
 // API REQUEST DTOs
 // ============================================
-
-interface CreateRestaurantUserDto {
-  userDetails: {
-    username: string;
-    password: string;
-    email: string;
-    phoneNumber: string;
-    role: "restaurant_owner";
-    verified: boolean;
-    profilePicture?: string;
-  };
-  bankingInformation: {
-    bankName: string;
-    accountNumber: string;
-    routingNumber: string;
-  };
-  rating: number;
-}
-
-interface CreateAddressDto {
-  userId: string;
-  name: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  zipcode: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-}
-
-interface CreateRestaurantDto {
-  restaurant_name: string;
-  isOpen: boolean;
-  restaurant_description: string;
-  restaurantType: "restaurant" | "stall";
-  featured: boolean;
-  addressId: string;
-  phoneNumber: string;
-  email: string;
-  openingHours: Array<{
-    day: string;
-    open: string;
-    close: string;
-  }>;
-  images: string[];
-  ownerId: string;
-  marketId: string;
-  restaurantNumber?: string;
-  fsa?: number;
-  fsaLink?: string;
-  autoAccept?: boolean;
-}
 
 interface CreateCompleteRestaurantDto {
   // User details
@@ -235,22 +160,6 @@ const getRestaurantOrders = async (
     `/restaurant/getOrders/${restaurantId}`
   );
   return res.data;
-};
-
-const getUserByEmail = async (email: string): Promise<UserResponse | null> => {
-  try {
-    const res = await http.get<UserResponse>(`/users/email/${email}`);
-    return res.data;
-  } catch (error: any) {
-    if (error.response && error.response.status === 404) {
-      // User not found
-      return null;
-    }
-
-    // Handle other errors
-    console.error("Error fetching user by email:", error);
-    throw error;
-  }
 };
 
 // ============================================
@@ -456,7 +365,6 @@ export {
   getAllRestaurantsAdminDashboard,
   getRestaurantById,
   getRestaurantOrders,
-  getUserByEmail,
   // Update operations
   updateRestaurantAvailability,
   toggleRestaurantStatus,

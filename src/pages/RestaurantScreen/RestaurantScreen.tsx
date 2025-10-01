@@ -9,6 +9,7 @@ import {
   CheckCircle,
   ShoppingBag,
   Clock,
+  Plus,
 } from "lucide-react";
 import {
   getAllRestaurants,
@@ -17,6 +18,7 @@ import {
   getRestaurantOrders,
 } from "../../services/restaurant.service";
 import type { RestaurantResponse } from "../../services/restaurant.service";
+import AddRestaurantModal from "../../components/AddRestaurantModal";
 import "./RestaurantScreen.css";
 
 const RestaurantAdminDashboard = () => {
@@ -33,6 +35,7 @@ const RestaurantAdminDashboard = () => {
   const [loadingOrders, setLoadingOrders] = useState<Record<string, boolean>>(
     {}
   );
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     fetchRestaurants();
@@ -110,6 +113,10 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
+  const handleRestaurantCreated = () => {
+    fetchRestaurants();
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       PENDING: "status-pending",
@@ -164,10 +171,20 @@ const RestaurantAdminDashboard = () => {
     <div className="dashboard-container">
       <div className="dashboard-content">
         <div className="dashboard-header">
-          <h1 className="dashboard-title">Restaurant Management</h1>
-          <p className="dashboard-subtitle">
-            Manage restaurant availability and view login credentials
-          </p>
+          <div>
+            <h1 className="dashboard-title">Restaurant Management</h1>
+            <p className="dashboard-subtitle">
+              Manage restaurant availability and view login credentials
+            </p>
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="btn btn-open flex items-center gap-2"
+            style={{ marginLeft: "auto" }}
+          >
+            <Plus size={20} />
+            Add Restaurant
+          </button>
         </div>
 
         <div className="table-container">
@@ -606,6 +623,12 @@ const RestaurantAdminDashboard = () => {
           </div>
         )}
       </div>
+
+      <AddRestaurantModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={handleRestaurantCreated}
+      />
     </div>
   );
 };

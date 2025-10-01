@@ -46,223 +46,301 @@ const OrderTimer = ({ placedAt }: { placedAt: string }) => {
   };
   
   // Order Details Modal
-  const OrderDetailsModal = ({ 
-    order, 
-    isOpen, 
-    onClose 
-  }: { 
-    order: DriverOrder | null; 
-    isOpen: boolean; 
-    onClose: () => void; 
-  }) => {
-    if (!isOpen || !order) return null;
-    console.log("order details modal opened")
-    // Add error boundary check
-    if (!order.id) {
-      return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6">
-            <p className="text-red-500">Error: Invalid order data</p>
-            <button onClick={onClose} className="mt-4 bg-gray-200 px-4 py-2 rounded">
-              Close
-            </button>
-          </div>
-        </div>
-      );
-    }
+  // Order Details Modal with Cancel Button
+const OrderDetailsModal = ({ 
+  order, 
+  isOpen, 
+  onClose,
+  onCancelOrder // Add this prop
+}: { 
+  order: DriverOrder | null; 
+  isOpen: boolean; 
+  onClose: () => void;
+  onCancelOrder?: (orderId: string) => void; // Optional callback for cancel
+}) => {
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  if (!isOpen || !order) return null;
+  console.log("order details modal opened")
   
-    const formatCurrency = (amount?: number) => {
-      if (typeof amount === 'number' && !isNaN(amount)) {
-        return `${amount.toFixed(2)}`;
-      }
-      return 'N/A';
-    };
-  
-    const safeOrderId = order.id || 'unknown';
-    const safeOrderStatus = order.status || 'unknown';
-    const safePlacedAt = order.placedAt || new Date().toISOString();
-    const safeTotalAmount = order.totalAmount || 0;
-    console.log("delivery address is", order.deliveryAddress)
-  
+  // Add error boundary check
+  if (!order.id) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
-          <div className="flex justify-between items-center p-6 border-b">
-            <div>
-              <h2 className="text-xl font-bold">Order Details</h2>
-              <p className="text-gray-600">Order ID: {safeOrderId}</p>
-            </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <X size={24} />
-            </button>
-          </div>
-          
-          <div className="p-6 space-y-6">
-            {/* Order Status & Timing */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-800">Status</h3>
-                <p className="text-blue-600 capitalize font-medium">
-                  {safeOrderStatus.replace('_', ' ')}
-                </p>
-                <div className="mt-2">
-                  <OrderTimer placedAt={safePlacedAt} />
-                </div>
-              </div>
-              
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-800">Placed At</h3>
-                <p className="text-green-600">
-                  {new Date(safePlacedAt).toLocaleDateString()}
-                </p>
-                <p className="text-green-500 text-sm">
-                  {new Date(safePlacedAt).toLocaleTimeString()}
-                </p>
-              </div>
-  
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-purple-800">Total Amount</h3>
-                <p className="text-purple-600 text-xl font-bold">
-                    {order.totalAmount}
-                </p>
-              </div>
-            </div>
-  
-            {/* Market Info */}
-            {order.market && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-3">Market Information</h3>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Name:</span> {order.market.market_name || 'Unknown'}</p>
-                  <p><span className="font-medium">Address:</span> {order.market.address || 'No address'}</p>
-                </div>
-              </div>
-            )}
-  
-            {/* Delivery Address Info */}
-            {order.deliveryAddress && (
-              <div className="border rounded-lg p-4 text-black">
-                <h3 className="font-semibold mb-3">Delivery Address</h3>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Zipcode:</span> {order.deliveryAddress.zipcode || 'Unknown'}</p>
-
-                  {order.deliveryAddress.addressLine1 && (
-                    <p><span className="font-medium">Street:</span> {order.deliveryAddress.addressLine1}</p>
-                  )}
-                </div>
-              </div>
-            )}
-  
-            {/* Customer & Driver Info */}
-            {(order.user || order.driver) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {order.user && (
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-semibold mb-3">Customer Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Name:</span> {order.user.name || 'Unknown'}</p>
-                      <p><span className="font-medium">Phone:</span> {order.user.phone || 'No phone'}</p>
-                      {order.user.email && <p><span className="font-medium">Email:</span> {order.user.email}</p>}
-                    </div>
-                  </div>
-                )}
-  
-                {order.driver && (
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-semibold mb-3">Driver Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Name:</span> {order.driver.name || 'Unknown'}</p>
-                      <p><span className="font-medium">Phone:</span> {order.driver.phone || 'No phone'}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-  
-            {/* OTP */}
-            {order.otp && (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                <h3 className="font-semibold text-yellow-800 mb-2">OTP Code</h3>
-                <p className="text-2xl font-bold text-yellow-600">{order.otp}</p>
-              </div>
-            )}
-  
-            {/* Order Items */}
-            {order.orderItems && order.orderItems.length > 0 && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-4">Order Items</h3>
-                <div className="space-y-4">
-                  {order.orderItems.map((item: OrderItem, itemIndex: number) => (
-                    <div key={itemIndex} className="border-l-4 border-blue-200 pl-4 py-2">
-                      <h4 className="font-medium text-blue-800 mb-2">{item.restaurantName || 'Unknown Restaurant'}</h4>
-                      <p className="text-sm text-gray-600">Restaurant ID: {item.restaurantId || 'N/A'}</p>
-                      
-                      {/* Menu Items if they exist */}
-                      {item.menuItems && item.menuItems.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {item.menuItems.map((menuItem, menuIndex) => (
-                            <div key={menuIndex} className="text-sm text-gray-700">
-                              <p>{menuItem.quantity || 0}x {menuItem.name || 'Unknown Item'} - {formatCurrency(menuItem.totalPrice)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {item.specialInstructions && (
-                        <div className="mt-2 bg-yellow-50 p-2 rounded">
-                          <p className="text-sm text-yellow-700 italic">{item.specialInstructions}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-  
-            {/* Payment Summary */}
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-4">Payment Summary</h3>
-              <div className="space-y-2">
-                {order.subtotal && (
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span>{formatCurrency(order.subtotal)}</span>
-                  </div>
-                )}
-                {order.deliveryFee && (
-                  <div className="flex justify-between">
-                    <span>Delivery Fee:</span>
-                    <span>{formatCurrency(order.deliveryFee)}</span>
-                  </div>
-                )}
-                {order.taxAmount && (
-                  <div className="flex justify-between">
-                    <span>Tax:</span>
-                    <span>{formatCurrency(order.taxAmount)}</span>
-                  </div>
-                )}
-                {order.tip && order.tip > 0 && (
-                  <div className="flex justify-between">
-                    <span>Tip:</span>
-                    <span>{formatCurrency(order.tip)}</span>
-                  </div>
-                )}
-                <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                  <span>Total:</span>
-                  <span>{formatCurrency(safeTotalAmount)}</span>
-                </div>
-                {order.paymentStatus && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Payment Status: <span className="capitalize">{order.paymentStatus}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+        <div className="bg-white rounded-lg p-6">
+          <p className="text-red-500">Error: Invalid order data</p>
+          <button onClick={onClose} className="mt-4 bg-gray-200 px-4 py-2 rounded">
+            Close
+          </button>
         </div>
       </div>
     );
+  }
+
+  const formatCurrency = (amount?: number) => {
+    if (typeof amount === 'number' && !isNaN(amount)) {
+      return `${amount.toFixed(2)}`;
+    }
+    return 'N/A';
   };
+
+  const safeOrderId = order.id || 'unknown';
+  const safeOrderStatus = order.status || 'unknown';
+  const safePlacedAt = order.placedAt || new Date().toISOString();
+  const safeTotalAmount = order.totalAmount || 0;
+  console.log("delivery address is", order.deliveryAddress)
+
+  // Determine if order can be cancelled
+  const canCancelOrder = !['delivered', 'cancelled'].includes(safeOrderStatus);
+
+  const handleCancelClick = () => {
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    setIsCancelling(true);
+    try {
+      if (onCancelOrder) {
+        await orderService.cancelOrder(safeOrderId);
+      }
+      setShowCancelConfirm(false);
+      onClose();
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      alert('Failed to cancel order. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
+        <div className="flex justify-between items-center p-6 border-b">
+          <div>
+            <h2 className="text-xl font-bold">Order Details</h2>
+            <p className="text-gray-600">Order ID: {safeOrderId}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={24} />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          {/* Order Status & Timing */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-800">Status</h3>
+              <p className="text-blue-600 capitalize font-medium">
+                {safeOrderStatus.replace('_', ' ')}
+              </p>
+              <div className="mt-2">
+                <OrderTimer placedAt={safePlacedAt} />
+              </div>
+            </div>
+            
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-green-800">Placed At</h3>
+              <p className="text-green-600">
+                {new Date(safePlacedAt).toLocaleDateString()}
+              </p>
+              <p className="text-green-500 text-sm">
+                {new Date(safePlacedAt).toLocaleTimeString()}
+              </p>
+            </div>
+
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-purple-800">Total Amount</h3>
+              <p className="text-purple-600 text-xl font-bold">
+                  {order.totalAmount}
+              </p>
+            </div>
+          </div>
+
+          {/* Market Info */}
+          {order.market && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-3">Market Information</h3>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-medium">Name:</span> {order.market.market_name || 'Unknown'}</p>
+                <p><span className="font-medium">Address:</span> {order.market.address || 'No address'}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Delivery Address Info */}
+          {order.deliveryAddress && (
+            <div className="border rounded-lg p-4 text-black">
+              <h3 className="font-semibold mb-3">Delivery Address</h3>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-medium">Zipcode:</span> {order.deliveryAddress.zipcode || 'Unknown'}</p>
+
+                {order.deliveryAddress.addressLine1 && (
+                  <p><span className="font-medium">Street:</span> {order.deliveryAddress.addressLine1}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Customer & Driver Info */}
+          {(order.user || order.driver) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {order.user && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-3">Customer Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Name:</span> {order.user.name || 'Unknown'}</p>
+                    <p><span className="font-medium">Phone:</span> {order.user.phone || 'No phone'}</p>
+                    {order.user.email && <p><span className="font-medium">Email:</span> {order.user.email}</p>}
+                  </div>
+                </div>
+              )}
+
+              {order.driver && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-3">Driver Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Name:</span> {order.driver.name || 'Unknown'}</p>
+                    <p><span className="font-medium">Phone:</span> {order.driver.phone || 'No phone'}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* OTP */}
+          {order.otp && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+              <h3 className="font-semibold text-yellow-800 mb-2">OTP Code</h3>
+              <p className="text-2xl font-bold text-yellow-600">{order.otp}</p>
+            </div>
+          )}
+
+          {/* Order Items */}
+          {order.orderItems && order.orderItems.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-4">Order Items</h3>
+              <div className="space-y-4">
+                {order.orderItems.map((item: OrderItem, itemIndex: number) => (
+                  <div key={itemIndex} className="border-l-4 border-blue-200 pl-4 py-2">
+                    <h4 className="font-medium text-blue-800 mb-2">{item.restaurantName || 'Unknown Restaurant'}</h4>
+                    <p className="text-sm text-gray-600">Restaurant ID: {item.restaurantId || 'N/A'}</p>
+                    
+                    {/* Menu Items if they exist */}
+                    {item.menuItems && item.menuItems.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {item.menuItems.map((menuItem, menuIndex) => (
+                          <div key={menuIndex} className="text-sm text-gray-700">
+                            <p>{menuItem.quantity || 0}x {menuItem.name || 'Unknown Item'} - {formatCurrency(menuItem.totalPrice)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {item.specialInstructions && (
+                      <div className="mt-2 bg-yellow-50 p-2 rounded">
+                        <p className="text-sm text-yellow-700 italic">{item.specialInstructions}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Payment Summary */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-semibold mb-4">Payment Summary</h3>
+            <div className="space-y-2">
+              {order.subtotal && (
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(order.subtotal)}</span>
+                </div>
+              )}
+              {order.deliveryFee && (
+                <div className="flex justify-between">
+                  <span>Delivery Fee:</span>
+                  <span>{formatCurrency(order.deliveryFee)}</span>
+                </div>
+              )}
+              {order.taxAmount && (
+                <div className="flex justify-between">
+                  <span>Tax:</span>
+                  <span>{formatCurrency(order.taxAmount)}</span>
+                </div>
+              )}
+              {order.tip && order.tip > 0 && (
+                <div className="flex justify-between">
+                  <span>Tip:</span>
+                  <span>{formatCurrency(order.tip)}</span>
+                </div>
+              )}
+              <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                <span>Total:</span>
+                <span>{formatCurrency(safeTotalAmount)}</span>
+              </div>
+              {order.paymentStatus && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Payment Status: <span className="capitalize">{order.paymentStatus}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t">
+            <button
+              onClick={onClose}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+            
+            {canCancelOrder && (
+              <button
+                onClick={handleCancelClick}
+                disabled={isCancelling}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Cancel Confirmation Dialog */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-2">Cancel Order?</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to cancel order #{safeOrderId.slice(-8)}? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={isCancelling}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+              >
+                No, Keep Order
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                disabled={isCancelling}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+              >
+                {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
   
   // Enhanced Order Card (wider)
   const OrderCard = ({ 

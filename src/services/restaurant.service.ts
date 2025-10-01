@@ -309,10 +309,6 @@ const createRestaurant = async (
  * 1. Restaurant User (owner account) - or reuses existing if email matches
  * 2. Address
  * 3. Restaurant
- *
- * WARNING: This function will reuse existing users based on email.
- * This is intended for development/testing only and should not be used in production
- * without proper authentication and authorization checks.
  */
 const createCompleteRestaurant = async (
   data: CreateCompleteRestaurantDto

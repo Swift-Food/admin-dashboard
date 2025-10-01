@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { X, ChevronRight, ChevronLeft, Check, AlertCircle } from "lucide-react";
-import type { CreateCompleteRestaurantDto } from "../services/restaurant.service";
-import { createCompleteRestaurant } from "../services/restaurant.service";
 
 const DAYS = [
   "Monday",
@@ -17,6 +15,11 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Store IDs from each step
+  const [createdUserId, setCreatedUserId] = useState(null);
+  const [createdRestaurantUserId, setCreatedRestaurantUserId] = useState(null);
+  const [createdAddressId, setCreatedAddressId] = useState(null);
 
   const [formData, setFormData] = useState({
     // User details
@@ -112,12 +115,85 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
-  const handleNext = () => {
-    if (validateStep()) {
-      setStep((prev) => prev + 1);
-      setError(null);
-    } else {
+  const handleNext = async () => {
+    if (!validateStep()) {
       setError("Please fill in all required fields");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (step === 1) {
+        // Step 1: Create Restaurant User
+        const { createRestaurantUser } = await import(
+          "../services/restaurant.service"
+        );
+
+        const userResult = await createRestaurantUser({
+          userDetails: {
+            username: formData.username,
+            password: formData.password,
+            email: formData.email,
+            phoneNumber: formData.phoneNumber,
+            role: "restaurant_owner",
+            verified: true,
+            profilePicture: formData.profilePicture || undefined,
+          },
+          bankingInformation: {
+            bankName: formData.bankName,
+            accountNumber: formData.accountNumber,
+            routingNumber: formData.routingNumber,
+          },
+          rating: 5.0,
+        });
+
+        // Store both IDs from the response
+        // userResult.user.id = base user ID (for address creation)
+        // userResult.id = restaurant user ID (for restaurant ownerId)
+        setCreatedUserId(userResult.user.id);
+        setCreatedRestaurantUserId(userResult.id);
+
+        console.log("Created user:", userResult);
+        setStep(2);
+      } else if (step === 2) {
+        // Step 2: Create Address
+        if (!createdUserId) {
+          setError("User ID not found. Please start over.");
+          return;
+        }
+
+        const { createAddress } = await import(
+          "../services/restaurant.service"
+        );
+
+        const addressResult = await createAddress({
+          userId: createdUserId,
+          name: formData.addressName,
+          addressLine1: formData.addressLine1,
+          addressLine2: formData.addressLine2 || undefined,
+          city: formData.city,
+          zipcode: formData.zipcode,
+          location: {
+            latitude: parseFloat(formData.latitude),
+            longitude: parseFloat(formData.longitude),
+          },
+        });
+
+        setCreatedAddressId(addressResult.id);
+        console.log("Created address:", addressResult);
+        setStep(3);
+      }
+    } catch (err) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to complete this step";
+      setError(errorMessage);
+      console.error("Step error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,29 +208,49 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
+    if (!createdRestaurantUserId || !createdAddressId) {
+      setError("Missing required IDs. Please start over.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const dto = {
-        ...formData,
-        latitude: parseFloat(formData.latitude),
-        longitude: parseFloat(formData.longitude),
-        fsa: formData.fsa ? parseFloat(formData.fsa) : undefined,
-        images: formData.images.filter((img) => img.trim() !== ""),
-      };
+      // Step 3: Create Restaurant
+      const { createRestaurant } = await import(
+        "../services/restaurant.service"
+      );
 
-      await createCompleteRestaurant(dto);
+      const restaurant = await createRestaurant({
+        restaurant_name: formData.restaurant_name,
+        isOpen: true,
+        restaurant_description: formData.restaurant_description,
+        restaurantType: formData.restaurantType,
+        featured: formData.featured,
+        addressId: createdAddressId,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        openingHours: formData.openingHours,
+        images: formData.images.filter((img) => img.trim() !== ""),
+        ownerId: createdRestaurantUserId,
+        marketId: formData.marketId,
+        restaurantNumber: formData.restaurantNumber || undefined,
+        fsa: formData.fsa ? parseFloat(formData.fsa) : undefined,
+        fsaLink: formData.fsaLink || undefined,
+        autoAccept: formData.autoAccept,
+      });
+
+      console.log("Created restaurant:", restaurant);
       onSuccess();
       handleClose();
     } catch (err) {
-      // Better error handling to show the actual conflict message
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
         "Failed to create restaurant";
       setError(errorMessage);
-      console.error("Full error:", err);
+      console.error("Restaurant creation error:", err);
     } finally {
       setLoading(false);
     }
@@ -163,6 +259,9 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
   const handleClose = () => {
     setStep(1);
     setError(null);
+    setCreatedUserId(null);
+    setCreatedRestaurantUserId(null);
+    setCreatedAddressId(null);
     setFormData({
       username: "",
       password: "",
@@ -755,10 +854,20 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
           {step < 3 ? (
             <button
               onClick={handleNext}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+              disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next
-              <ChevronRight size={18} />
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {step === 1 ? "Creating User..." : "Creating Address..."}
+                </>
+              ) : (
+                <>
+                  Next
+                  <ChevronRight size={18} />
+                </>
+              )}
             </button>
           ) : (
             <button

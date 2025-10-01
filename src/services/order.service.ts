@@ -17,8 +17,13 @@ const getOrderById = async (orderId: string): Promise<DriverOrder> => {
   return response.data;
 };
 
+const cancelOrder = async (orderId : string)=>{
+  await http.post(`order/cancel/${orderId}`);
+}
+
 export default {
   getOrdersByDriver,
   getOrderById,
-  getOrders
+  getOrders,
+  cancelOrder
 };

@@ -8,7 +8,7 @@ import DriverStatusScreen from './pages/DriverStatusScreen';
 import MapScreen from './pages/MapScreen';
 import StatisticsScreen from './pages/StatisticsScreen';
 import AllOrdersScreen from './pages/OrdersScreen';
-import RestaurantAdminDashboard from './pages/RestaurantScreen';
+import RestaurantAdminDashboard from './pages/RestaurantScreen/RestaurantScreen';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>('home');

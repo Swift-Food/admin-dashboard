@@ -212,8 +212,12 @@ const getAllRestaurants = async (): Promise<RestaurantResponse[]> => {
   return res.data;
 };
 
-const getAllRestaurantsWithMarket = async (): Promise<RestaurantResponse[]> => {
-  const res = await http.get<RestaurantResponse[]>("/restaurant/withMarkets");
+const getAllRestaurantsAdminDashboard = async (): Promise<
+  RestaurantResponse[]
+> => {
+  const res = await http.get<RestaurantResponse[]>(
+    "/restaurant/all-admin-dashboard"
+  );
   return res.data;
 };
 
@@ -358,7 +362,7 @@ const createCompleteRestaurant = async (
 export {
   // Read operations
   getAllRestaurants,
-  getAllRestaurantsWithMarket,
+  getAllRestaurantsAdminDashboard,
   getRestaurantById,
   getRestaurantOrders,
   // Update operations

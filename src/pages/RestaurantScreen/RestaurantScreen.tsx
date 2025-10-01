@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import {
   getAllRestaurants,
-  getAllRestaurantsWithMarket,
+  getAllRestaurantsAdminDashboard,
   toggleRestaurantStatus,
   getRestaurantOrders,
 } from "../../services/restaurant.service";
@@ -41,7 +41,7 @@ const RestaurantAdminDashboard = () => {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const data = await getAllRestaurantsWithMarket();
+      const data = await getAllRestaurantsAdminDashboard();
       setRestaurants(data);
       setError(null);
     } catch (err) {

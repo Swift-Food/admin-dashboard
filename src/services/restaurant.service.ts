@@ -32,6 +32,7 @@ interface RestaurantUser {
 
 interface Address {
   id: string;
+  userId: string;
   name: string;
   addressLine1: string;
   addressLine2?: string;
@@ -41,14 +42,31 @@ interface Address {
     latitude: number;
     longitude: number;
   };
+  isDefault: boolean;
+  statsToMarkets: Array<{
+    marketId: string;
+    distance: number;
+    time: number;
+  }>;
 }
 
 interface Market {
   id: string;
   market_name: string;
-  address: string;
-  latitude?: number;
-  longitude?: number;
+  market_description?: string;
+  address: Address;
+  addressId: string;
+  openingHours: Array<{
+    day: string;
+    open: string | null;
+    close: string | null;
+  }>;
+  images?: string[];
+  averageRating: number;
+  isOpen: boolean;
+  tags?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface MenuItem {
@@ -57,7 +75,7 @@ interface MenuItem {
   description?: string;
   price: number;
   category?: string;
-  available: boolean;
+  isAvailable: boolean;
 }
 
 interface RestaurantResponse {
@@ -98,9 +116,7 @@ const getAllRestaurants = async (): Promise<RestaurantResponse[]> => {
   return res.data;
 };
 
-const getAllRestaurantsWithMarket = async (): Promise<
-  RestaurantResponse[]
-> => {
+const getAllRestaurantsWithMarket = async (): Promise<RestaurantResponse[]> => {
   const res = await http.get<RestaurantResponse[]>("/restaurant/withMarkets");
   return res.data;
 };

@@ -237,6 +237,22 @@ const getRestaurantOrders = async (
   return res.data;
 };
 
+const getUserByEmail = async (email: string): Promise<UserResponse | null> => {
+  try {
+    const res = await http.get<UserResponse>(`/users/email/${email}`);
+    return res.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      // User not found
+      return null;
+    }
+
+    // Handle other errors
+    console.error("Error fetching user by email:", error);
+    throw error;
+  }
+};
+
 // ============================================
 // UPDATE OPERATIONS
 // ============================================
@@ -290,69 +306,148 @@ const createRestaurant = async (
 
 /**
  * Creates a complete restaurant with all required dependencies:
- * 1. Restaurant User (owner account)
+ * 1. Restaurant User (owner account) - or reuses existing if email matches
  * 2. Address
  * 3. Restaurant
  *
- * This helper function orchestrates all three API calls in the correct order.
+ * WARNING: This function will reuse existing users based on email.
+ * This is intended for development/testing only and should not be used in production
+ * without proper authentication and authorization checks.
  */
 const createCompleteRestaurant = async (
   data: CreateCompleteRestaurantDto
 ): Promise<RestaurantResponse> => {
-  // Step 1: Create Restaurant User
-  const userResult = await createRestaurantUser({
-    userDetails: {
-      username: data.username,
-      password: data.password,
-      email: data.email,
+  let createdUserId: string | null = null;
+  let createdAddressId: string | null = null;
+
+  try {
+    // Step 1: Try to find existing user by email, or create new one
+    let userId: string;
+    const existingUser = await getUserByEmail(data.email);
+
+    if (existingUser) {
+      console.log(`Found existing user with email: ${data.email}`);
+
+      // Check if they already have a restaurantUser entity
+      if (existingUser.restaurantUser?.id) {
+        console.log(
+          `Reusing existing restaurant user: ${existingUser.restaurantUser.id}`
+        );
+        userId = existingUser.restaurantUser.id;
+        createdUserId = userId;
+      } else {
+        // User exists but doesn't have restaurantUser - need to create one
+        // Generate unique username to avoid conflicts
+        const uniqueUsername = `${data.username}_${Date.now()}`;
+        console.log(
+          `User exists but no restaurant user found, creating restaurant user with username: ${uniqueUsername}`
+        );
+        const userResult = await createRestaurantUser({
+          userDetails: {
+            username: uniqueUsername,
+            password: data.password,
+            email: data.email,
+            phoneNumber: data.phoneNumber,
+            role: "restaurant_owner",
+            verified: true,
+            profilePicture: data.profilePicture,
+          },
+          bankingInformation: {
+            bankName: data.bankName,
+            accountNumber: data.accountNumber,
+            routingNumber: data.routingNumber,
+          },
+          rating: 5.0,
+        });
+        userId = userResult.id;
+        createdUserId = userId;
+      }
+    } else {
+      // No existing user, create everything fresh
+      const userResult = await createRestaurantUser({
+        userDetails: {
+          username: data.username,
+          password: data.password,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          role: "restaurant_owner",
+          verified: true,
+          profilePicture: data.profilePicture,
+        },
+        bankingInformation: {
+          bankName: data.bankName,
+          accountNumber: data.accountNumber,
+          routingNumber: data.routingNumber,
+        },
+        rating: 5.0,
+      });
+      userId = userResult.id;
+      createdUserId = userId;
+    }
+
+    // Step 2: Create Address
+    const addressResult = await createAddress({
+      userId: userId,
+      name: data.addressName,
+      addressLine1: data.addressLine1,
+      addressLine2: data.addressLine2,
+      city: data.city,
+      zipcode: data.zipcode,
+      location: {
+        latitude: data.latitude,
+        longitude: data.longitude,
+      },
+    });
+    createdAddressId = addressResult.id;
+
+    // Step 3: Create Restaurant
+    const restaurant = await createRestaurant({
+      restaurant_name: data.restaurant_name,
+      isOpen: true,
+      restaurant_description: data.restaurant_description,
+      restaurantType: data.restaurantType,
+      featured: data.featured,
+      addressId: addressResult.id,
       phoneNumber: data.phoneNumber,
-      role: "restaurant_owner",
-      verified: true,
-      profilePicture: data.profilePicture,
-    },
-    bankingInformation: {
-      bankName: data.bankName,
-      accountNumber: data.accountNumber,
-      routingNumber: data.routingNumber,
-    },
-    rating: 5.0,
-  });
+      email: data.email,
+      openingHours: data.openingHours,
+      images: data.images,
+      ownerId: userId,
+      marketId: data.marketId,
+      restaurantNumber: data.restaurantNumber,
+      fsa: data.fsa,
+      fsaLink: data.fsaLink,
+      autoAccept: data.autoAccept ?? true,
+    });
 
-  // Step 2: Create Address
-  const addressResult = await createAddress({
-    userId: userResult.id,
-    name: data.addressName,
-    addressLine1: data.addressLine1,
-    addressLine2: data.addressLine2,
-    city: data.city,
-    zipcode: data.zipcode,
-    location: {
-      latitude: data.latitude,
-      longitude: data.longitude,
-    },
-  });
+    return restaurant;
+  } catch (error: any) {
+    // Enhanced error handling with more context
+    const errorMessage =
+      error?.response?.data?.message || error?.message || "Unknown error";
+    const statusCode = error?.response?.status;
 
-  // Step 3: Create Restaurant
-  const restaurant = await createRestaurant({
-    restaurant_name: data.restaurant_name,
-    isOpen: true,
-    restaurant_description: data.restaurant_description,
-    restaurantType: data.restaurantType,
-    featured: data.featured,
-    addressId: addressResult.id,
-    phoneNumber: data.phoneNumber,
-    email: data.email,
-    openingHours: data.openingHours,
-    images: data.images,
-    ownerId: userResult.id,
-    marketId: data.marketId,
-    restaurantNumber: data.restaurantNumber,
-    fsa: data.fsa,
-    fsaLink: data.fsaLink,
-    autoAccept: data.autoAccept ?? true,
-  });
+    // Create a detailed error message
+    let detailedError = `Failed to create restaurant: ${errorMessage}`;
 
-  return restaurant;
+    if (statusCode === 409) {
+      // Check which step failed based on what was created
+      if (!createdUserId) {
+        detailedError = `Username "${data.username}" already exists. Please use a different username.`;
+      } else if (!createdAddressId) {
+        detailedError = `Address creation failed: ${errorMessage}`;
+      } else {
+        detailedError = `Restaurant creation failed: ${errorMessage}`;
+      }
+    }
+
+    // Re-throw with enhanced message
+    const enhancedError = new Error(detailedError);
+    (enhancedError as any).originalError = error;
+    (enhancedError as any).createdUserId = createdUserId;
+    (enhancedError as any).createdAddressId = createdAddressId;
+    throw enhancedError;
+  }
 };
 
 // ============================================
@@ -365,6 +460,7 @@ export {
   getAllRestaurantsAdminDashboard,
   getRestaurantById,
   getRestaurantOrders,
+  getUserByEmail,
   // Update operations
   updateRestaurantAvailability,
   toggleRestaurantStatus,

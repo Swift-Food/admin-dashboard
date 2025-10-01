@@ -12,11 +12,12 @@ import {
 } from "lucide-react";
 import {
   getAllRestaurants,
+  getAllRestaurantsWithMarket,
   toggleRestaurantStatus,
   getRestaurantOrders,
-} from "./services/restaurant.service";
-import type { RestaurantResponse } from "./services/restaurant.service";
-import "./RestaurantAdminDashboard.css";
+} from "../../services/restaurant.service";
+import type { RestaurantResponse } from "../../services/restaurant.service";
+import "./RestaurantScreen.css";
 
 const RestaurantAdminDashboard = () => {
   const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
@@ -40,7 +41,7 @@ const RestaurantAdminDashboard = () => {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const data = await getAllRestaurants();
+      const data = await getAllRestaurantsWithMarket();
       setRestaurants(data);
       setError(null);
     } catch (err) {
@@ -202,7 +203,7 @@ const RestaurantAdminDashboard = () => {
                         </span>
                       </td>
                       <td className="market-cell">
-                        {restaurant.market?.name || "N/A"}
+                        {restaurant.market?.market_name || "N/A"}
                       </td>
                       <td className="contact-cell">
                         <div>{restaurant.phoneNumber || "N/A"}</div>

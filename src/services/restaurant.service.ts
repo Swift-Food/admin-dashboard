@@ -45,7 +45,10 @@ interface Address {
 
 interface Market {
   id: string;
-  name: string;
+  market_name: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface MenuItem {
@@ -92,6 +95,13 @@ interface RestaurantOrdersResponse {
 const getAllRestaurants = async (): Promise<RestaurantResponse[]> => {
   const res = await http.get<RestaurantResponse[]>("/restaurant");
   console.log("Restaurants:", res);
+  return res.data;
+};
+
+const getAllRestaurantsWithMarket = async (): Promise<
+  RestaurantResponse[]
+> => {
+  const res = await http.get<RestaurantResponse[]>("/restaurant/withMarkets");
   return res.data;
 };
 
@@ -332,6 +342,7 @@ const createCompleteRestaurant = async (
 export {
   // Read operations
   getAllRestaurants,
+  getAllRestaurantsWithMarket,
   getRestaurantById,
   getRestaurantOrders,
   // Update operations

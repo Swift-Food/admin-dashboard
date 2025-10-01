@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { X, ChevronRight, ChevronLeft, Check, AlertCircle } from "lucide-react";
+import "./AddRestaurantModal.css";
+import { createRestaurantUser } from "../../services/restaurant.service";
+import { createAddress } from "../../services/restaurant.service";
+import { createRestaurant } from "../../services/restaurant.service";
 
 const DAYS = [
   "Monday",
@@ -127,9 +131,6 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       if (step === 1) {
         // Step 1: Create Restaurant User
-        const { createRestaurantUser } = await import(
-          "../services/restaurant.service"
-        );
 
         const userResult = await createRestaurantUser({
           userDetails: {
@@ -149,9 +150,6 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
           rating: 5.0,
         });
 
-        // Store both IDs from the response
-        // userResult.user.id = base user ID (for address creation)
-        // userResult.id = restaurant user ID (for restaurant ownerId)
         setCreatedUserId(userResult.user.id);
         setCreatedRestaurantUserId(userResult.id);
 
@@ -163,10 +161,6 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
           setError("User ID not found. Please start over.");
           return;
         }
-
-        const { createAddress } = await import(
-          "../services/restaurant.service"
-        );
 
         const addressResult = await createAddress({
           userId: createdUserId,
@@ -218,10 +212,6 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       // Step 3: Create Restaurant
-      const { createRestaurant } = await import(
-        "../services/restaurant.service"
-      );
-
       const restaurant = await createRestaurant({
         restaurant_name: formData.restaurant_name,
         isOpen: true,
@@ -296,52 +286,47 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+    <div className="modal-overlay">
+      <div className="modal-container">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Add New Restaurant
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Step {step} of 3</p>
+        <div className="modal-header">
+          <div className="modal-header-content">
+            <h2 className="modal-title">Add New Restaurant</h2>
+            <p className="modal-subtitle">Step {step} of 3</p>
           </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={handleClose} className="modal-close-btn">
             <X size={24} />
           </button>
         </div>
 
         {/* Progress Bar */}
-        <div className="px-6 py-4 bg-gray-50 border-b">
-          <div className="flex items-center justify-between mb-2">
+        <div className="progress-container">
+          <div className="progress-steps">
             <span
-              className={`text-sm font-medium ${
-                step >= 1 ? "text-blue-600" : "text-gray-400"
+              className={`progress-step ${
+                step >= 1 ? "progress-step-active" : "progress-step-inactive"
               }`}
             >
               Owner Details
             </span>
             <span
-              className={`text-sm font-medium ${
-                step >= 2 ? "text-blue-600" : "text-gray-400"
+              className={`progress-step ${
+                step >= 2 ? "progress-step-active" : "progress-step-inactive"
               }`}
             >
               Address
             </span>
             <span
-              className={`text-sm font-medium ${
-                step >= 3 ? "text-blue-600" : "text-gray-400"
+              className={`progress-step ${
+                step >= 3 ? "progress-step-active" : "progress-step-inactive"
               }`}
             >
               Restaurant Info
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="progress-bar-bg">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="progress-bar-fill"
               style={{ width: `${(step / 3) * 100}%` }}
             />
           </div>
@@ -349,28 +334,23 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
 
         {/* Error Alert */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle
-              size={20}
-              className="text-red-600 flex-shrink-0 mt-0.5"
-            />
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="alert-error">
+            <AlertCircle size={20} className="alert-error-icon" />
+            <p className="alert-error-text">{error}</p>
           </div>
         )}
 
         {/* Form Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="modal-body">
           {/* Step 1: Owner Details */}
           {step === 1 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Restaurant Owner Details
-              </h3>
+            <div className="form-section">
+              <h3 className="form-section-title">Restaurant Owner Details</h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Username <span className="text-red-500">*</span>
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <label className="form-label">
+                    Username <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="text"
@@ -378,14 +358,14 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("username", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="owner_username"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password <span className="text-red-500">*</span>
+                <div className="form-field">
+                  <label className="form-label">
+                    Password <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="password"
@@ -393,28 +373,28 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("password", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="••••••••"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email <span className="text-red-500">*</span>
+              <div className="form-field">
+                <label className="form-label">
+                  Email <span className="form-label-required">*</span>
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="owner@email.com"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number <span className="text-red-500">*</span>
+              <div className="form-field">
+                <label className="form-label">
+                  Phone Number <span className="form-label-required">*</span>
                 </label>
                 <input
                   type="tel"
@@ -422,33 +402,29 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={(e) =>
                     handleInputChange("phoneNumber", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="+1234567890"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Profile Picture URL
-                </label>
+              <div className="form-field">
+                <label className="form-label">Profile Picture URL</label>
                 <input
                   type="url"
                   value={formData.profilePicture}
                   onChange={(e) =>
                     handleInputChange("profilePicture", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="https://example.com/picture.jpg"
                 />
               </div>
 
-              <h4 className="text-md font-semibold text-gray-900 mt-6 mb-3">
-                Banking Information
-              </h4>
+              <h4 className="form-subsection-title">Banking Information</h4>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bank Name <span className="text-red-500">*</span>
+              <div className="form-field">
+                <label className="form-label">
+                  Bank Name <span className="form-label-required">*</span>
                 </label>
                 <input
                   type="text"
@@ -456,15 +432,16 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={(e) =>
                     handleInputChange("bankName", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="Bank Name"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Account Number <span className="text-red-500">*</span>
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <label className="form-label">
+                    Account Number{" "}
+                    <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="text"
@@ -472,14 +449,15 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("accountNumber", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="123456789"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Routing Number <span className="text-red-500">*</span>
+                <div className="form-field">
+                  <label className="form-label">
+                    Routing Number{" "}
+                    <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="text"
@@ -487,7 +465,7 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("routingNumber", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="987654321"
                   />
                 </div>
@@ -497,14 +475,12 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
 
           {/* Step 2: Address */}
           {step === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Restaurant Address
-              </h3>
+            <div className="form-section">
+              <h3 className="form-section-title">Restaurant Address</h3>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address Name <span className="text-red-500">*</span>
+              <div className="form-field">
+                <label className="form-label">
+                  Address Name <span className="form-label-required">*</span>
                 </label>
                 <input
                   type="text"
@@ -512,14 +488,14 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={(e) =>
                     handleInputChange("addressName", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="Main Location"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address Line 1 <span className="text-red-500">*</span>
+              <div className="form-field">
+                <label className="form-label">
+                  Address Line 1 <span className="form-label-required">*</span>
                 </label>
                 <input
                   type="text"
@@ -527,43 +503,41 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={(e) =>
                     handleInputChange("addressLine1", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="123 Main Street"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address Line 2
-                </label>
+              <div className="form-field">
+                <label className="form-label">Address Line 2</label>
                 <input
                   type="text"
                   value={formData.addressLine2}
                   onChange={(e) =>
                     handleInputChange("addressLine2", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="Suite 100"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City <span className="text-red-500">*</span>
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <label className="form-label">
+                    City <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.city}
                     onChange={(e) => handleInputChange("city", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="City Name"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Zipcode <span className="text-red-500">*</span>
+                <div className="form-field">
+                  <label className="form-label">
+                    Zipcode <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="text"
@@ -571,16 +545,16 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("zipcode", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="12345"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Latitude <span className="text-red-500">*</span>
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <label className="form-label">
+                    Latitude <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="number"
@@ -589,14 +563,14 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("latitude", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="12.3456"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Longitude <span className="text-red-500">*</span>
+                <div className="form-field">
+                  <label className="form-label">
+                    Longitude <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="number"
@@ -605,7 +579,7 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("longitude", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="65.4321"
                   />
                 </div>
@@ -615,14 +589,12 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
 
           {/* Step 3: Restaurant Info */}
           {step === 3 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Restaurant Information
-              </h3>
+            <div className="form-section">
+              <h3 className="form-section-title">Restaurant Information</h3>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Restaurant Name <span className="text-red-500">*</span>
+              <div className="form-field">
+                <label className="form-label">
+                  Restaurant Name <span className="form-label-required">*</span>
                 </label>
                 <input
                   type="text"
@@ -630,14 +602,14 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                   onChange={(e) =>
                     handleInputChange("restaurant_name", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input"
                   placeholder="My Restaurant"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description <span className="text-red-500">*</span>
+              <div className="form-field">
+                <label className="form-label">
+                  Description <span className="form-label-required">*</span>
                 </label>
                 <textarea
                   value={formData.restaurant_description}
@@ -645,31 +617,31 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     handleInputChange("restaurant_description", e.target.value)
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="form-input form-textarea"
                   placeholder="Best food in town"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type <span className="text-red-500">*</span>
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <label className="form-label">
+                    Type <span className="form-label-required">*</span>
                   </label>
                   <select
                     value={formData.restaurantType}
                     onChange={(e) =>
                       handleInputChange("restaurantType", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-select"
                   >
                     <option value="restaurant">Restaurant</option>
                     <option value="stall">Stall</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Market ID <span className="text-red-500">*</span>
+                <div className="form-field">
+                  <label className="form-label">
+                    Market ID <span className="form-label-required">*</span>
                   </label>
                   <input
                     type="text"
@@ -677,141 +649,129 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                     onChange={(e) =>
                       handleInputChange("marketId", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="market-id"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2">
+              <div className="checkbox-group">
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
                     checked={formData.featured}
                     onChange={(e) =>
                       handleInputChange("featured", e.target.checked)
                     }
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="form-checkbox"
                   />
-                  <span className="text-sm font-medium text-gray-700">
-                    Featured
-                  </span>
+                  <span className="checkbox-label-text">Featured</span>
                 </label>
 
-                <label className="flex items-center gap-2">
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
                     checked={formData.autoAccept}
                     onChange={(e) =>
                       handleInputChange("autoAccept", e.target.checked)
                     }
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="form-checkbox"
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="checkbox-label-text">
                     Auto Accept Orders
                   </span>
                 </label>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Restaurant Number
-                  </label>
+              <div className="form-grid-3">
+                <div className="form-field">
+                  <label className="form-label">Restaurant Number</label>
                   <input
                     type="text"
                     value={formData.restaurantNumber}
                     onChange={(e) =>
                       handleInputChange("restaurantNumber", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="R123"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    FSA Rating
-                  </label>
+                <div className="form-field">
+                  <label className="form-label">FSA Rating</label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.fsa}
                     onChange={(e) => handleInputChange("fsa", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="4.5"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    FSA Link
-                  </label>
+                <div className="form-field">
+                  <label className="form-label">FSA Link</label>
                   <input
                     type="url"
                     value={formData.fsaLink}
                     onChange={(e) =>
                       handleInputChange("fsaLink", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="form-input"
                     placeholder="https://fsa.gov"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Opening Hours
-                </label>
-                <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                  {formData.openingHours.map((hours, index) => (
-                    <div key={hours.day} className="flex items-center gap-2">
-                      <span className="w-24 text-sm font-medium text-gray-700">
-                        {hours.day}
-                      </span>
-                      <input
-                        type="time"
-                        value={hours.open}
-                        onChange={(e) =>
-                          handleHoursChange(index, "open", e.target.value)
-                        }
-                        className="px-2 py-1 border border-gray-300 rounded text-sm"
-                      />
-                      <span className="text-gray-500">to</span>
-                      <input
-                        type="time"
-                        value={hours.close}
-                        onChange={(e) =>
-                          handleHoursChange(index, "close", e.target.value)
-                        }
-                        className="px-2 py-1 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
-                  ))}
+              <div className="form-field">
+                <label className="form-label">Opening Hours</label>
+                <div className="hours-container">
+                  <div className="hours-list">
+                    {formData.openingHours.map((hours, index) => (
+                      <div key={hours.day} className="hours-row">
+                        <span className="hours-day-label">{hours.day}</span>
+                        <input
+                          type="time"
+                          value={hours.open}
+                          onChange={(e) =>
+                            handleHoursChange(index, "open", e.target.value)
+                          }
+                          className="hours-input"
+                        />
+                        <span className="hours-separator">to</span>
+                        <input
+                          type="time"
+                          value={hours.close}
+                          onChange={(e) =>
+                            handleHoursChange(index, "close", e.target.value)
+                          }
+                          className="hours-input"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Images
-                </label>
-                <div className="space-y-2">
+              <div className="form-field">
+                <label className="form-label">Images</label>
+                <div className="images-list">
                   {formData.images.map((image, index) => (
-                    <div key={index} className="flex gap-2">
+                    <div key={index} className="image-field-group">
                       <input
                         type="url"
                         value={image}
                         onChange={(e) =>
                           handleImageChange(index, e.target.value)
                         }
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="form-input image-field-input"
                         placeholder="https://example.com/image.jpg"
                       />
                       {formData.images.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeImageField(index)}
-                          className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="remove-image-btn"
                         >
                           <X size={20} />
                         </button>
@@ -821,7 +781,7 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
                   <button
                     type="button"
                     onClick={addImageField}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="add-image-btn"
                   >
                     + Add Another Image
                   </button>
@@ -832,10 +792,12 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+        <div className="modal-footer">
           <button
             onClick={step === 1 ? handleClose : handleBack}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
+            className={`modal-btn ${
+              step === 1 ? "modal-btn-cancel" : "modal-btn-back"
+            }`}
             disabled={loading}
           >
             {step === 1 ? (
@@ -855,11 +817,11 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
             <button
               onClick={handleNext}
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="modal-btn modal-btn-next"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="btn-spinner" />
                   {step === 1 ? "Creating User..." : "Creating Address..."}
                 </>
               ) : (
@@ -873,11 +835,11 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }) => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="modal-btn modal-btn-submit"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="btn-spinner" />
                   Creating...
                 </>
               ) : (

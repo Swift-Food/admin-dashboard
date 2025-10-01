@@ -1,69 +1,92 @@
+import type { Address } from "./address.types";
+import type { Market } from "./market.types";
+import type { DriverUser } from "./user.types";
+import type { User } from "./user.types";
+
+
 // Order Status Types (using const assertions instead of enums)
 export const OrderStatus = {
-  PLACED: 'placed',
-  CONFIRMED: 'confirmed',
-  PREPARING: 'preparing',
-  DRIVER_ASSIGNED: 'driver_assigned',
-  READY_FOR_PICKUP: 'ready_for_pickup',
-  OUT_FOR_DELIVERY: 'out_for_delivery',
-  DELIVERED: 'delivered',
-  CANCELLED: 'cancelled',
+  PLACED: "placed",
+  CONFIRMED: "confirmed",
+  PREPARING: "preparing",
+  DRIVER_ASSIGNED: "driver_assigned",
+  READY_FOR_PICKUP: "ready_for_pickup",
+  OUT_FOR_DELIVERY: "out_for_delivery",
+  DELIVERED: "delivered",
+  CANCELLED: "cancelled",
 } as const;
 
-export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
-
-export const OrderPossibleStatus = {
-  INCOMING: 'incoming',
-  ACCEPTED: 'accepted',
-  REJECTED: 'rejected',
-} as const;
-
-export type OrderPossibleStatus = typeof OrderPossibleStatus[keyof typeof OrderPossibleStatus];
-
-export const PaymentStatus = {
-  PENDING: 'pending',
-  PAID: 'paid',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded',
-} as const;
-
-export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
-
-// Related Entity Interfaces
-export interface User {
+export interface Order {
   id: string;
-  name: string;
-  phone: string;
-  email?: string;
+  user: User;
+  userId: string;
+  userToken?: string;
+  driverToken?: string;
+  restaurantToken?: string[];
+  market: Market;
+  marketId: string;
+  pickupOtp?: string;
+  otp?: string;
+  orderItems: OrderItem[];
+  subtotal: number;
+  restaurantTotalCost: number;
+  taxAmount: number;
+  driverTotalCost: number;
+  deliveryFee: number;
+  tip?: number;
+  serviceCharge?: number;
+  totalAmount: number;
+  discountCode?: string;
+  deliveryAddress: Address;
+  deliveryAddressId: string;
+  payment: Payment;
+  paymentId: string;
+  paymentMethod?: string;
+  transactionReference?: string;
+  cardHolderName?: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  actualDeliveryTime?: string;
+  createdAt: string;
+  updatedAt: string;
+  driver?: DriverUser;
+  driverId?: string;
+  completedDriverId?: string;
+  driverLocationKey?: string;
+  promoCodes?: string[];
+  promoCodeIds?: string[];
+  cancelledBy?: "USER" | "RESTAURANT" | "SYSTEM";
+  isRated?: boolean;
+  rating?: number;
 }
 
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
+
+export const OrderPossibleStatus = {
+  INCOMING: "incoming",
+  ACCEPTED: "accepted",
+  REJECTED: "rejected",
+} as const;
+
+export type OrderPossibleStatus =
+  (typeof OrderPossibleStatus)[keyof typeof OrderPossibleStatus];
+
+export const PaymentStatus = {
+  PENDING: "pending",
+  PAID: "paid",
+  CANCELLED: "cancelled",
+  REFUNDED: "refunded",
+} as const;
+
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+
+// Related Entity Interfaces
 export interface Driver {
   id: string;
   name: string;
   phone: string;
   email?: string;
 }
-
-export interface Address {
-  id: string;
-  street: string;
-  addressLine1: string;
-  name: string;
-  city: string;
-  state?: string;
-  zipcode: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-export interface Market {
-  id: string;
-  market_name: string;
-  address: string;
-  latitude?: number;
-  longitude?: number;
-}
-
 export interface Payment {
   id: string;
   amount: number;
@@ -103,16 +126,16 @@ export interface DriverOrder {
   id: string;
   userId: string;
   marketId: string;
-  
+
   // Status and timing
   status: OrderStatus;
   placedAt: string;
   createdAt: string;
   updatedAt: string;
-  
+
   // Order content
   orderItems: OrderItem[];
-  
+
   // Pricing breakdown (all as numbers, not decimals)
   subtotal: number;
   restaurantTotalCost: number;
@@ -121,51 +144,51 @@ export interface DriverOrder {
   deliveryFee: number;
   tip: number;
   totalAmount: number;
-  
+
   // Discounts and promos
   discountCode?: string;
   discountAmount: number;
   promoCodes?: string[];
   promoCodeIds?: string[];
-  
+
   // OTP codes
   otp?: string;
   pickupOtp?: string;
-  
+
   // Driver information
   driverId?: string;
   completedDriverId?: string;
   driverLocationKey?: string;
-  
+
   // Payment information
   paymentId?: string;
   paymentMethod?: string;
   paymentStatus: PaymentStatus;
   transactionId?: string;
-  
+
   // Notification tokens
   userToken?: string;
   driverToken?: string;
   restaurantToken?: string[];
-  
+
   // Delivery timing
   estimatedDeliveryTime?: number;
   actualDeliveryTime?: string;
-  
+
   // Rating and feedback
   isRated: boolean;
   rating?: number;
-  
+
   // Cancellation info
-  cancelledBy?: 'USER' | 'RESTAURANT' | 'SYSTEM';
-  
+  cancelledBy?: "USER" | "RESTAURANT" | "SYSTEM";
+
   // Relations (populated when included)
   user?: User;
   driver?: Driver;
   market: Market;
   deliveryAddress?: Address;
   payment?: Payment;
-  
+
   // Legacy/compatibility fields for existing components
   cacheKey?: string;
   assignedDriverId?: string;
@@ -193,4 +216,4 @@ export interface OrderTimerProps {
 }
 
 // Utility Types
-export type CancellationReason = 'USER' | 'RESTAURANT' | 'SYSTEM';
+export type CancellationReason = "USER" | "RESTAURANT" | "SYSTEM";

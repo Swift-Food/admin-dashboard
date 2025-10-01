@@ -5,7 +5,7 @@ import type {
 } from "../types/restaurant.types";
 
 // ============================================
-// TYPE DEFINITIONS FOR API RESPONSES
+// BASE TYPE DEFINITIONS
 // ============================================
 
 type OrderStatus =
@@ -78,6 +78,10 @@ interface MenuItem {
   isAvailable: boolean;
 }
 
+// ============================================
+// API RESPONSE TYPES
+// ============================================
+
 interface RestaurantResponse {
   id: string;
   restaurant_name: string;
@@ -107,64 +111,7 @@ interface RestaurantOrdersResponse {
 }
 
 // ============================================
-// READ OPERATIONS
-// ============================================
-
-const getAllRestaurants = async (): Promise<RestaurantResponse[]> => {
-  const res = await http.get<RestaurantResponse[]>("/restaurant");
-  console.log("Restaurants:", res);
-  return res.data;
-};
-
-const getAllRestaurantsWithMarket = async (): Promise<RestaurantResponse[]> => {
-  const res = await http.get<RestaurantResponse[]>("/restaurant/withMarkets");
-  return res.data;
-};
-
-const getRestaurantById = async (
-  id: string
-): Promise<RestaurantResponse | null> => {
-  const res = await http.get<RestaurantResponse>(`/restaurant/${id}`);
-  return res.data;
-};
-
-const getRestaurantOrders = async (
-  restaurantId: string
-): Promise<RestaurantOrdersResponse> => {
-  const res = await http.get<RestaurantOrdersResponse>(
-    `/restaurant/getOrders/${restaurantId}`
-  );
-  return res.data;
-};
-
-// ============================================
-// UPDATE OPERATIONS
-// ============================================
-
-const updateRestaurantAvailability = async (
-  id: string,
-  updateDto: UpdateAvailabilityDto
-): Promise<RestaurantResponse> => {
-  const res = await http.patch<RestaurantResponse>(
-    `/restaurant/${id}/availability`,
-    updateDto
-  );
-  console.log("Updated Restaurant:", res);
-  return res.data;
-};
-
-const toggleRestaurantStatus = async (
-  id: string,
-  isOpen: boolean
-): Promise<RestaurantResponse> => {
-  return updateRestaurantAvailability(id, {
-    isOpen,
-    deviceToken: null,
-  });
-};
-
-// ============================================
-// CREATE OPERATIONS - TYPE DEFINITIONS
+// API REQUEST DTOs
 // ============================================
 
 interface CreateRestaurantUserDto {
@@ -256,7 +203,64 @@ interface CreateCompleteRestaurantDto {
 }
 
 // ============================================
-// CREATE OPERATIONS - API CALLS
+// READ OPERATIONS
+// ============================================
+
+const getAllRestaurants = async (): Promise<RestaurantResponse[]> => {
+  const res = await http.get<RestaurantResponse[]>("/restaurant");
+  console.log("Restaurants:", res);
+  return res.data;
+};
+
+const getAllRestaurantsWithMarket = async (): Promise<RestaurantResponse[]> => {
+  const res = await http.get<RestaurantResponse[]>("/restaurant/withMarkets");
+  return res.data;
+};
+
+const getRestaurantById = async (
+  id: string
+): Promise<RestaurantResponse | null> => {
+  const res = await http.get<RestaurantResponse>(`/restaurant/${id}`);
+  return res.data;
+};
+
+const getRestaurantOrders = async (
+  restaurantId: string
+): Promise<RestaurantOrdersResponse> => {
+  const res = await http.get<RestaurantOrdersResponse>(
+    `/restaurant/getOrders/${restaurantId}`
+  );
+  return res.data;
+};
+
+// ============================================
+// UPDATE OPERATIONS
+// ============================================
+
+const updateRestaurantAvailability = async (
+  id: string,
+  updateDto: UpdateAvailabilityDto
+): Promise<RestaurantResponse> => {
+  const res = await http.patch<RestaurantResponse>(
+    `/restaurant/${id}/availability`,
+    updateDto
+  );
+  console.log("Updated Restaurant:", res);
+  return res.data;
+};
+
+const toggleRestaurantStatus = async (
+  id: string,
+  isOpen: boolean
+): Promise<RestaurantResponse> => {
+  return updateRestaurantAvailability(id, {
+    isOpen,
+    deviceToken: null,
+  });
+};
+
+// ============================================
+// CREATE OPERATIONS
 // ============================================
 
 const createRestaurantUser = async (
@@ -279,10 +283,6 @@ const createRestaurant = async (
   const res = await http.post<RestaurantResponse>("/restaurant", dto);
   return res.data;
 };
-
-// ============================================
-// COMPLETE RESTAURANT CREATION
-// ============================================
 
 /**
  * Creates a complete restaurant with all required dependencies:
@@ -372,17 +372,20 @@ export {
 };
 
 export type {
+  // Base types
+  OrderStatus,
+  RestaurantUser,
+  Address,
+  Market,
+  MenuItem,
+  // Response types
   Restaurant,
+  RestaurantResponse,
+  RestaurantOrdersResponse,
+  // Request DTOs
   UpdateAvailabilityDto,
   CreateRestaurantUserDto,
   CreateAddressDto,
   CreateRestaurantDto,
   CreateCompleteRestaurantDto,
-  RestaurantResponse,
-  RestaurantUser,
-  Address,
-  Market,
-  MenuItem,
-  OrderStatus,
-  RestaurantOrdersResponse,
 };

@@ -1,0 +1,107 @@
+.swift-hours-form {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.swift-hours-form-group {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.swift-hours-form-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.swift-hours-form-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background: #f9fafb;
+  color: #111827;
+  transition: border-color 0.15s;
+}
+
+.swift-hours-form-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.swift-hours-form-checkbox {
+  margin-right: 0.5rem;
+  accent-color: #2563eb;
+}
+
+.swift-hours-form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-start {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn-start:hover {
+  background: #1d4ed8;
+}
+
+.btn-set {
+  background: #10b981;
+  color: #fff;
+}
+
+.btn-set:hover {
+  background: #059669;
+}
+
+.btn-get {
+  background: #f3f4f6;
+  color: #2563eb;
+}
+
+.btn-get:hover {
+  background: #e5e7eb;
+}
+
+.btn-end {
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-end:hover {
+  background: #b91c1c;
+}
+
+.swift-hours-status {
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.swift-hours-active {
+  color: #10b981;
+  font-weight: 600;
+}

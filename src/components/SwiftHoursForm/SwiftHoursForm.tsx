@@ -1,16 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   startSwiftHour,
   endSwiftHour,
-  setHappyHour,
-  getHappyHour,
   //   getHappyHourTimeRemaining,
-} from "../../services/promotions.service";
-
-import type {
-  GetHappyHourResponse,
-  SetHappyHourResponse,
-  //   HappyHourTimeRemainingResponse,
 } from "../../services/promotions.service";
 import "./SwiftHoursForm.css";
 
@@ -25,45 +17,103 @@ export function SwiftHoursForm({ restaurantId }: { restaurantId: string }) {
     startTime: "",
     endTime: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
+
+  // Format date/time for digital clock display
+  const formatDateTime = (iso: string) => {
+    if (!iso) return { date: "—", time: "—" };
+    const date = new Date(iso);
+    const dateStr = date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const timeStr = date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    return { date: dateStr, time: timeStr };
+  };
+
+  // Countdown logic with formatted display
+  useEffect(() => {
+    if (!swiftHour.isHappyHourActive || !swiftHour.endTime) {
+      setTimeRemaining("");
+      return;
+    }
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const end = new Date(swiftHour.endTime).getTime();
+      const diff = end - now;
+      if (diff <= 0) {
+        setTimeRemaining("00:00:00");
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setTimeRemaining(`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [swiftHour.isHappyHourActive, swiftHour.endTime]);
 
   const handleStartSwiftHour = async () => {
-    const startResponse: { message: string } = await startSwiftHour(
-      restaurantId,
-      swiftHour.happyHour.durationMinutes,
-      swiftHour.happyHour.discount
-    );
-    console.log(startResponse.message);
+    if (
+      swiftHour.happyHour.durationMinutes <= 0 ||
+      swiftHour.happyHour.discount < 0 ||
+      swiftHour.happyHour.discount > 100
+    ) {
+      alert("Please enter a valid duration and discount.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const startResponse = await startSwiftHour(
+        restaurantId,
+        swiftHour.happyHour.durationMinutes,
+        swiftHour.happyHour.discount,
+        true, // isHappyHour
+        swiftHour.happyHour.freeDrink
+      );
+
+      console.log(startResponse.data);
+      setSwiftHour((prev) => ({
+        ...prev,
+        isHappyHourActive: true,
+        startTime: startResponse.data.startTime,
+        endTime: startResponse.data.endTime,
+      }));
+    } catch (error) {
+      console.error("Failed to start Swift Hour:", error);
+      alert(error?.response?.data?.message?.join(", ") || error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEndSwiftHour = async () => {
-    const endResponse: { message: string } = await endSwiftHour(restaurantId);
-    console.log(endResponse.message);
+    try {
+      const endResponse: { message: string } = await endSwiftHour(restaurantId);
+      if (endResponse && endResponse.message) {
+        console.log(endResponse.message);
+      }
+      setSwiftHour((prev) => ({
+        ...prev,
+        isHappyHourActive: false,
+        startTime: "",
+        endTime: "",
+      }));
+      setTimeRemaining("");
+    } catch (error) {
+      console.error("Failed to end Swift Hour:", error);
+    }
   };
-
-  const handleSetHappyHour = async () => {
-    const setResponse: SetHappyHourResponse = await setHappyHour(
-      restaurantId,
-      swiftHour.happyHour
-    );
-    console.log(setResponse.message);
-  };
-
-  const handleGetHappyHour = async () => {
-    const data: GetHappyHourResponse = await getHappyHour(restaurantId);
-    setSwiftHour((prev) => ({
-      ...prev,
-      happyHour: data.happyHour,
-      isHappyHourActive: data.isHappyHourActive,
-      startTime: data.happyHour.startTime?.toString() || "",
-      endTime: data.happyHour.endTime?.toString() || "",
-    }));
-  };
-
-  //   const handleGetHappyHourTimeRemaining = async () => {
-  //     const data: HappyHourTimeRemainingResponse =
-  //       await getHappyHourTimeRemaining(restaurantId);
-  //     return data;
-  //   };
 
   return (
     <div>
@@ -137,22 +187,9 @@ export function SwiftHoursForm({ restaurantId }: { restaurantId: string }) {
                 type="button"
                 className="btn btn-start"
                 onClick={handleStartSwiftHour}
+                disabled={isLoading}
               >
-                Start Swift Hour
-              </button>
-              <button
-                type="button"
-                className="btn btn-set"
-                onClick={handleSetHappyHour}
-              >
-                Set Happy Hour
-              </button>
-              <button
-                type="button"
-                className="btn btn-get"
-                onClick={handleGetHappyHour}
-              >
-                Get Happy Hour
+                {isLoading ? "Starting..." : "Start Swift Hour"}
               </button>
             </div>
           </>
@@ -162,9 +199,57 @@ export function SwiftHoursForm({ restaurantId }: { restaurantId: string }) {
               <p>
                 Status: <span className="swift-hours-active">Active</span>
               </p>
-              <p>Start Time: {swiftHour.startTime}</p>
-              <p>End Time: {swiftHour.endTime}</p>
+              <p>
+                <strong>Discount:</strong>{" "}
+                <span className="swift-hours-discount">
+                  {swiftHour.happyHour.discount}% OFF
+                </span>
+              </p>
+              {swiftHour.happyHour.freeDrink && (
+                <p>
+                  <strong>Bonus:</strong>{" "}
+                  <span className="swift-hours-discount">Free Drink</span>
+                </p>
+              )}
             </div>
+
+            <div className="swift-hours-timer-group">
+              <div className="swift-hours-timer-item">
+                <label className="swift-hours-timer-label">Start Time</label>
+                <div className="swift-hours-digital-clock">
+                  <div className="swift-hours-clock-time">
+                    {formatDateTime(swiftHour.startTime).time}
+                  </div>
+                  <div className="swift-hours-clock-date">
+                    {formatDateTime(swiftHour.startTime).date}
+                  </div>
+                </div>
+              </div>
+
+              <div className="swift-hours-timer-item">
+                <label className="swift-hours-timer-label">End Time</label>
+                <div className="swift-hours-digital-clock">
+                  <div className="swift-hours-clock-time">
+                    {formatDateTime(swiftHour.endTime).time}
+                  </div>
+                  <div className="swift-hours-clock-date">
+                    {formatDateTime(swiftHour.endTime).date}
+                  </div>
+                </div>
+              </div>
+
+              <div className="swift-hours-timer-item swift-hours-timer-countdown">
+                <label className="swift-hours-timer-label">
+                  Time Remaining
+                </label>
+                <div className="swift-hours-digital-clock swift-hours-countdown-clock">
+                  <div className="swift-hours-clock-time">
+                    {timeRemaining || "00:00:00"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="swift-hours-form-actions">
               <button
                 type="button"
@@ -172,13 +257,6 @@ export function SwiftHoursForm({ restaurantId }: { restaurantId: string }) {
                 onClick={handleEndSwiftHour}
               >
                 End Swift Hour
-              </button>
-              <button
-                type="button"
-                className="btn btn-get"
-                onClick={handleGetHappyHour}
-              >
-                Refresh Status
               </button>
             </div>
           </>

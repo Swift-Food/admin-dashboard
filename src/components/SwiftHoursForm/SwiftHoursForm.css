@@ -45,6 +45,8 @@
   display: flex;
   gap: 1rem;
   margin-top: 1.5rem;
+  justify-content: center;
+  align-items: center;
 }
 
 .btn {
@@ -97,11 +99,95 @@
   background: #f9fafb;
   border-radius: 0.5rem;
   padding: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   border: 1px solid #e5e7eb;
 }
 
 .swift-hours-active {
   color: #10b981;
   font-weight: 600;
+}
+
+.swift-hours-discount {
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+/* Digital Clock Styles */
+.swift-hours-timer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.swift-hours-timer-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.swift-hours-timer-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.swift-hours-digital-clock {
+  background: #1f2937;
+  border-radius: 0.5rem;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  text-align: center;
+  border: 2px solid #374151;
+}
+
+.swift-hours-clock-time {
+  font-family: "Courier New", monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #10b981;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.swift-hours-clock-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+/* Countdown Clock Variation */
+.swift-hours-timer-countdown .swift-hours-digital-clock {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  border-color: #2563eb;
+}
+
+.swift-hours-timer-countdown .swift-hours-clock-time {
+  color: #60a5fa;
+  text-shadow: 0 0 15px rgba(96, 165, 250, 0.6);
+  font-size: 2.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .swift-hours-digital-clock {
+    min-width: 160px;
+    padding: 0.75rem 1rem;
+  }
+
+  .swift-hours-clock-time {
+    font-size: 1.5rem;
+  }
+
+  .swift-hours-timer-countdown .swift-hours-clock-time {
+    font-size: 2rem;
+  }
 }

@@ -26,14 +26,17 @@ export interface HappyHourTimeRemainingResponse {
 export const startSwiftHour = async (
   restaurantId: string,
   durationMinutes: number,
-  discount: number
+  discount: number,
+  isHappyHour: boolean,
+  freeDrink: boolean
 ): Promise<{ message: string }> => {
   return http.post(`/promotions/${restaurantId}/swift-hour/start`, {
     durationMinutes,
     discount,
+    isHappyHour,
+    freeDrink,
   });
 };
-
 // End Swift Hour for a restaurant (manual trigger)
 export const endSwiftHour = async (
   restaurantId: string

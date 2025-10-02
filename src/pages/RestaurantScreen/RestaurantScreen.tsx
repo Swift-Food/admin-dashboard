@@ -10,13 +10,15 @@ import {
   Plus,
 } from "lucide-react";
 
-import type { RestaurantResponse } from "../../services/restaurant.service";
 import {
   getAllRestaurantsAdminDashboard,
   toggleRestaurantStatus,
   getRestaurantOrders,
 } from "../../services/restaurant.service";
-import AddRestaurantModal from "../../components/AddRestaurantModal";
+import type { RestaurantResponse } from "../../services/restaurant.service";
+
+import { AddRestaurantModal } from "../../components/AddRestaurantModal";
+import { SwiftHoursForm } from "../../components/SwiftHoursForm";
 import "./RestaurantScreen.css";
 
 const RestaurantAdminDashboard = () => {
@@ -493,6 +495,7 @@ const RestaurantAdminDashboard = () => {
                                   </span>
                                 </div>
                               </div>
+                              <SwiftHoursForm restaurantId={restaurant.id} />
                             </div>
 
                             <div className="orders-section">

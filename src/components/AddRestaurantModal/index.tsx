@@ -1,1 +1,1 @@
-export { default } from "./AddRestaurantModal";
+export { AddRestaurantModal } from "./AddRestaurantModal";

@@ -30,7 +30,11 @@ interface AddRestaurantModalProps {
   onSuccess: () => void;
 }
 
-const AddRestaurantModal = ({ isOpen, onClose, onSuccess }: AddRestaurantModalProps) => {
+const AddRestaurantModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddRestaurantModalProps) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -908,4 +912,4 @@ const AddRestaurantModal = ({ isOpen, onClose, onSuccess }: AddRestaurantModalPr
   );
 };
 
-export default AddRestaurantModal;
+export { AddRestaurantModal };

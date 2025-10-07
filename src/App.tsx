@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import 'leaflet/dist/leaflet.css';
 import Sidebar from './components/Sidebar';
@@ -9,9 +9,33 @@ import MapScreen from './pages/MapScreen';
 import StatisticsScreen from './pages/StatisticsScreen';
 import AllOrdersScreen from './pages/OrdersScreen';
 import RestaurantAdminDashboard from './pages/RestaurantScreen/RestaurantScreen';
+import orderService from "./services/order.service";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>('home');
+  const [prevOrderIds, setPrevOrderIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const orderSound = new Audio("/sounds/new-order.mp3");
+
+    const pollOrders = async () => {
+      try {
+        const orders = await orderService.getOrders();
+        const currentOrderIds = orders.map(o => o.id);
+        const newOrderIds = currentOrderIds.filter(id => !prevOrderIds.includes(id));
+        if (newOrderIds.length > 0) {
+          orderSound.currentTime = 0;
+          orderSound.play();
+        }
+        setPrevOrderIds(currentOrderIds);
+      } catch (e) {
+        // Optionally handle error
+      }
+    };
+
+    const intervalId = setInterval(pollOrders, 100);
+    return () => clearInterval(intervalId);
+  }, [prevOrderIds]);
 
   const renderPage = () => {
     switch (currentPage) {

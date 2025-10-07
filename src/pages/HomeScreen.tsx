@@ -110,6 +110,7 @@ const HomeScreen = () => {
     // }, [selectedDriverId]);
 
     const fetchOrders = useCallback(async() => {
+      return null
       try {
         // Fetch orders from all drivers and combine them
         const allOrdersPromises = activeDriverIds.map(driverId => 

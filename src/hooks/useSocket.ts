@@ -84,7 +84,7 @@ export default function useSocket<T>(eventName: string,
     //send arbitrary event 
     const sendEvent = useCallback((evt: string, payload: any, callback?: (response: any) => void) => {
       // ✅ Check both connected state AND socket readyState
-      const socket = socketRef.current;
+    //   const socket = socketRef.current;
       const isSocketReady = socketRef.current && 
                             connected && 
                             socketRef.current.connected; // Double-check socket's internal state

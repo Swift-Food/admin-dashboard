@@ -54,6 +54,8 @@ interface RestaurantUser {
     accountNumber: string;
     routingNumber: string;
   };
+  password?: string;
+  username?: string;
   rating: number;
   adminOtp?: string;
 }

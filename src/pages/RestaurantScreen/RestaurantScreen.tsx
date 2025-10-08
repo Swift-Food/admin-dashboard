@@ -287,7 +287,7 @@ const RestaurantAdminDashboard = () => {
                     </tr>
                     {expandedId === restaurant.id && (
                       <tr>
-                        <td colSpan="6" className="expanded-cell">
+                        <td colSpan={6} className="expanded-cell">
                           <div className="expanded-content">
                             <div className="credentials-section">
                               <h3 className="section-title">
@@ -544,7 +544,7 @@ const RestaurantAdminDashboard = () => {
                                         </div>
 
                                         <div className="order-items">
-                                          {order.items.map((item, idx) => (
+                                          {order.items.map((item: any, idx : number) => (
                                             <div
                                               key={idx}
                                               className="order-item"

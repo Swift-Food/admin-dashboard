@@ -48,7 +48,7 @@ const DriversScreen: React.FC = () => {
       </div>
     );
   }
-
+  console.log("isPolling", isPolling)
   if (error) {
     return (
       <div style={{ padding: 20, textAlign: 'center', color: '#dc2626' }}>

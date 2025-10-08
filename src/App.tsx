@@ -23,9 +23,9 @@ function App() {
     const pollOrders = async () => {
       try {
         const orders = await orderService.getOrders();
-        const currentOrderIds = orders.map((o) => o.id);
+        const currentOrderIds = orders.map((o : any) => o.id);
         const newOrderIds = currentOrderIds.filter(
-          (id) => !prevOrderIds.includes(id)
+          (id : any) => !prevOrderIds.includes(id)
         );
         if (newOrderIds.length > 0) {
           orderSound.currentTime = 0;

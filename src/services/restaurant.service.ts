@@ -59,7 +59,7 @@ interface CreateRestaurantDto {
   restaurant_name: string;
   isOpen?: boolean;
   restaurant_description?: string;
-  restaurantType: "restaurant" | "stall";
+  restaurantType: string;
   featured?: boolean;
   addressId: string;
   phoneNumber?: string;

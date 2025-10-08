@@ -74,7 +74,7 @@ export function SwiftHoursForm({ restaurantId }: { restaurantId: string }) {
     }
     setIsLoading(true);
     try {
-      const startResponse = await startSwiftHour(
+      const startResponse : any = await startSwiftHour(
         restaurantId,
         swiftHour.happyHour.durationMinutes,
         swiftHour.happyHour.discount,
@@ -89,7 +89,7 @@ export function SwiftHoursForm({ restaurantId }: { restaurantId: string }) {
         startTime: startResponse.data.startTime,
         endTime: startResponse.data.endTime,
       }));
-    } catch (error) {
+    } catch (error : any) {
       console.error("Failed to start Swift Hour:", error);
       alert(error?.response?.data?.message?.join(", ") || error.message);
     } finally {

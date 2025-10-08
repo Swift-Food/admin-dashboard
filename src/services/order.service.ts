@@ -1,7 +1,7 @@
 import type { DriverOrder } from "../types/order.types";
 import http from "./http"
 
-const getOrdersByDriver = async (driverId: string): Promise<DriverOrder[]> => {
+const getOrdersByDriver = async (): Promise<DriverOrder[]> => {
     const res = await http.get(`/order`);
     //console.log("Orders:", res);
     return res.data; 

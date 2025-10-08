@@ -1,6 +1,6 @@
 import http from "./http";
 
-const getAllPayouts = async (status?: string) => {
+const getAllPayouts = async () => {
     const url = 'driver-user/admin/payouts';
     const res = await http.get(url);
     return res.data;

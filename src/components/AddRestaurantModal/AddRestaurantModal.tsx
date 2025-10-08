@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronLeft, Check, AlertCircle } from "lucide-react";
 import "./AddRestaurantModal.css";
 import { createAddress } from "../../services/address.service";
@@ -11,7 +11,6 @@ import { getAllMarkets } from "../../services/market.service";
 import type { Market } from "../../types/market.types";
 import type {
   CreateRestaurantUserDto,
-  CreateRestaurantUserResponse,
 } from "../../types/user.types";
 
 const DAYS = [
@@ -102,7 +101,7 @@ const AddRestaurantModal = ({
     fetchMarkets();
   }, [isOpen]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field : any, value : any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -126,7 +125,7 @@ const AddRestaurantModal = ({
     setFormData((prev) => ({ ...prev, images: [...prev.images, ""] }));
   };
 
-  const removeImageField = (index) => {
+  const removeImageField = (index : number) => {
     const newImages = formData.images.filter((_, i) => i !== index);
     setFormData((prev) => ({
       ...prev,
@@ -195,8 +194,14 @@ const AddRestaurantModal = ({
           rating: 5.0,
         };
         // Step 1: Create Restaurant User
-        const userResult: CreateRestaurantUserResponse =
-          await createRestaurantUser(userDto);
+
+        const userResult : any = await createRestaurantUser(userDto);
+
+        // Check if the response has the expected structure
+        if (!userResult || !userResult.user || !userResult.user.id || !userResult.id) {
+          setError("Failed to create user. Invalid response from server.");
+          return;
+        }
 
         setCreatedUserId(userResult.user.id);
         setCreatedRestaurantUserId(userResult.id);
@@ -226,7 +231,7 @@ const AddRestaurantModal = ({
         console.log("Created address:", addressResult);
         setStep(3);
       }
-    } catch (err) {
+    } catch (err : any) {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
@@ -280,7 +285,7 @@ const AddRestaurantModal = ({
       console.log("Created restaurant:", restaurant);
       onSuccess();
       handleClose();
-    } catch (err) {
+    } catch (err : any) {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||

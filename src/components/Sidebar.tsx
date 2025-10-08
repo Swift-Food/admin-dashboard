@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faMotorcycle, faChartBar, faMap, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
-export type SidebarPage = 'home' | 'orders'| 'restaurant'| 'driver-status' | 'statistics' | 'map' | 'catering';
+export type SidebarPage = 'home' | 'orders'| 'restaurant'| 'driver-status' | 'statistics' | 'map' | 'catering' | 'driver-payout';
 
 interface SidebarProps {
   currentPage: SidebarPage;
@@ -30,6 +30,9 @@ const navItems = [
     <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />
   ) },
   { id: 'catering', label: 'Catering', icon: (
+    <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />
+  ) },
+  { id: 'driver-payout', label: 'Driver Payouts', icon: (
     <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />
   ) },
 ];

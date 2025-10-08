@@ -11,6 +11,7 @@ import AllOrdersScreen from "./pages/OrdersScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
 import orderService from "./services/order.service";
 import CateringOrdersScreen from "./pages/CateringScreen";
+import DriverPayoutsScreen from "./pages/PayoutScreen";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
@@ -48,6 +49,8 @@ function App() {
         return <AllOrdersScreen />;
       case "catering":
         return <CateringOrdersScreen />;
+      case "driver-payout":
+        return <DriverPayoutsScreen />;
       case "restaurant":
         return <RestaurantAdminDashboard />;
       case "driver-status":

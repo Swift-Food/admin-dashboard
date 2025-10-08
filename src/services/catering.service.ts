@@ -1,0 +1,34 @@
+import http from "./http";
+
+const getOrders = async() => {
+    const res = await http.get('catering-orders');
+    return res.data;
+}
+
+const reviewOrder = async (reviewDto: {
+    orderId: string;
+    finalTotal: number;
+    depositAmount?: number;
+    adminNotes?: string;
+    reviewedBy: string;
+}) => {
+    const res = await http.patch(`catering-orders/${reviewDto.orderId}/review`, reviewDto);
+    return res.data;
+}
+
+const sendPaymentLink = async (orderId: string) => {
+    const res = await http.post('catering-orders/send-payment-link', { orderId });
+    return res.data;
+}
+
+const cancelOrder = async (orderId: string) => {
+    const res = await http.patch(`catering-orders/${orderId}/cancel`);
+    return res.data;
+}
+
+export default {
+    getOrders,
+    reviewOrder,
+    sendPaymentLink,
+    cancelOrder,
+};

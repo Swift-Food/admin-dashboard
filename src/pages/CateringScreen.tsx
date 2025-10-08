@@ -1,0 +1,712 @@
+import { Clock, X, Calendar, Users } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import type { CateringOrder } from "../types/catering.types";
+import cateringService from "../services/catering.service";
+
+const OrderTimer = ({ createdAt }: { createdAt: string }) => {
+  const [timeElapsed, setTimeElapsed] = useState("");
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const orderTime = new Date(createdAt).getTime();
+      const diff = now - orderTime;
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+      if (days > 0) {
+        setTimeElapsed(`${days}d ${hours}h`);
+      } else if (hours > 0) {
+        setTimeElapsed(`${hours}h`);
+      } else {
+        const minutes = Math.floor(diff / (1000 * 60));
+        setTimeElapsed(`${minutes}m`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 60000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  return (
+    <div className="flex items-center text-sm text-gray-600">
+      <Clock size={14} className="mr-1" />
+      {timeElapsed} ago
+    </div>
+  );
+};
+
+const CateringOrderDetailsModal = ({
+    order,
+    isOpen,
+    onClose,
+    onOrderUpdated,
+  }: {
+    order: CateringOrder | null;
+    isOpen: boolean;
+    onClose: () => void;
+    onOrderUpdated?: () => void;
+  }) => {
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
+    
+    // Review form state
+    const [reviewForm, setReviewForm] = useState({
+      finalTotal: '',
+      depositAmount: '',
+      adminNotes: '',
+      reviewedBy: 'admin-user-id', // Replace with actual admin ID
+    });
+  
+    if (!isOpen || !order) return null;
+  
+    const formatCurrency = (amount?: number | string) => {
+      const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+      if (typeof numAmount === "number" && !isNaN(numAmount)) {
+        return `£${numAmount.toFixed(2)}`;
+      }
+      return "N/A";
+    };
+  
+    const canCancelOrder = !["confirmed", "cancelled"].includes(order.status);
+    const canReview = order.status === "pending_review";
+    const canSendPaymentLink = order.status === "reviewed" || order.status === "payment_link_sent";
+  
+    const handleConfirmCancel = async () => {
+      setIsCancelling(true);
+      try {
+        await cateringService.cancelOrder(order.id);
+        setShowCancelConfirm(false);
+        onClose();
+        if (onOrderUpdated) onOrderUpdated();
+      } catch (error) {
+        console.error("Error cancelling order:", error);
+        alert("Failed to cancel order. Please try again.");
+      } finally {
+        setIsCancelling(false);
+      }
+    };
+  
+    const handleReviewSubmit = async () => {
+      try {
+        await cateringService.reviewOrder({
+          orderId: order.id,
+          finalTotal: parseFloat(reviewForm.finalTotal),
+          depositAmount: reviewForm.depositAmount ? parseFloat(reviewForm.depositAmount) : undefined,
+          adminNotes: reviewForm.adminNotes || undefined,
+          reviewedBy: reviewForm.reviewedBy,
+        });
+        setShowReviewModal(false);
+        onClose();
+        if (onOrderUpdated) onOrderUpdated();
+        alert('Order reviewed successfully!');
+      } catch (error) {
+        console.error("Error reviewing order:", error);
+        alert("Failed to review order. Please try again.");
+      }
+    };
+  
+    const handleSendPaymentLink = async () => {
+      if (!confirm('Send payment link to customer?')) return;
+      
+      setIsSendingPaymentLink(true);
+      try {
+        await cateringService.sendPaymentLink(order.id);
+        onClose();
+        if (onOrderUpdated) onOrderUpdated();
+        alert('Payment link sent successfully!');
+      } catch (error) {
+        console.error("Error sending payment link:", error);
+        alert("Failed to send payment link. Please try again.");
+      } finally {
+        setIsSendingPaymentLink(false);
+      }
+    };
+  
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
+          <div className="flex justify-between items-center p-6 border-b border-gray-200">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Catering Order Details</h2>
+              <p className="text-gray-600">Order ID: {order.id}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X size={24} />
+            </button>
+          </div>
+  
+          <div className="p-6 space-y-6">
+            {/* Status & Key Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="font-semibold text-blue-900">Status</h3>
+                <p className="text-blue-700 capitalize font-medium">
+                  {order.status.replace(/_/g, " ")}
+                </p>
+                <div className="mt-2">
+                  <OrderTimer createdAt={order.createdAt} />
+                </div>
+              </div>
+  
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h3 className="font-semibold text-green-900">Event Date</h3>
+                <p className="text-green-700 flex items-center">
+                  <Calendar size={16} className="mr-1" />
+                  {new Date(order.eventDate).toLocaleDateString()}
+                </p>
+                <p className="text-green-600 text-sm">{order.eventTime}</p>
+              </div>
+  
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="font-semibold text-purple-900">Guest Count</h3>
+                <p className="text-purple-700 text-xl font-bold flex items-center">
+                  <Users size={20} className="mr-2" />
+                  {order.guestCount}
+                </p>
+              </div>
+            </div>
+  
+            {/* Customer Information */}
+            <div className="border border-gray-200 rounded-lg p-4 bg-white">
+              <h3 className="font-semibold mb-3 text-gray-900">Customer Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                <div>
+                  <p><span className="font-medium text-gray-900">Name:</span> {order.customerName}</p>
+                  <p><span className="font-medium text-gray-900">Email:</span> {order.customerEmail}</p>
+                  <p><span className="font-medium text-gray-900">Phone:</span> {order.customerPhone}</p>
+                </div>
+                <div>
+                  <p><span className="font-medium text-gray-900">Event Type:</span> {order.eventType || "Not specified"}</p>
+                  <p><span className="font-medium text-gray-900">Delivery:</span> {
+                    typeof order.deliveryAddress === 'string' 
+                      ? order.deliveryAddress 
+                      : `${order.deliveryAddress?.addressLine1 || ''}, ${order.deliveryAddress?.city || ''}, ${order.deliveryAddress?.zipcode || ''}`
+                  }</p>
+                </div>
+              </div>
+            </div>
+  
+            {/* Special Requirements */}
+            {order.specialRequirements && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                <h3 className="font-semibold text-yellow-900 mb-2">Special Requirements</h3>
+                <p className="text-sm text-yellow-800">{order.specialRequirements}</p>
+              </div>
+            )}
+  
+            {/* Order Items */}
+            {order.orderItems && order.orderItems.length > 0 && (
+              <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                <h3 className="font-semibold mb-4 text-gray-900">Order Items</h3>
+                <div className="space-y-4">
+                  {order.orderItems.map((item, idx) => (
+                    <div key={idx} className="border-l-4 border-blue-300 pl-4 py-2 bg-blue-50">
+                      <h4 className="font-medium text-blue-900 mb-2">
+                        {item.restaurantName}
+                      </h4>
+                      {item.menuItems && item.menuItems.length > 0 && (
+                        <div className="space-y-1">
+                          {item.menuItems.map((menuItem, menuIdx) => (
+                            <div key={menuIdx} className="text-sm text-gray-800 flex justify-between">
+                              <span>{menuItem.quantity}x {menuItem.name}</span>
+                              <span className="font-medium">{formatCurrency(menuItem.totalPrice)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {item.specialInstructions && (
+                        <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
+                          <p className="text-sm text-yellow-900 italic">
+                            {item.specialInstructions}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+  
+            {/* Payment Summary */}
+            <div className="border border-gray-200 rounded-lg p-4 bg-white">
+              <h3 className="font-semibold mb-4 text-gray-900">Payment Summary</h3>
+              <div className="space-y-2 text-gray-700">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span className="font-medium">{formatCurrency(order.subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Service Charge:</span>
+                  <span className="font-medium">{formatCurrency(order.serviceCharge)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Delivery Fee:</span>
+                  <span className="font-medium">{formatCurrency(order.deliveryFee)}</span>
+                </div>
+                {parseFloat(order.promoDiscount as string) > 0 && (
+                  <div className="flex justify-between text-green-700">
+                    <span>Promo Discount:</span>
+                    <span className="font-medium">-{formatCurrency(order.promoDiscount)}</span>
+                  </div>
+                )}
+                {parseFloat(order.depositAmount as string) > 0 && (
+                  <div className="flex justify-between text-blue-700">
+                    <span>Deposit Paid:</span>
+                    <span className="font-medium">{formatCurrency(order.depositAmount)}</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-300 pt-2 flex justify-between font-bold text-lg text-gray-900">
+                  <span>Final Total:</span>
+                  <span>{formatCurrency(order.finalTotal || order.estimatedTotal)}</span>
+                </div>
+              </div>
+  
+              {order.paymentLinkUrl && (
+                <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
+                  <p className="text-sm font-medium text-blue-900">Payment Link</p>
+                  <a href={order.paymentLinkUrl} target="_blank" rel="noopener noreferrer" 
+                     className="text-blue-700 text-sm underline break-all hover:text-blue-800">
+                    {order.paymentLinkUrl}
+                  </a>
+                  {order.paymentLinkSentAt && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      Sent: {new Date(order.paymentLinkSentAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+  
+              {order.paidAt && (
+                <div className="mt-2 text-sm text-green-700 font-medium">
+                  Paid: {new Date(order.paidAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+  
+            {/* Admin Notes */}
+            {order.adminNotes && (
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold mb-2 text-gray-900">Admin Notes</h3>
+                <p className="text-sm text-gray-800">{order.adminNotes}</p>
+                {order.reviewedBy && order.reviewedAt && (
+                  <p className="text-xs text-gray-600 mt-2">
+                    Reviewed by {order.reviewedBy} on {new Date(order.reviewedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
+  
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={onClose}
+                className="flex-1 min-w-[120px] bg-gray-200 hover:bg-gray-300 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+  
+              {canReview && (
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                >
+                  Review Order
+                </button>
+              )}
+  
+              {canSendPaymentLink && (
+                <button
+                  onClick={handleSendPaymentLink}
+                  disabled={isSendingPaymentLink}
+                  className="flex-1 min-w-[120px] bg-purple-500 hover:bg-purple-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-purple-300 disabled:cursor-not-allowed"
+                >
+                  {isSendingPaymentLink ? "Sending..." : "Send Payment Link"}
+                </button>
+              )}
+  
+              {canCancelOrder && (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  disabled={isCancelling}
+                  className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel Order"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+  
+        {/* Review Modal */}
+        {showReviewModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
+    <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
+      <h3 className="text-lg font-bold mb-4 text-gray-900">Review Order</h3>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-black mb-1">
+            Final Total (£)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            value={reviewForm.finalTotal || (order.estimatedTotal?.toString() || order.finalTotal?.toString() || '')}
+            onChange={(e) => setReviewForm({...reviewForm, finalTotal: e.target.value})}
+            className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Deposit Amount (£) - Optional
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            value={reviewForm.depositAmount}
+            onChange={(e) => setReviewForm({...reviewForm, depositAmount: e.target.value})}
+            className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="0.00"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Admin Notes - Optional
+          </label>
+          <textarea
+            value={reviewForm.adminNotes}
+            onChange={(e) => setReviewForm({...reviewForm, adminNotes: e.target.value})}
+            className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            rows={3}
+            placeholder="Add any notes about this order..."
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3 mt-6">
+        <button
+          onClick={() => setShowReviewModal(false)}
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleReviewSubmit}
+          disabled={!reviewForm.finalTotal && !(order.estimatedTotal || order.finalTotal)}
+          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+        >
+          Submit Review
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+  
+        {/* Cancel Confirmation Dialog */}
+        {showCancelConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+              <h3 className="text-lg font-bold mb-2 text-gray-900">Cancel Catering Order?</h3>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to cancel this catering order for {order.customerName}? 
+                This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  disabled={isCancelling}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Keep Order
+                </button>
+                <button
+                  onClick={handleConfirmCancel}
+                  disabled={isCancelling}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+                >
+                  {isCancelling ? "Cancelling..." : "Yes, Cancel"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+const CateringOrderCard = ({
+  order,
+  onClick,
+}: {
+  order: CateringOrder;
+  onClick: () => void;
+}) => {
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      pending_review: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      reviewed: "bg-blue-100 text-blue-800 border-blue-300",
+      payment_link_sent: "bg-purple-100 text-purple-800 border-purple-300",
+      paid: "bg-green-100 text-green-800 border-green-300",
+      confirmed: "bg-green-100 text-green-800 border-green-300",
+      cancelled: "bg-red-100 text-red-800 border-red-300",
+    };
+    return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
+  };
+
+  const formatCurrency = (amount?: number | string) => {
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    if (typeof numAmount === "number" && !isNaN(numAmount)) {
+      return `£${numAmount.toFixed(2)}`;
+    }
+    return "N/A";
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white p-4 rounded-lg shadow-sm border border-gray-300 hover:shadow-md transition-shadow cursor-pointer w-80 mb-3"
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <p className="font-medium text-sm text-gray-900">#{order.id.slice(-8)}</p>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+            {order.status.replace(/_/g, " ").toUpperCase()}
+          </span>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-gray-900">{formatCurrency(order.finalTotal || order.estimatedTotal)}</p>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <p className="text-sm font-medium text-gray-900">{order.customerName}</p>
+        <p className="text-xs text-gray-600">{order.customerEmail}</p>
+        <p className="text-xs text-gray-600">{order.customerPhone}</p>
+      </div>
+
+      <div className="mb-3 bg-blue-50 p-2 rounded border border-blue-200">
+        <div className="flex items-center text-sm text-gray-800">
+          <Calendar size={14} className="mr-1 text-blue-600" />
+          <span className="font-medium">{new Date(order.eventDate).toLocaleDateString()}</span>
+          <span className="mx-2">•</span>
+          <span>{order.eventTime}</span>
+        </div>
+        <div className="flex items-center text-sm mt-1 text-gray-800">
+          <Users size={14} className="mr-1 text-blue-600" />
+          <span>{order.guestCount} guests</span>
+          {order.eventType && (
+            <>
+              <span className="mx-2">•</span>
+              <span className="text-xs">{order.eventType}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <OrderTimer createdAt={order.createdAt} />
+        <p className="text-xs text-gray-600">
+          {new Date(order.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const CateringOrderColumn = ({
+  title,
+  orders,
+  onRefresh,
+}: {
+  title: string;
+  orders: CateringOrder[];
+  onRefresh: () => void;
+}) => {
+  const [selectedOrder, setSelectedOrder] = useState<CateringOrder | null>(null);
+
+  return (
+    <div className="flex-shrink-0 w-96 bg-gray-100 rounded-lg p-4 border border-gray-300">
+      <div className="mb-4 text-center">
+        <h3 className="font-semibold text-gray-900">{title}</h3>
+        <div className="mt-2">
+          <span className="inline-block px-3 py-1 bg-white rounded-full text-sm font-medium text-gray-800 border border-gray-300">
+            {orders.length} orders
+          </span>
+        </div>
+      </div>
+      <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+        {orders.map((order) => (
+          <CateringOrderCard
+            key={order.id}
+            order={order}
+            onClick={() => setSelectedOrder(order)}
+          />
+        ))}
+        {orders.length === 0 && (
+          <div className="text-center text-gray-600 py-8">
+            No orders in this status
+          </div>
+        )}
+      </div>
+
+      <CateringOrderDetailsModal
+        order={selectedOrder}
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        onOrderUpdated={onRefresh}
+        />
+    </div>
+  );
+};
+
+const CateringOrdersScreen = () => {
+  const [allOrders, setAllOrders] = useState<CateringOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  const fetchAllOrders = useCallback(async () => {
+    try {
+      const orders = await cateringService.getOrders();
+      setAllOrders(orders);
+      setError(undefined);
+      setLastUpdated(new Date());
+    } catch (e: any) {
+      console.error("Failed to fetch catering orders:", e);
+      setError(e?.message || "Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllOrders();
+    const interval = setInterval(fetchAllOrders, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAllOrders]);
+
+  const buckets: Record<string, CateringOrder[]> = {
+    PENDING_REVIEW: [],
+    REVIEWED: [],
+    PAYMENT_LINK_SENT: [],
+    PAID: [],
+    CONFIRMED: [],
+    CANCELLED: [],
+  };
+
+  allOrders.forEach((order) => {
+    console.log('Processing order:', order.id, 'Status:', order.status);
+    
+    const status = order.status?.toLowerCase() || '';
+    
+    switch (status) {
+      case "pending_review":
+      case "pending review":
+        buckets.PENDING_REVIEW.push(order);
+        break;
+      case "reviewed":
+        buckets.REVIEWED.push(order);
+        break;
+      case "payment_link_sent":
+      case "payment link sent":
+        buckets.PAYMENT_LINK_SENT.push(order);
+        break;
+      case "paid":
+        buckets.PAID.push(order);
+        break;
+      case "confirmed":
+        buckets.CONFIRMED.push(order);
+        break;
+      case "cancelled":
+        buckets.CANCELLED.push(order);
+        break;
+      default:
+        console.warn('Unknown status:', order.status, 'for order:', order.id);
+        buckets.PENDING_REVIEW.push(order);
+    }
+  });
+
+  Object.keys(buckets).forEach((key) => {
+    buckets[key].sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  });
+
+  const totalOrders = allOrders.length;
+  const activeOrders = totalOrders - buckets.CANCELLED.length - buckets.CONFIRMED.length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="text-lg text-gray-900">Loading catering orders...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="text-red-600 text-lg">Error: {error}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 h-screen bg-[#e8f4f8]">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold mb-2 text-gray-900">Catering Orders Overview</h1>
+        <div className="flex gap-6 text-sm text-gray-700">
+          <span>Total Orders: <strong className="text-gray-900">{totalOrders}</strong></span>
+          <span>Active Orders: <strong className="text-gray-900">{activeOrders}</strong></span>
+          <span>Confirmed: <strong className="text-gray-900">{buckets.CONFIRMED.length}</strong></span>
+          <span>Cancelled: <strong className="text-gray-900">{buckets.CANCELLED.length}</strong></span>
+          <span className="ml-auto">
+            Last Updated: <strong className="text-gray-900">{lastUpdated.toLocaleTimeString()}</strong>
+          </span>
+        </div>
+      </div>
+
+      <div className="flex gap-4 overflow-x-auto h-full">
+        <CateringOrderColumn
+          title={`Pending Review (${buckets.PENDING_REVIEW.length})`}
+          orders={buckets.PENDING_REVIEW}
+          onRefresh={fetchAllOrders}
+        />
+        <CateringOrderColumn
+          title={`Reviewed (${buckets.REVIEWED.length})`}
+          orders={buckets.REVIEWED}
+          onRefresh={fetchAllOrders}
+        />
+        <CateringOrderColumn
+          title={`Payment Link Sent (${buckets.PAYMENT_LINK_SENT.length})`}
+          orders={buckets.PAYMENT_LINK_SENT}
+          onRefresh={fetchAllOrders}
+        />
+        <CateringOrderColumn
+          title={`Paid (${buckets.PAID.length})`}
+          orders={buckets.PAID}
+          onRefresh={fetchAllOrders}
+        />
+        <CateringOrderColumn
+          title={`Confirmed (${buckets.CONFIRMED.length})`}
+          orders={buckets.CONFIRMED}
+          onRefresh={fetchAllOrders}
+        />
+        <CateringOrderColumn
+          title={`Cancelled (${buckets.CANCELLED.length})`}
+          orders={buckets.CANCELLED}
+          onRefresh={fetchAllOrders}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default CateringOrdersScreen;

@@ -3,13 +3,14 @@ import "./App.css";
 import "leaflet/dist/leaflet.css";
 import Sidebar from "./components/Sidebar";
 import type { SidebarPage } from "./components/Sidebar";
-import HomeScreen from "./pages/HomeScreen";
+
 import DriverStatusScreen from "./pages/DriverStatusScreen";
 import MapScreen from "./pages/MapScreen";
 import StatisticsScreen from "./pages/StatisticsScreen";
 import AllOrdersScreen from "./pages/OrdersScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
 import orderService from "./services/order.service";
+import CateringOrdersScreen from "./pages/CateringScreen";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
@@ -45,6 +46,8 @@ function App() {
       //   return <HomeScreen />;
       case "orders":
         return <AllOrdersScreen />;
+      case "catering":
+        return <CateringOrdersScreen />;
       case "restaurant":
         return <RestaurantAdminDashboard />;
       case "driver-status":

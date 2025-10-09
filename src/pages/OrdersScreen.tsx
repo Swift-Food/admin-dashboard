@@ -102,11 +102,14 @@ const OrderDetailsModal = ({
   };
 
   const handleConfirmCancel = async () => {
+    console.log("on cancel order", safeOrderId)
     setIsCancelling(true);
     try {
-      if (onCancelOrder) {
+      console.log("on cancel order")
+      // if (onCancelOrder) {
+        console.log("cancelling order", safeOrderId)
         await orderService.cancelOrder(safeOrderId);
-      }
+      // }
       setShowCancelConfirm(false);
       onClose();
     } catch (error) {

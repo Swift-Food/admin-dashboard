@@ -25,6 +25,8 @@ const OrderTimer = ({ createdAt }: { createdAt: string }) => {
       }
     };
 
+    
+
     updateTimer();
     const interval = setInterval(updateTimer, 60000);
     return () => clearInterval(interval);
@@ -90,16 +92,30 @@ const CateringOrderDetailsModal = ({
         setIsCancelling(false);
       }
     };
+
   
     const handleReviewSubmit = async () => {
       try {
+        // Use the form value if provided, otherwise fall back to order's estimated/final total
+        const finalTotal = reviewForm.finalTotal 
+          ? parseFloat(reviewForm.finalTotal)
+          : parseFloat((order.estimatedTotal || order.finalTotal || 0).toString());
+    
+        if (!finalTotal || finalTotal <= 0) {
+          alert('Please enter a valid final total amount');
+          return;
+        }
+    
+        console.log("final total:", finalTotal);
+        
         await cateringService.reviewOrder({
           orderId: order.id,
-          finalTotal: parseFloat(reviewForm.finalTotal),
+          finalTotal: finalTotal,
           depositAmount: reviewForm.depositAmount ? parseFloat(reviewForm.depositAmount) : undefined,
           adminNotes: reviewForm.adminNotes || undefined,
           reviewedBy: reviewForm.reviewedBy,
         });
+        
         setShowReviewModal(false);
         onClose();
         if (onOrderUpdated) onOrderUpdated();
@@ -312,7 +328,16 @@ const CateringOrderDetailsModal = ({
   
               {canReview && (
                 <button
-                  onClick={() => setShowReviewModal(true)}
+                onClick={() => {
+                  // Initialize form with current values when opening
+                  setReviewForm({
+                    finalTotal: (order.estimatedTotal || order.finalTotal || '').toString(),
+                    depositAmount: '',
+                    adminNotes: '',
+                    reviewedBy: 'admin-user-id',
+                  });
+                  setShowReviewModal(true);
+                }}
                   className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
                 >
                   Review Order

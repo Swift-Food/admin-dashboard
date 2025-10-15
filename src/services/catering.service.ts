@@ -12,6 +12,7 @@ const reviewOrder = async (reviewDto: {
     adminNotes?: string;
     reviewedBy: string;
 }) => {
+    console.log("reviewd by", reviewDto)
     const res = await http.patch(`catering-orders/${reviewDto.orderId}/review`, reviewDto);
     return res.data;
 }

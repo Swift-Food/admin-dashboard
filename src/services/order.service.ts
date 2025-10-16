@@ -21,9 +21,14 @@ const cancelOrder = async (orderId : string)=>{
   await http.post(`order/cancel/${orderId}`);
 }
 
+const assignDriver = async (orderId : string)=> {
+  await http.post(`driver-user/orders/${orderId}/assign-driver`)
+}
+
 export default {
   getOrdersByDriver,
   getOrderById,
   getOrders,
-  cancelOrder
+  cancelOrder,
+  assignDriver
 };

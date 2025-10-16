@@ -51,15 +51,16 @@ const OrderDetailsModal = ({
   order,
   isOpen,
   onClose,
-  onCancelOrder, // Add this prop
+
 }: {
   order: DriverOrder | null;
   isOpen: boolean;
   onClose: () => void;
-  onCancelOrder?: (orderId: string) => void; // Optional callback for cancel
+
 }) => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isAssigningDriver, setIsAssigningDriver] = useState(false);
 
   if (!isOpen || !order) return null;
   console.log("order details modal opened");
@@ -96,9 +97,26 @@ const OrderDetailsModal = ({
 
   // Determine if order can be cancelled
   const canCancelOrder = !["delivered", "cancelled"].includes(safeOrderStatus);
+  const canAssignDriver = ["preparing", "ready_for_pickup"].includes(safeOrderStatus);
 
   const handleCancelClick = () => {
     setShowCancelConfirm(true);
+  };
+
+  const handleAssignDriver = async () => {
+
+    
+    setIsAssigningDriver(true);
+    try {
+      await orderService.assignDriver(safeOrderId);
+      // Optionally close modal after assignment
+      // onClose();
+    } catch (error) {
+      console.error("Error assigning driver:", error);
+      alert("Failed to assign driver. Please try again.");
+    } finally {
+      setIsAssigningDriver(false);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -352,6 +370,16 @@ const OrderDetailsModal = ({
             >
               Close
             </button>
+
+            {canAssignDriver && (
+              <button
+                onClick={handleAssignDriver}
+                disabled={isAssigningDriver}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+              >
+                {isAssigningDriver ? "Assigning Driver..." : "Assign Driver"}
+              </button>
+            )}
 
             {canCancelOrder && (
               <button

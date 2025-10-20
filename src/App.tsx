@@ -12,25 +12,41 @@ import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen"
 import orderService from "./services/order.service";
 import CateringOrdersScreen from "./pages/CateringScreen";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
+import { PaymentStatus } from "./types/order.types";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
   const [prevOrderIds, setPrevOrderIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const orderSound = new Audio("/sounds/new-order.mp3");
+    const newOrderSound = new Audio("/sounds/new-order.mp3");
+    const paidOrderSound = new Audio("/sounds/brainrot.mp3");
 
     const pollOrders = async () => {
       try {
         const orders = await orderService.getOrders();
-        const currentOrderIds = orders.map((o : any) => o.id);
-        const newOrderIds = currentOrderIds.filter(
-          (id : any) => !prevOrderIds.includes(id)
+        const currentOrderIds = orders.map((o: any) => o.id);
+
+        // Find newly appeared orders
+        const newOrders = orders.filter(
+          (o: any) => !prevOrderIds.includes(o.id)
         );
-        if (newOrderIds.length > 0) {
-          orderSound.currentTime = 0;
-          orderSound.play();
+
+        // Avoid initial-load sound (require we have seen at least one previous poll)
+        if (prevOrderIds.length > 0 && newOrders.length > 0) {
+          const anyPaid = newOrders.some(
+            (o: any) =>
+              // support both shapes: order.payment.status or order.paymentStatus
+              (o.payment && o.payment.status === PaymentStatus.PAID) ||
+              o.paymentStatus === PaymentStatus.PAID
+          );
+
+          const soundToPlay = anyPaid ? paidOrderSound : newOrderSound;
+          soundToPlay.currentTime = 0;
+          // play might reject on browsers that block autoplay — ignore errors
+          soundToPlay.play().catch(() => {});
         }
+
         setPrevOrderIds(currentOrderIds);
       } catch (e) {
         // Optionally handle error
@@ -38,6 +54,8 @@ function App() {
     };
 
     const intervalId = setInterval(pollOrders, 10000);
+    // run once immediately
+    pollOrders();
     return () => clearInterval(intervalId);
   }, [prevOrderIds]);
 
@@ -50,7 +68,7 @@ function App() {
       case "catering":
         return <CateringOrdersScreen />;
       case "payout":
-        return <WithdrawalAdminDashboard/>;
+        return <WithdrawalAdminDashboard />;
       case "restaurant":
         return <RestaurantAdminDashboard />;
       case "driver-status":

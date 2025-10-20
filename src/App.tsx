@@ -53,7 +53,7 @@ function App() {
       }
     };
 
-    const intervalId = setInterval(pollOrders, 10000);
+    const intervalId = setInterval(pollOrders, 100000);
     // run once immediately
     pollOrders();
     return () => clearInterval(intervalId);

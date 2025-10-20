@@ -397,13 +397,6 @@ const WithdrawalCard = ({
     return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (typeof amount === "number" && !isNaN(amount)) {
-      return `£${amount.toFixed(2)}`;
-    }
-    return "N/A";
-  };
-
   return (
     <div
       onClick={onClick}

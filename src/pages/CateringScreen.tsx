@@ -76,7 +76,7 @@ const CateringOrderDetailsModal = ({
   
     const canCancelOrder = !["confirmed", "cancelled"].includes(order.status);
     const canReview = order.status === "pending_review";
-    const canSendPaymentLink = order.status === "reviewed" || order.status === "payment_link_sent";
+    const canSendPaymentLink = order.status === "restaurant_reviewed" || order.status === "payment_link_sent";
   
     const handleConfirmCancel = async () => {
       setIsCancelling(true);
@@ -476,7 +476,8 @@ const CateringOrderCard = ({
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       pending_review: "bg-yellow-100 text-yellow-800 border-yellow-300",
-      reviewed: "bg-blue-100 text-blue-800 border-blue-300",
+      admin_reviewed: "bg-orange-100 text-orange-800 border-orange-300",
+      restaurant_reviewed: "bg-blue-100 text-blue-800 border-blue-300",
       payment_link_sent: "bg-purple-100 text-purple-800 border-purple-300",
       paid: "bg-green-100 text-green-800 border-green-300",
       confirmed: "bg-green-100 text-green-800 border-green-300",
@@ -619,7 +620,8 @@ const CateringOrdersScreen = () => {
 
   const buckets: Record<string, CateringOrder[]> = {
     PENDING_REVIEW: [],
-    REVIEWED: [],
+    ADMIN_REVIEWED: [],
+    RESTAURANT_REVIEWED: [],
     PAYMENT_LINK_SENT: [],
     PAID: [],
     CONFIRMED: [],
@@ -636,8 +638,13 @@ const CateringOrdersScreen = () => {
       case "pending review":
         buckets.PENDING_REVIEW.push(order);
         break;
-      case "reviewed":
-        buckets.REVIEWED.push(order);
+      case "admin_reviewed":
+      case "admin reviewed":
+        buckets.ADMIN_REVIEWED.push(order);
+        break;
+      case "restaurant_reviewed":
+      case "restaurant reviewed":
+        buckets.RESTAURANT_REVIEWED.push(order);
         break;
       case "payment_link_sent":
       case "payment link sent":
@@ -705,8 +712,13 @@ const CateringOrdersScreen = () => {
           onRefresh={fetchAllOrders}
         />
         <CateringOrderColumn
-          title={`Reviewed (${buckets.REVIEWED.length})`}
-          orders={buckets.REVIEWED}
+          title={`Admin Reviewed (${buckets.ADMIN_REVIEWED.length})`}
+          orders={buckets.ADMIN_REVIEWED}
+          onRefresh={fetchAllOrders}
+        />
+        <CateringOrderColumn
+          title={`Restaurant Reviewed (${buckets.RESTAURANT_REVIEWED.length})`}
+          orders={buckets.RESTAURANT_REVIEWED}
           onRefresh={fetchAllOrders}
         />
         <CateringOrderColumn

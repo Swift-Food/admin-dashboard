@@ -31,7 +31,7 @@ export interface CateringOrder {
     estimatedTotal?: number;
     finalTotal?: number;
     depositAmount: string;
-    status: 'pending_review' | 'reviewed' | 'payment_link_sent' | 'paid' | 'confirmed' | 'cancelled';
+    status: 'pending_review' | 'reviewed' | 'payment_link_sent' | 'paid' | 'confirmed' | 'cancelled' | 'restaurant_reviewed';
     paymentId?: string;
     paymentLinkUrl?: string;
     paymentLinkSentAt?: string;

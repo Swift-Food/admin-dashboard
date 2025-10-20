@@ -56,11 +56,11 @@ function App() {
       }
     };
 
-    const intervalId = setInterval(pollOrders, 100000);
+    const intervalId = setInterval(pollOrders, 10000);
     // run once immediately
     pollOrders();
     return () => clearInterval(intervalId);
-  }, [prevOrderIds]);
+  }, []);
 
   const renderPage = () => {
     switch (currentPage) {

@@ -105,13 +105,6 @@ const WithdrawalDetailsModal = ({
 
   if (!isOpen || !withdrawal) return null;
 
-  const formatCurrency = (amount?: number) => {
-    if (typeof amount === "number" && !isNaN(amount)) {
-      return `£${amount.toFixed(2)}`;
-    }
-    return "N/A";
-  };
-
   const canApprove = withdrawal.status === WithdrawalStatus.PENDING;
   const canReject = withdrawal.status === WithdrawalStatus.PENDING;
 
@@ -402,13 +395,6 @@ const WithdrawalCard = ({
       [WithdrawalStatus.FAILED]: "bg-red-100 text-red-800 border-red-300",
     };
     return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
-  };
-
-  const formatCurrency = (amount?: number) => {
-    if (typeof amount === "number" && !isNaN(amount)) {
-      return `£${amount.toFixed(2)}`;
-    }
-    return "N/A";
   };
 
   return (

@@ -105,13 +105,6 @@ const WithdrawalDetailsModal = ({
 
   if (!isOpen || !withdrawal) return null;
 
-  const formatCurrency = (amount?: number) => {
-    if (typeof amount === "number" && !isNaN(amount)) {
-      return `£${amount.toFixed(2)}`;
-    }
-    return "N/A";
-  };
-
   const canApprove = withdrawal.status === WithdrawalStatus.PENDING;
   const canReject = withdrawal.status === WithdrawalStatus.PENDING;
 

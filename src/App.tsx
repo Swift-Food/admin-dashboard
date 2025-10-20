@@ -37,8 +37,11 @@ function App() {
           const anyPaid = newOrders.some(
             (o: any) =>
               // support both shapes: order.payment.status or order.paymentStatus
-              (o.payment && o.payment.status === PaymentStatus.PAID) ||
-              o.paymentStatus === PaymentStatus.PAID
+              (o.payment &&
+                (o.payment.status === PaymentStatus.PAID ||
+                  o.payment.status === PaymentStatus.PENDING)) ||
+              o.paymentStatus === PaymentStatus.PAID ||
+              o.paymentStatus === PaymentStatus.PENDING
           );
 
           const soundToPlay = anyPaid ? paidOrderSound : newOrderSound;

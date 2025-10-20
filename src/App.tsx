@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import "leaflet/dist/leaflet.css";
 import Sidebar from "./components/Sidebar";
@@ -16,7 +16,7 @@ import { PaymentStatus } from "./types/order.types";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
-  const [prevOrderIds, setPrevOrderIds] = useState<string[]>([]);
+  const prevOrderIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     const newOrderSound = new Audio("/sounds/new-order.mp3");
@@ -29,14 +29,20 @@ function App() {
 
         // Find newly appeared orders
         const newOrders = orders.filter(
-          (o: any) => !prevOrderIds.includes(o.id)
+          (o: any) => !prevOrderIdsRef.current.includes(o.id)
+        );
+
+        console.log(
+          "Polling - prevOrderIds:",
+          prevOrderIdsRef.current.length,
+          "newOrders:",
+          newOrders.length
         );
 
         // Avoid initial-load sound (require we have seen at least one previous poll)
-        if (prevOrderIds.length > 0 && newOrders.length > 0) {
+        if (prevOrderIdsRef.current.length > 0 && newOrders.length > 0) {
           const anyPaid = newOrders.some(
             (o: any) =>
-              // support both shapes: order.payment.status or order.paymentStatus
               (o.payment &&
                 (o.payment.status === PaymentStatus.PAID ||
                   o.payment.status === PaymentStatus.PENDING)) ||
@@ -44,19 +50,25 @@ function App() {
               o.paymentStatus === PaymentStatus.PENDING
           );
 
+          console.log("anyPaid:", anyPaid);
           const soundToPlay = anyPaid ? paidOrderSound : newOrderSound;
+          console.log(
+            "Playing sound:",
+            anyPaid ? "brainrot.mp3" : "new-order.mp3"
+          );
           soundToPlay.currentTime = 0;
-          // play might reject on browsers that block autoplay — ignore errors
-          soundToPlay.play().catch(() => {});
+          soundToPlay
+            .play()
+            .catch((err) => console.error("Audio play error:", err));
         }
 
-        setPrevOrderIds(currentOrderIds);
+        prevOrderIdsRef.current = currentOrderIds;
       } catch (e) {
-        // Optionally handle error
+        console.error("Poll error:", e);
       }
     };
 
-    const intervalId = setInterval(pollOrders, 10000);
+    const intervalId = setInterval(pollOrders, 100);
     // run once immediately
     pollOrders();
     return () => clearInterval(intervalId);
@@ -64,8 +76,6 @@ function App() {
 
   const renderPage = () => {
     switch (currentPage) {
-      // case 'home':
-      //   return <HomeScreen />;
       case "orders":
         return <AllOrdersScreen />;
       case "catering":
@@ -82,8 +92,6 @@ function App() {
         return <MapScreen />;
       default:
         return <RestaurantAdminDashboard />;
-      // default:
-      //   return <HomeScreen />;
     }
   };
 

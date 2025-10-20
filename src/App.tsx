@@ -43,11 +43,8 @@ function App() {
         if (prevOrderIdsRef.current.length > 0 && newOrders.length > 0) {
           const anyPaid = newOrders.some(
             (o: any) =>
-              (o.payment &&
-                (o.payment.status === PaymentStatus.PAID ||
-                  o.payment.status === PaymentStatus.PENDING)) ||
-              o.paymentStatus === PaymentStatus.PAID ||
-              o.paymentStatus === PaymentStatus.PENDING
+              (o.payment && o.payment.status === PaymentStatus.PAID) ||
+              o.paymentStatus === PaymentStatus.PAID
           );
 
           console.log("anyPaid:", anyPaid);
@@ -68,7 +65,7 @@ function App() {
       }
     };
 
-    const intervalId = setInterval(pollOrders, 100);
+    const intervalId = setInterval(pollOrders, 10000);
     // run once immediately
     pollOrders();
     return () => clearInterval(intervalId);

@@ -818,6 +818,7 @@ const CateringOrderCard = ({
       payment_link_sent: "bg-purple-100 text-purple-800 border-purple-300",
       paid: "bg-green-100 text-green-800 border-green-300",
       confirmed: "bg-green-100 text-green-800 border-green-300",
+      completed: "bg-gray-100 text-gray-800 border-gray-300",
       cancelled: "bg-red-100 text-red-800 border-red-300",
     };
     return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
@@ -976,14 +977,15 @@ const CateringOrdersScreen = () => {
     PAYMENT_LINK_SENT: [],
     PAID: [],
     CONFIRMED: [],
+    COMPLETED: [],
     CANCELLED: [],
   };
 
   allOrders.forEach((order) => {
     console.log("Processing order:", order.id, "Status:", order.status);
-
+  
     const status = order.status?.toLowerCase() || "";
-
+  
     switch (status) {
       case "pending_review":
       case "pending review":
@@ -1007,6 +1009,9 @@ const CateringOrdersScreen = () => {
       case "confirmed":
         buckets.CONFIRMED.push(order);
         break;
+      case "completed":
+        buckets.COMPLETED.push(order);
+        break;
       case "cancelled":
         buckets.CANCELLED.push(order);
         break;
@@ -1024,7 +1029,7 @@ const CateringOrdersScreen = () => {
 
   const totalOrders = allOrders.length;
   const activeOrders =
-    totalOrders - buckets.CANCELLED.length - buckets.CONFIRMED.length;
+    totalOrders - buckets.CANCELLED.length - buckets.CONFIRMED.length - buckets.COMPLETED.length;
 
   if (loading) {
     return (
@@ -1107,6 +1112,11 @@ const CateringOrdersScreen = () => {
         <CateringOrderColumn
           title={`Confirmed (${buckets.CONFIRMED.length})`}
           orders={buckets.CONFIRMED}
+          onRefresh={fetchAllOrders}
+        />
+        <CateringOrderColumn
+          title={`Completed (${buckets.COMPLETED.length})`}
+          orders={buckets.COMPLETED}
           onRefresh={fetchAllOrders}
         />
         <CateringOrderColumn

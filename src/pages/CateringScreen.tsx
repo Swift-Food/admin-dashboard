@@ -88,7 +88,7 @@ const CateringOrderDetailsModal = ({
   const canCancelOrder = !["confirmed", "cancelled"].includes(order.status);
   const canReview = order.status === "pending_review";
   const canSendPaymentLink =
-    order.status === "reviewed" || order.status === "payment_link_sent";
+    order.status === "restaurant_reviewed" || order.status === "payment_link_sent";
 
   const handleConfirmCancel = async () => {
     setIsCancelling(true);

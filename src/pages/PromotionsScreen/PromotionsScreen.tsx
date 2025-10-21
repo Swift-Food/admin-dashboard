@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import promotionsService from "../../services/promo-code.service";
 import type { PromoCodeDto } from "../../services/promo-code.service";
 import PromoForm from "../../components/PromoForm";
 import "./PromotionsScreen.css";
 
 export default function PromotionsScreen() {
-  const [promos, setPromos] = useState<Promo[]>([]);
+  const [promos, setPromos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Promo | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
 
   const fetchAll = async () => {
     try {
@@ -34,7 +34,7 @@ export default function PromotionsScreen() {
     setShowForm(true);
   };
 
-  const handleEdit = (p: Promo) => {
+  const handleEdit = (p: any) => {
     setEditing(p);
     setShowForm(true);
   };
@@ -130,14 +130,14 @@ export default function PromotionsScreen() {
       <div className="promotions-content">
         <div className="promotions-header">
           <div>
-            <h1 className="promotions-title">Promo Codes</h1>
+            <h1 className="promotions-title">any Codes</h1>
           </div>
           <div className="header-actions">
             <button onClick={fetchAll} className="btn btn-secondary">
               Refresh
             </button>
             <button onClick={handleCreate} className="btn btn-primary">
-              Create Promo
+              Create any
             </button>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function PromotionsScreen() {
                   </tr>
                 </thead>
                 <tbody>
-                  {promos.map((p: Promo) => (
+                  {promos.map((p: any) => (
                     <tr key={p.code} className="promo-row">
                       <td className="code-cell">{p.code}</td>
                       <td>{p.name || "—"}</td>
@@ -283,7 +283,7 @@ export default function PromotionsScreen() {
             <div className="modal-content">
               <div className="modal-header">
                 <h3 className="modal-title">
-                  {editing ? `Edit ${editing.code}` : "Create Promo Code"}
+                  {editing ? `Edit ${editing.code}` : "Create any Code"}
                 </h3>
                 <button
                   onClick={() => setShowForm(false)}

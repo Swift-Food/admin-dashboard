@@ -351,7 +351,7 @@ const OrderDetailsModal = ({
               {order.serviceCharge && Number(order.serviceCharge) > 0 && (
                 <div className="flex justify-between text-sm">
                   <span>Service Charge:</span>
-                  <span>{formatCurrency(order.serviceCharge)}</span>
+                  <span>{(order.serviceCharge)}</span>
                 </div>
               )}
               {order.promoCodes && order.promoCodes.length > 0 && (
@@ -382,7 +382,7 @@ const OrderDetailsModal = ({
                 <span>Total:</span>
                 <span>{safeTotalAmount}</span>
               </div>
-              {order.payment.status && (
+              {order.payment?.status && (
                 <div className="mt-2 text-sm text-gray-600">
                   Payment Status:{" "}
                   <span className="capitalize">{order.payment.status}</span>

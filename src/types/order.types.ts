@@ -122,6 +122,7 @@ export interface OrderItem {
 
 // Main Order Interface (matches backend entity structure)
 export interface DriverOrder {
+  serviceCharge: number;
   // Primary fields
   id: string;
   userId: string;

@@ -869,7 +869,7 @@ const CateringOrderCard = ({
       <div className="flex justify-between items-start mb-3">
         <div>
           <p className="font-medium text-sm text-gray-900">
-            #{order.id.slice(0,4)}
+            #{order.id.slice(0,4).toUpperCase()}
           </p>
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(

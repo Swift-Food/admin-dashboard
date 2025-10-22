@@ -351,7 +351,7 @@ const OrderDetailsModal = ({
               {order.serviceCharge && Number(order.serviceCharge) > 0 && (
                 <div className="flex justify-between text-sm">
                   <span>Service Charge:</span>
-                  <span>{(order.serviceCharge)}</span>
+                  <span>{formatCurrency(order.serviceCharge)}</span>
                 </div>
               )}
               {order.promoCodes && order.promoCodes.length > 0 && (

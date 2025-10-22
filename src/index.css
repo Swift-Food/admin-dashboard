@@ -8,7 +8,8 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  /* Force default text color to black in all color schemes */
+  color: #000 !important;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
 

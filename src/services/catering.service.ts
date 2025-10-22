@@ -39,9 +39,15 @@ const cancelOrder = async (orderId: string) => {
   return res.data;
 };
 
+const completeOrder = async (orderId: string) => {
+  const res = await http.post(`catering-orders/${orderId}/complete`);
+  return res.data;
+};
+
 export default {
   getOrders,
   reviewOrder,
   sendPaymentLink,
   cancelOrder,
+  completeOrder,
 };

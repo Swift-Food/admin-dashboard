@@ -51,12 +51,10 @@ const OrderDetailsModal = ({
   order,
   isOpen,
   onClose,
-
 }: {
   order: DriverOrder | null;
   isOpen: boolean;
   onClose: () => void;
-
 }) => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -82,9 +80,15 @@ const OrderDetailsModal = ({
     );
   }
 
-  const formatCurrency = (amount?: number) => {
+  const formatCurrency = (amount?: number | string) => {
     if (typeof amount === "number" && !isNaN(amount)) {
-      return `${amount.toFixed(2)}`;
+      return `£${amount.toFixed(2)}`;
+    } else if (typeof amount === "string") {
+      const cleaned = amount.replace(/[^0-9.-]+/g, "");
+      const parsed = parseFloat(cleaned);
+      if (!isNaN(parsed)) {
+        return `£${parsed.toFixed(2)}`;
+      }
     }
     return "N/A";
   };
@@ -92,20 +96,20 @@ const OrderDetailsModal = ({
   const safeOrderId = order.id || "unknown";
   const safeOrderStatus = order.status || "unknown";
   const safePlacedAt = order.placedAt || new Date().toISOString();
-  const safeTotalAmount = order.totalAmount || 0;
+  const safeTotalAmount = formatCurrency(order.totalAmount);
   console.log("delivery address is", order.deliveryAddress);
 
   // Determine if order can be cancelled
   const canCancelOrder = !["delivered", "cancelled"].includes(safeOrderStatus);
-  const canAssignDriver = ["preparing", "ready_for_pickup"].includes(safeOrderStatus);
+  const canAssignDriver = ["preparing", "ready_for_pickup"].includes(
+    safeOrderStatus
+  );
 
   const handleCancelClick = () => {
     setShowCancelConfirm(true);
   };
 
   const handleAssignDriver = async () => {
-
-    
     setIsAssigningDriver(true);
     try {
       await orderService.assignDriver(safeOrderId);
@@ -120,13 +124,13 @@ const OrderDetailsModal = ({
   };
 
   const handleConfirmCancel = async () => {
-    console.log("on cancel order", safeOrderId)
+    console.log("on cancel order", safeOrderId);
     setIsCancelling(true);
     try {
-      console.log("on cancel order")
+      console.log("on cancel order");
       // if (onCancelOrder) {
-        console.log("cancelling order", safeOrderId)
-        await orderService.cancelOrder(safeOrderId);
+      console.log("cancelling order", safeOrderId);
+      await orderService.cancelOrder(safeOrderId);
       // }
       setShowCancelConfirm(false);
       onClose();
@@ -337,7 +341,26 @@ const OrderDetailsModal = ({
                   <span>{formatCurrency(order.deliveryFee)}</span>
                 </div>
               )}
-              {order.taxAmount && (
+              {/* Show promo/discount if present */}
+              {order.discountAmount && Number(order.discountAmount) !== 0 && (
+                <div className="flex justify-between text-sm text-red-600">
+                  <span>Discount:</span>
+                  <span>-{formatCurrency(order.discountAmount)}</span>
+                </div>
+              )}
+              {order.serviceCharge && Number(order.serviceCharge) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Service Charge:</span>
+                  <span>{formatCurrency(order.serviceCharge)}</span>
+                </div>
+              )}
+              {order.promoCodes && order.promoCodes.length > 0 && (
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>Promo Codes:</span>
+                  <span>{order.promoCodes.join(", ")}</span>
+                </div>
+              )}
+              {order.taxAmount && order.taxAmount > 0 && (
                 <div className="flex justify-between">
                   <span>Tax:</span>
                   <span>{formatCurrency(order.taxAmount)}</span>
@@ -349,14 +372,20 @@ const OrderDetailsModal = ({
                   <span>{formatCurrency(order.tip)}</span>
                 </div>
               )}
+              {order.discountAmount && order.discountAmount > 0 && (
+                <div className="flex justify-between">
+                  <span>Discount:</span>
+                  <span>-{(order.discountAmount)}</span>
+                </div>
+              )}
               <div className="border-t pt-2 flex justify-between font-bold text-lg">
                 <span>Total:</span>
-                <span>{formatCurrency(safeTotalAmount)}</span>
+                <span>{safeTotalAmount}</span>
               </div>
-              {order.paymentStatus && (
+              {order.payment.status && (
                 <div className="mt-2 text-sm text-gray-600">
                   Payment Status:{" "}
-                  <span className="capitalize">{order.paymentStatus}</span>
+                  <span className="capitalize">{order.payment.status}</span>
                 </div>
               )}
             </div>
@@ -375,7 +404,7 @@ const OrderDetailsModal = ({
               <button
                 onClick={handleAssignDriver}
                 disabled={isAssigningDriver}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
               >
                 {isAssigningDriver ? "Assigning Driver..." : "Assign Driver"}
               </button>
@@ -385,7 +414,7 @@ const OrderDetailsModal = ({
               <button
                 onClick={handleCancelClick}
                 disabled={isCancelling}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
               >
                 {isCancelling ? "Cancelling..." : "Cancel Order"}
               </button>
@@ -414,7 +443,7 @@ const OrderDetailsModal = ({
               <button
                 onClick={handleConfirmCancel}
                 disabled={isCancelling}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
               >
                 {isCancelling ? "Cancelling..." : "Yes, Cancel"}
               </button>
@@ -457,9 +486,15 @@ const OrderCard = ({
     return colors[status] || "bg-gray-50 text-gray-700";
   };
 
-  const formatCurrency = (amount?: number) => {
+  const formatCurrency = (amount?: number | string) => {
     if (typeof amount === "number" && !isNaN(amount)) {
-      return `${amount.toFixed(2)}`;
+      return `£${amount.toFixed(2)}`;
+    } else if (typeof amount === "string") {
+      const cleaned = amount.replace(/[^0-9.-]+/g, "");
+      const parsed = parseFloat(cleaned);
+      if (!isNaN(parsed)) {
+        return `£${parsed.toFixed(2)}`;
+      }
     }
     return "N/A";
   };
@@ -499,6 +534,33 @@ const OrderCard = ({
           {/* <p className="text-xs text-gray-600">
             {order.market.address || "No address"}
           </p> */}
+        </div>
+      )}
+
+      {/* Restaurants (collected from order.orderItems) */}
+      {order.orderItems && order.orderItems.length > 0 && (
+        <div className="mb-3">
+          <h3 className="font-semibold mb-2">Restaurants</h3>
+          <div className="flex flex-wrap gap-2 ">
+            {Array.from(
+              order.orderItems.reduce((map, it: any) => {
+                const id = it.restaurantId || it.restaurant_id || "unknown";
+                const name = it.restaurantName || it.restaurant_name || "Unknown Restaurant";
+                if (!map.has(id)) map.set(id, { id, name });
+                return map;
+              }, new Map<string, { id: string; name: string }>())
+              .values()
+            ).map((r) => (
+              <span
+                key={r.id}
+                className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 text-sm rounded-md"
+                title={r.id}
+              >
+                <strong className="text-gray-800">{r.name}</strong>
+                <span className="text-xs text-gray-500">#{r.id.slice(0, 8)}</span>
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
@@ -604,8 +666,13 @@ const OrdersScreen = () => {
       console.log("🔄 Fetching all orders from system API...");
 
       const orders = await orderService.getOrders();
+      console.log(
+        "Payment fields present? sample.payment:",
+        orders?.[0]?.payment,
+        "paymentStatus:",
+        orders?.[0]?.paymentStatus
+      );
       console.log(orders);
-
       console.log(`📊 Fetched ${orders.length} total orders from system`);
 
       setAllOrders(orders);

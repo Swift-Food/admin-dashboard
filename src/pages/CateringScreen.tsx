@@ -55,6 +55,7 @@ const CateringOrderDetailsModal = ({
 }) => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
   const [showSendPaymentModal, setShowSendPaymentModal] = useState(false);
@@ -88,7 +89,8 @@ const CateringOrderDetailsModal = ({
   const canCancelOrder = !["confirmed", "cancelled"].includes(order.status);
   const canReview = order.status === "pending_review";
   const canSendPaymentLink =
-    order.status === "restaurant_reviewed" || order.status === "payment_link_sent";
+    order.status === "restaurant_reviewed" ||
+    order.status === "payment_link_sent";
 
   const handleConfirmCancel = async () => {
     setIsCancelling(true);
@@ -102,6 +104,22 @@ const CateringOrderDetailsModal = ({
       alert("Failed to cancel order. Please try again.");
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    if (!order) return;
+    setIsConfirming(true);
+    try {
+      await cateringService.completeOrder(order.id);
+      onClose();
+      if (onOrderUpdated) onOrderUpdated();
+      alert("Order confirmed successfully!");
+    } catch (error) {
+      console.error("Error confirming order:", error);
+      alert("Failed to confirm order. Please try again.");
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -435,7 +453,7 @@ const CateringOrderDetailsModal = ({
           <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
             <button
               onClick={onClose}
-              className="flex-1 min-w-[120px] bg-gray-200 hover:bg-gray-300 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className="flex-1 min-w-[120px] bg-gray-200 hover:bg-gray-300 text-black font-medium py-3 px-4 rounded-lg transition-colors"
             >
               Close
             </button>
@@ -456,9 +474,20 @@ const CateringOrderDetailsModal = ({
                   });
                   setShowReviewModal(true);
                 }}
-                className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors"
               >
                 Review Order
+              </button>
+            )}
+
+            {/* Confirm Order for paid orders */}
+            {order.status === "paid" && (
+              <button
+                onClick={handleConfirmOrder}
+                disabled={isConfirming}
+                className="flex-1 min-w-[120px] bg-green-500 hover:bg-green-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-green-300 disabled:cursor-not-allowed"
+              >
+                {isConfirming ? "Confirming..." : "Confirm Order"}
               </button>
             )}
 
@@ -474,7 +503,7 @@ const CateringOrderDetailsModal = ({
                   });
                   setShowSendPaymentModal(true);
                 }}
-                className="flex-1 min-w-[120px] bg-purple-500 hover:bg-purple-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                className="flex-1 min-w-[120px] bg-purple-500 hover:bg-purple-600 text-black font-medium py-3 px-4 rounded-lg transition-colors"
               >
                 Send Payment Link
               </button>
@@ -483,7 +512,7 @@ const CateringOrderDetailsModal = ({
               <button
                 onClick={() => setShowCancelConfirm(true)}
                 disabled={isCancelling}
-                className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
+                className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
               >
                 {isCancelling ? "Cancelling..." : "Cancel Order"}
               </button>
@@ -618,7 +647,7 @@ const CateringOrderDetailsModal = ({
                     <button
                       onClick={handleSendPaymentLink}
                       disabled={isSendingPaymentLink}
-                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-purple-300 disabled:cursor-not-allowed"
+                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-purple-300 disabled:cursor-not-allowed"
                     >
                       {paymentLinkForm.preview
                         ? "Generate Preview"
@@ -669,7 +698,7 @@ const CateringOrderDetailsModal = ({
                         handleSendPaymentLink();
                       }}
                       disabled={isSendingPaymentLink}
-                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-purple-300 disabled:cursor-not-allowed"
+                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-purple-300 disabled:cursor-not-allowed"
                     >
                       {isSendingPaymentLink
                         ? "Sending..."
@@ -750,7 +779,7 @@ const CateringOrderDetailsModal = ({
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowReviewModal(false)}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-black font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -760,7 +789,7 @@ const CateringOrderDetailsModal = ({
                   !reviewForm.finalTotal &&
                   !(order.estimatedTotal || order.finalTotal)
                 }
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
               >
                 Submit Review
               </button>
@@ -791,7 +820,7 @@ const CateringOrderDetailsModal = ({
               <button
                 onClick={handleConfirmCancel}
                 disabled={isCancelling}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
               >
                 {isCancelling ? "Cancelling..." : "Yes, Cancel"}
               </button>
@@ -840,7 +869,7 @@ const CateringOrderCard = ({
       <div className="flex justify-between items-start mb-3">
         <div>
           <p className="font-medium text-sm text-gray-900">
-            #{order.id.slice(-8)}
+            #{order.id.slice(0,4)}
           </p>
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
@@ -983,9 +1012,9 @@ const CateringOrdersScreen = () => {
 
   allOrders.forEach((order) => {
     console.log("Processing order:", order.id, "Status:", order.status);
-  
+
     const status = order.status?.toLowerCase() || "";
-  
+
     switch (status) {
       case "pending_review":
       case "pending review":
@@ -1029,7 +1058,10 @@ const CateringOrdersScreen = () => {
 
   const totalOrders = allOrders.length;
   const activeOrders =
-    totalOrders - buckets.CANCELLED.length - buckets.CONFIRMED.length - buckets.COMPLETED.length;
+    totalOrders -
+    buckets.CANCELLED.length -
+    buckets.CONFIRMED.length -
+    buckets.COMPLETED.length;
 
   if (loading) {
     return (

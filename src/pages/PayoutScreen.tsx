@@ -281,7 +281,7 @@ const WithdrawalDetailsModal = ({
               <button
                 onClick={() => setShowApproveConfirm(true)}
                 disabled={isProcessing}
-                className="flex-1 min-w-[120px] bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-green-300 disabled:cursor-not-allowed flex items-center justify-center"
+                className="flex-1 min-w-[120px] bg-green-500 hover:bg-green-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-green-300 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 <CheckCircle size={18} className="mr-2" />
                 {isProcessing ? "Processing..." : "Approve"}
@@ -292,7 +292,7 @@ const WithdrawalDetailsModal = ({
               <button
                 onClick={() => setShowRejectModal(true)}
                 disabled={isProcessing}
-                className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed flex items-center justify-center"
+                className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 <XCircle size={18} className="mr-2" />
                 Reject
@@ -326,7 +326,7 @@ const WithdrawalDetailsModal = ({
               <button
                 onClick={handleApprove}
                 disabled={isProcessing}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-green-300"
+                className="flex-1 bg-green-500 hover:bg-green-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-green-300"
               >
                 {isProcessing ? "Processing..." : "Confirm Approval"}
               </button>
@@ -366,7 +366,7 @@ const WithdrawalDetailsModal = ({
               <button
                 onClick={handleReject}
                 disabled={isProcessing}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
               >
                 {isProcessing ? "Processing..." : "Reject"}
               </button>

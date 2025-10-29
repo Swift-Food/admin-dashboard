@@ -1,12 +1,22 @@
+// ...existing code...
 import axios from "axios";
 import { BASE_URL } from "../constants";
 
-axios.defaults.baseURL = BASE_URL;
+const api = axios.create({
+  baseURL: BASE_URL,
+});
 
-export default {
-    get: axios.get,
-    post: axios.post,
-    put: axios.put,
-    delete: axios.delete,
-    patch: axios.patch
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_TOKEN as string | undefined;
+
+console.log("[http] VITE_DEV_BYPASS_TOKEN present:", !!DEV_BYPASS);
+
+if (DEV_BYPASS) {
+  api.interceptors.request.use((config) => {
+    config.headers = config.headers || {};
+    (config.headers as any)["X-DEV-BYPASS"] = DEV_BYPASS;
+    return config;
+  });
 }
+
+export default api;
+// ...existing code...

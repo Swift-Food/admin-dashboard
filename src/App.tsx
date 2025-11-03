@@ -13,6 +13,7 @@ import orderService from "./services/order.service";
 import CateringOrdersScreen from "./pages/CateringScreen";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import { PaymentStatus } from "./types/order.types";
+import CorporateOrdersScreen from "./pages/CorporateOrderScreen";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
@@ -89,6 +90,9 @@ function App() {
         return <StatisticsScreen />;
       case "map":
         return <MapScreen />;
+      case "corporate":
+        return <CorporateOrdersScreen/>
+      
       default:
         return <RestaurantAdminDashboard />;
     }

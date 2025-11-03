@@ -18,7 +18,8 @@ export type SidebarPage =
   | "statistics"
   | "map"
   | "catering"
-  | "payout";
+  | "payout"
+  | "corporate";
 
 interface SidebarProps {
   currentPage: SidebarPage;
@@ -80,6 +81,11 @@ const navItems = [
   {
     id: "payout",
     label: "Payouts",
+    icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
+  },
+  {
+    id: "corporate",
+    label: "Corporate Orders",
     icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
   },
 ];

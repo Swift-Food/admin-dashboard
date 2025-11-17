@@ -8,6 +8,7 @@ import {
   faChevronLeft,
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
+import authService from "../services/auth.service";
 
 export type SidebarPage =
   | "home"
@@ -25,6 +26,11 @@ interface SidebarProps {
   currentPage: SidebarPage;
   onNavigate: (page: SidebarPage) => void;
 }
+
+const handleLogout = () => {
+  authService.logout();
+  window.location.reload(); // Reload to trigger login screen
+};
 
 const iconCommonStyle = {
   color: "#040273",
@@ -168,7 +174,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
             </button>
           );
         })}
+        <button 
+          onClick={handleLogout}
+          className="w-full px-4 py-2 text-red-600 hover:bg-red-50"
+        >
+          Logout
+        </button>
       </nav>
+
     </aside>
   );
 };

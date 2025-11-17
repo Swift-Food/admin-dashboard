@@ -14,8 +14,11 @@ import CateringOrdersScreen from "./pages/CateringScreen";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import { PaymentStatus } from "./types/order.types";
 import CorporateOrdersScreen from "./pages/CorporateOrderScreen";
+import authService from "./services/auth.service";
+import LoginScreen from "./pages/LoginScreen";
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
   const prevOrderIdsRef = useRef<string[]>([]);
 
@@ -71,6 +74,10 @@ function App() {
     pollOrders();
     return () => clearInterval(intervalId);
   }, []);
+
+  if (!isLoggedIn) {
+    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {

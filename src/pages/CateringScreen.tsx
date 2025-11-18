@@ -853,6 +853,8 @@ const CateringOrderCard = ({
     return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
   };
 
+  const normalizedEventDate = order.eventDate.replace(" ", "T");
+
   const formatCurrency = (amount?: number | string) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     if (typeof numAmount === "number" && !isNaN(numAmount)) {
@@ -869,7 +871,7 @@ const CateringOrderCard = ({
       <div className="flex justify-between items-start mb-3">
         <div>
           <p className="font-medium text-sm text-gray-900">
-            #{order.id.slice(0,4).toUpperCase()}
+            #{order.id.slice(0, 4).toUpperCase()}
           </p>
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
@@ -898,7 +900,8 @@ const CateringOrderCard = ({
         <div className="flex items-center text-sm text-gray-800">
           <Calendar size={14} className="mr-1 text-blue-600" />
           <span className="font-medium">
-            {new Date(order.eventDate).toLocaleDateString()}
+            {/* {new Date(order.eventDate).toLocaleDateString()} */}
+            {new Date(normalizedEventDate).toLocaleDateString()}
           </span>
           <span className="mx-2">•</span>
           <span>{order.eventTime}</span>

@@ -27,6 +27,7 @@ class AuthService {
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
     }
+    console.log("logs in fine", response)
     
     return response.data;
   }

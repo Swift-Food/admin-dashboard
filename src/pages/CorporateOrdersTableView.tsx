@@ -17,77 +17,111 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+      <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-xl">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Order Details</h2>
-              <p className="text-sm text-gray-600 mt-1">#{order.id.slice(0, 8).toUpperCase()}</p>
+              <h2 className="text-3xl font-bold">Order Details</h2>
+              <p className="text-blue-100 mt-2 text-lg">#{order.id.slice(0, 8).toUpperCase()}</p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={onClose} className="text-white hover:text-blue-200 transition-colors">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Organization</h3>
-              <p className="text-gray-900">{order.organizationName}</p>
-              <p className="text-sm text-gray-600 mt-1">{order.totalEmployees} employees</p>
+        <div className="p-8">
+          {/* Organization & Delivery Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+                Organization
+              </h3>
+              <p className="text-xl font-semibold text-gray-900">{order.organizationName}</p>
+              <p className="text-sm text-gray-600 mt-2">{order.totalEmployees} employees</p>
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Delivery</h3>
-              <p className="text-gray-900">{new Date(order.deliveryDate).toLocaleDateString()}</p>
-              <p className="text-sm text-gray-600">{new Date(order.requestedDeliveryTime).toLocaleTimeString()}</p>
+            <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
+                Delivery
+              </h3>
+              <p className="text-lg font-semibold text-gray-900">{new Date(order.deliveryDate).toLocaleDateString()}</p>
+              <p className="text-sm text-gray-600 mt-1">{new Date(order.requestedDeliveryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
               {order.deliveryAddress && (
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-gray-600 mt-3 leading-relaxed">
                   {order.deliveryAddress.street}, {order.deliveryAddress.city}, {order.deliveryAddress.postcode}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <div className="grid grid-cols-4 gap-4">
+          {/* Financial Summary */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl mb-8 border-2 border-blue-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Financial Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-sm text-blue-600">Customer Total</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.customerFinalTotal)}</p>
+                <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Customer Total</p>
+                <p className="text-2xl font-bold text-blue-900">{formatCurrency(order.customerFinalTotal)}</p>
               </div>
               <div>
-                <p className="text-sm text-blue-600">Platform Commission</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.platformCommissionRevenue)}</p>
+                <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Platform Commission</p>
+                <p className="text-2xl font-bold text-blue-900">{formatCurrency(order.platformCommissionRevenue)}</p>
               </div>
               <div>
-                <p className="text-sm text-blue-600">Restaurant Gross</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.restaurantsTotalGross)}</p>
+                <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Restaurant Gross</p>
+                <p className="text-2xl font-bold text-blue-900">{formatCurrency(order.restaurantsTotalGross)}</p>
               </div>
               <div>
-                <p className="text-sm text-blue-600">Restaurant Net</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.restaurantsTotalNet)}</p>
+                <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Restaurant Net</p>
+                <p className="text-2xl font-bold text-blue-900">{formatCurrency(order.restaurantsTotalNet)}</p>
               </div>
             </div>
           </div>
 
+          {/* Sub Orders */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Sub Orders ({order.subOrders?.length || 0})</h3>
-            <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Employee Orders ({order.subOrders?.length || 0})</h3>
+            <div className="space-y-3">
               {order.subOrders?.map((subOrder, idx) => (
-                <div key={subOrder.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={subOrder.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:border-blue-300 transition-colors">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-gray-900">{subOrder.employeeName}</p>
-                      <p className="text-sm text-gray-600">{subOrder.employeeEmail}</p>
+                    <div className="flex-1">
+                      <p className="font-bold text-lg text-gray-900">{subOrder.employeeName}</p>
+                      <p className="text-sm text-gray-600 mt-1">{subOrder.employeeEmail}</p>
                     </div>
-                    <p className="font-semibold text-gray-900">{formatCurrency(subOrder.customerTotal)}</p>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-gray-900">{formatCurrency(subOrder.customerTotal)}</p>
+                    </div>
                   </div>
+                  {subOrder.items && subOrder.items.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Items:</p>
+                      <div className="space-y-1">
+                        {subOrder.items.map((item, itemIdx) => (
+                          <div key={itemIdx} className="flex justify-between text-sm">
+                            <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                            <span className="font-medium text-gray-900">{formatCurrency(item.price * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -355,6 +389,7 @@ const CorporateOrdersScreen = () => {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Order ID</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Organization</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Restaurants</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Delivery Date</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Employees</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total</th>
@@ -373,6 +408,21 @@ const CorporateOrdersScreen = () => {
                     <td className="px-6 py-5">
                       <div className="text-sm font-semibold text-gray-900">{order.organizationName}</div>
                       {order.orderReference && <div className="text-xs text-gray-500 mt-1">Ref: {order.orderReference}</div>}
+                    </td>
+                    <td className="px-6 py-5">
+                      {(() => {
+                        const restaurants = order.restaurantNames || [];
+                        if (restaurants.length === 0) return <span className="text-sm text-gray-400">No restaurants</span>;
+                        if (restaurants.length === 1) {
+                          return <div className="text-sm font-medium text-gray-900">{restaurants[0]}</div>;
+                        }
+                        return (
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{restaurants[0]}</div>
+                            <div className="text-xs text-gray-500 mt-1">+{restaurants.length - 1} more</div>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{new Date(order.deliveryDate).toLocaleDateString()}</div>

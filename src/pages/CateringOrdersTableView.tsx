@@ -15,122 +15,144 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+      <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-xl">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Catering Order Details</h2>
-              <p className="text-sm text-gray-600 mt-1">#{order.id.slice(0, 8).toUpperCase()}</p>
+              <h2 className="text-3xl font-bold">Catering Order Details</h2>
+              <p className="text-purple-100 mt-2 text-lg">#{order.id.slice(0, 8).toUpperCase()}</p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={onClose} className="text-white hover:text-purple-200 transition-colors">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Customer</h3>
-              <p className="text-gray-900">{order.customerName}</p>
-              <p className="text-sm text-gray-600 mt-1">{order.customerEmail}</p>
+        <div className="p-8">
+          {/* Customer & Event Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+                Customer
+              </h3>
+              <p className="text-xl font-semibold text-gray-900">{order.customerName}</p>
+              <p className="text-sm text-gray-600 mt-2">{order.customerEmail}</p>
               <p className="text-sm text-gray-600">{order.customerPhone}</p>
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Event Details</h3>
-              <p className="text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</p>
-              <p className="text-sm text-gray-600">{order.eventTime}</p>
+            <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/></svg>
+                Event Details
+              </h3>
+              <p className="text-lg font-semibold text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</p>
+              <p className="text-sm text-gray-600 mt-1">{order.eventTime}</p>
               <p className="text-sm text-gray-600 mt-2">{order.guestCount} guests</p>
               {order.eventType && <p className="text-sm text-gray-600">{order.eventType}</p>}
             </div>
           </div>
 
-          {typeof order.deliveryAddress === 'string' ? (
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Delivery Address</h3>
-              <p className="text-sm text-gray-600">{order.deliveryAddress}</p>
-            </div>
-          ) : order.deliveryAddress && (
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Delivery Address</h3>
-              <p className="text-sm text-gray-600">
-                {order.deliveryAddress.street}, {order.deliveryAddress.city}, {order.deliveryAddress.postcode}
+          {/* Delivery Address */}
+          {(typeof order.deliveryAddress === 'string' ? order.deliveryAddress : order.deliveryAddress && `${order.deliveryAddress.street}, ${order.deliveryAddress.city}, ${order.deliveryAddress.postcode}`) && (
+            <div className="bg-blue-50 p-6 rounded-xl mb-8 border-2 border-blue-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
+                Delivery Address
+              </h3>
+              <p className="text-base text-gray-700 leading-relaxed">
+                {typeof order.deliveryAddress === 'string'
+                  ? order.deliveryAddress
+                  : `${order.deliveryAddress?.street}, ${order.deliveryAddress?.city}, ${order.deliveryAddress?.postcode}`}
               </p>
             </div>
           )}
 
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <div className="grid grid-cols-4 gap-4">
+          {/* Financial Summary */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl mb-8 border-2 border-green-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Financial Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-sm text-blue-600">Customer Total</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)}</p>
+                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Customer Total</p>
+                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)}</p>
               </div>
               <div>
-                <p className="text-sm text-blue-600">Platform Commission</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.platformCommissionRevenue)}</p>
+                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Platform Commission</p>
+                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.platformCommissionRevenue)}</p>
               </div>
               <div>
-                <p className="text-sm text-blue-600">Restaurant Gross</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.restaurantsTotalGross)}</p>
+                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Restaurant Gross</p>
+                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.restaurantsTotalGross)}</p>
               </div>
               <div>
-                <p className="text-sm text-blue-600">Restaurant Net</p>
-                <p className="text-lg font-bold text-blue-900">{formatCurrency(order.restaurantsTotalNet)}</p>
+                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Restaurant Net</p>
+                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.restaurantsTotalNet)}</p>
               </div>
             </div>
           </div>
 
+          {/* Special Requirements */}
           {order.specialRequirements && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-6">
-              <h3 className="font-semibold text-yellow-900 mb-2">Special Requirements</h3>
-              <p className="text-sm text-yellow-800">{order.specialRequirements}</p>
+            <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-r-xl mb-8">
+              <h3 className="font-bold text-yellow-900 mb-2 text-lg">⚠️ Special Requirements</h3>
+              <p className="text-base text-yellow-900 leading-relaxed">{order.specialRequirements}</p>
             </div>
           )}
 
+          {/* Admin Notes */}
           {order.adminNotes && (
-            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 mb-6">
-              <h3 className="font-semibold mb-2 text-gray-900">Admin Notes</h3>
-              <p className="text-sm text-gray-800">{order.adminNotes}</p>
+            <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-6 mb-8">
+              <h3 className="font-bold mb-3 text-gray-900 text-lg">📝 Admin Notes</h3>
+              <p className="text-base text-gray-800 leading-relaxed">{order.adminNotes}</p>
             </div>
           )}
 
+          {/* Order Items */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Order Items ({(order.restaurants || order.orderItems || []).length})</h3>
-            <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Order Items ({(order.restaurants || order.orderItems || []).length} Restaurant{(order.restaurants || order.orderItems || []).length !== 1 ? 's' : ''})</h3>
+            <div className="space-y-4">
               {(order.restaurants || order.orderItems || []).map((item, idx) => (
-                <div key={idx} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-gray-900">{item.restaurantName}</p>
-                      {item.menuItems && item.menuItems.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {item.menuItems.filter((menuItem) => menuItem != null).map((menuItem, menuIdx) => {
-                            const price = menuItem && 'customerTotalPrice' in menuItem
-                              ? menuItem.customerTotalPrice
-                              : menuItem && 'totalPrice' in menuItem
-                              ? menuItem.totalPrice
-                              : 0;
+                <div key={idx} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-purple-300 transition-colors">
+                  <h4 className="font-bold text-xl text-gray-900 mb-4">{item.restaurantName}</h4>
+                  {item.menuItems && item.menuItems.length > 0 && (
+                    <div className="space-y-2">
+                      {item.menuItems.filter((menuItem) => menuItem != null).map((menuItem, menuIdx) => {
+                        const price = menuItem && 'customerTotalPrice' in menuItem
+                          ? menuItem.customerTotalPrice
+                          : menuItem && 'totalPrice' in menuItem
+                          ? menuItem.totalPrice
+                          : 0;
 
-                            return (
-                              <div key={menuIdx} className="text-sm text-gray-700 flex justify-between">
-                                <span>{menuItem.quantity}x {menuItem.name}</span>
-                                <span className="font-medium">{formatCurrency(price)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {item.specialInstructions && (
-                        <p className="text-sm text-gray-600 italic mt-2">{item.specialInstructions}</p>
-                      )}
+                        return (
+                          <div key={menuIdx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                            <span className="text-base text-gray-900">
+                              <span className="font-bold text-purple-600">{menuItem.quantity}x</span> {menuItem.name}
+                            </span>
+                            <span className="font-bold text-lg text-gray-900">{formatCurrency(price)}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  )}
+                  {item.specialInstructions && (
+                    <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r">
+                      <p className="text-sm text-yellow-900 italic">Note: {item.specialInstructions}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -384,6 +406,7 @@ const CateringOrdersScreen = () => {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Order ID</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Customer</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Restaurants</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Event Date</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Guests</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total</th>
@@ -402,6 +425,21 @@ const CateringOrdersScreen = () => {
                     <td className="px-6 py-5">
                       <div className="text-sm font-semibold text-gray-900">{order.customerName}</div>
                       <div className="text-xs text-gray-500 mt-1">{order.customerEmail}</div>
+                    </td>
+                    <td className="px-6 py-5">
+                      {(() => {
+                        const restaurants = order.restaurants || order.orderItems || [];
+                        if (restaurants.length === 0) return <span className="text-sm text-gray-400">No restaurants</span>;
+                        if (restaurants.length === 1) {
+                          return <div className="text-sm font-medium text-gray-900">{restaurants[0].restaurantName}</div>;
+                        }
+                        return (
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{restaurants[0].restaurantName}</div>
+                            <div className="text-xs text-gray-500 mt-1">+{restaurants.length - 1} more</div>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</div>

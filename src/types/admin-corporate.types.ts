@@ -48,6 +48,7 @@ export interface AdminCorporateOrderSummary {
   restaurantsTotalNet: number;
 
   totalEmployees: number;
+  restaurantNames?: string[];
   paid: boolean;
   paidAt?: string;
   approvedBy?: string;

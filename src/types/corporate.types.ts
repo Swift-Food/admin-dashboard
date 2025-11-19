@@ -1,4 +1,4 @@
-// types/corporate.types.ts
+import type { PricingOrderItem } from './catering.types';
 
 export const CorporateOrderStatus = {
   PENDING_APPROVAL : 'pending_approval',
@@ -58,26 +58,40 @@ export interface RestaurantOrderGroup {
 
 export interface CorporateOrder {
   id: string;
+  orderReference: string;
   organizationId: string;
   organizationName: string;
   orderDate: string;
+  deliveryDate: string;
+  deliveryTime: string;
   requestedDeliveryTime: string;
   estimatedDeliveryTime?: string;
   actualDeliveryTime?: string;
+  cutoffTime?: string;
   status: CorporateOrderStatusType;
-  subtotal: number;
-  taxAmount: number;
-  deliveryFee: number;
-  totalAmount: number;
+
+  customerFinalTotal: number;
+  platformCommissionRevenue: number;
+  restaurantsTotalGross: number;
+  restaurantsTotalNet: number;
+
+  subtotal?: number;
+  taxAmount?: number;
+  deliveryFee?: number;
+  totalAmount?: number;
+
   totalEmployees: number;
-  paymentMethod: string;
-  paymentCompleted: boolean;
+  paymentMethod?: string;
+  paymentCompleted?: boolean;
+  paid: boolean;
   paidAt?: string;
   approvedBy?: string;
+  approvedByManagerName?: string;
   approvedAt?: string;
   driverId?: string;
   trackingUrl?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CorporateSubOrder {
@@ -86,34 +100,46 @@ export interface CorporateSubOrder {
   employeeName: string;
   employeeEmail?: string;
   jobTitle?: string;
-  totalAmount: number;
+
+  restaurants: PricingOrderItem[];
+
+  customerTotal: number;
+  platformCommission: number;
+  restaurantGross: number;
+  restaurantNet: number;
+
+  totalAmount?: number;
+  restaurantOrders?: RestaurantOrderGroup[];
+
   status: SubOrderStatusType;
-  restaurantOrders: RestaurantOrderGroup[];
   specialInstructions?: string;
   dietaryRestrictions?: string[];
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CorporateOrderDetails extends CorporateOrder {
-  deliveryAddressId: string;
+  deliveryAddress: {
+    street: string;
+    city: string;
+    postcode: string;
+    country: string;
+  };
+  deliveryAddressId?: string;
   deliveryInstructions?: string;
-  requiresApproval: boolean;
+  requiresApproval?: boolean;
   rejectedBy?: string;
   rejectedAt?: string;
   rejectionReason?: string;
-  activeSubOrders: CorporateSubOrder[];
-  restaurants: {
-    restaurantId: string;
-    restaurantName: string;
-    status: string;
-    totalAmount: number;
-    itemCount: number;
-    employeeCount: number;
-    items: {
-      employeeName: string;
-      name: string;
-      quantity: number;
-      price: number;
-      addons: string[];
-    }[];
-  }[];
+
+  subOrders: CorporateSubOrder[];
+  activeSubOrders?: CorporateSubOrder[];
+
+  restaurantBreakdown: PricingOrderItem[];
+  restaurants?: PricingOrderItem[];
+
+  stripePaymentIntentId?: string;
+  refundedAt?: string;
+  refundAmount?: number;
 }

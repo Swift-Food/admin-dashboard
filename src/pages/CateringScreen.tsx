@@ -1,6 +1,6 @@
 import { Clock, X, Calendar, Users } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
-import type { CateringOrder } from "../types/catering.types";
+import type { CateringOrder, PricingOrderItem, CateringOrderItem } from "../types/catering.types";
 import cateringService, {
   type SendPaymentLinkDto,
 } from "../services/catering.service";
@@ -317,47 +317,66 @@ const CateringOrderDetailsModal = ({
           )}
 
           {/* Order Items */}
-          {order.orderItems && order.orderItems.length > 0 && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h3 className="font-semibold mb-4 text-gray-900">Order Items</h3>
-              <div className="space-y-4">
-                {order.orderItems.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="border-l-4 border-blue-300 pl-4 py-2 bg-blue-50"
-                  >
-                    <h4 className="font-medium text-blue-900 mb-2">
-                      {item.restaurantName}
-                    </h4>
-                    {item.menuItems && item.menuItems.length > 0 && (
-                      <div className="space-y-1">
-                        {item.menuItems.map((menuItem, menuIdx) => (
-                          <div
-                            key={menuIdx}
-                            className="text-sm text-gray-800 flex justify-between"
-                          >
-                            <span>
-                              {menuItem.quantity}x {menuItem.name}
-                            </span>
-                            <span className="font-medium">
-                              {formatCurrency(menuItem.totalPrice)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {item.specialInstructions && (
-                      <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
-                        <p className="text-sm text-yellow-900 italic">
-                          {item.specialInstructions}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
+          {(() => {
+            // Get order items from either 'restaurants' (new) or 'orderItems' (legacy)
+            const items: (PricingOrderItem | CateringOrderItem)[] =
+              order.restaurants || order.orderItems || [];
+
+            if (items.length === 0) return null;
+
+            return (
+              <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                <h3 className="font-semibold mb-4 text-gray-900">Order Items</h3>
+                <div className="space-y-4">
+                  {items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="border-l-4 border-blue-300 pl-4 py-2 bg-blue-50"
+                    >
+                      <h4 className="font-medium text-blue-900 mb-2">
+                        {item.restaurantName}
+                      </h4>
+                      {item.menuItems && item.menuItems.length > 0 && (
+                        <div className="space-y-1">
+                          {item.menuItems
+                            .filter((menuItem) => menuItem != null) // Filter out null/undefined items
+                            .map((menuItem, menuIdx) => {
+                            // Handle both PricingMenuItem and legacy format
+                            const price = menuItem && 'customerTotalPrice' in menuItem
+                              ? menuItem.customerTotalPrice
+                              : menuItem && 'totalPrice' in menuItem
+                              ? menuItem.totalPrice
+                              : 0;
+
+                            return (
+                              <div
+                                key={menuIdx}
+                                className="text-sm text-gray-800 flex justify-between"
+                              >
+                                <span>
+                                  {menuItem.quantity}x {menuItem.name}
+                                </span>
+                                <span className="font-medium">
+                                  {formatCurrency(price)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {item.specialInstructions && (
+                        <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
+                          <p className="text-sm text-yellow-900 italic">
+                            {item.specialInstructions}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Payment Summary */}
           <div className="border border-gray-200 rounded-lg p-4 bg-white">

@@ -3,11 +3,11 @@
 import { Clock, X, Calendar, Users, Building } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import type {
-  CorporateOrder,
-  CorporateOrderDetails,
+  AdminCorporateOrderSummary,
+  AdminCorporateOrderDetails,
   CorporateOrderStatusType,
-} from "../types/corporate.types";
-import { CorporateOrderStatus } from "../types/corporate.types";
+} from "../types/admin-corporate.types";
+import { CorporateOrderStatus } from "../types/admin-corporate.types";
 import corporateService from "../services/corporate.service";
 
 const OrderTimer = ({ createdAt }: { createdAt: string }) => {
@@ -53,7 +53,7 @@ const CorporateOrderDetailsModal = ({
   onClose,
   onOrderUpdated,
 }: {
-  order: CorporateOrderDetails | null;
+  order: AdminCorporateOrderDetails | null;
   isOpen: boolean;
   onClose: () => void;
   onOrderUpdated?: () => void;
@@ -204,10 +204,10 @@ const CorporateOrderDetailsModal = ({
             <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
               <h3 className="font-semibold text-orange-900">Total Amount</h3>
               <p className="text-orange-700 text-xl font-bold">
-                {formatCurrency(order.totalAmount)}
+                {formatCurrency(order.customerFinalTotal)}
               </p>
               <p className="text-orange-600 text-sm">
-                {order.paymentCompleted ? "Paid" : "Unpaid"}
+                {order.paid ? "Paid" : "Unpaid"}
               </p>
             </div>
           </div>
@@ -219,26 +219,32 @@ const CorporateOrderDetailsModal = ({
             </h3>
             <div className="space-y-2 text-gray-700">
               <div className="flex justify-between">
-                <span>Subtotal:</span>
+                <span>Customer Total:</span>
                 <span className="font-medium">
-                  {formatCurrency(order.subtotal)}
+                  {formatCurrency(order.customerFinalTotal)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Tax:</span>
+                <span>Platform Commission:</span>
                 <span className="font-medium">
-                  {formatCurrency(order.taxAmount)}
+                  {formatCurrency(order.platformCommissionRevenue)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Delivery Fee:</span>
+                <span>Restaurants Total (Gross):</span>
                 <span className="font-medium">
-                  {formatCurrency(order.deliveryFee)}
+                  {formatCurrency(order.restaurantsTotalGross)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Restaurants Total (Net):</span>
+                <span className="font-medium">
+                  {formatCurrency(order.restaurantsTotalNet)}
                 </span>
               </div>
               <div className="border-t border-gray-300 pt-2 flex justify-between font-bold text-lg">
                 <span>Total:</span>
-                <span>{formatCurrency(order.totalAmount)}</span>
+                <span>{formatCurrency(order.customerFinalTotal)}</span>
               </div>
             </div>
             {order.paidAt && (
@@ -249,93 +255,102 @@ const CorporateOrderDetailsModal = ({
           </div>
 
           {/* Restaurant Breakdown */}
-          {order.restaurants && order.restaurants.length > 0 && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h3 className="font-semibold mb-4 text-gray-900">
-                Restaurant Breakdown
-              </h3>
-              <div className="space-y-4">
-                {order.restaurants.map((restaurant, idx) => (
-                  <div
-                    key={idx}
-                    className="border-l-4 border-blue-300 pl-4 py-2 bg-blue-50"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-blue-900">
-                        {restaurant.restaurantName}
-                      </h4>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded capitalize">
-                        {restaurant.status.replace(/_/g, " ")}
-                      </span>
+          {(() => {
+            const restaurants = order.restaurantBreakdown || order.restaurants || [];
+            if (restaurants.length === 0) return null;
+
+            return (
+              <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                <h3 className="font-semibold mb-4 text-gray-900">
+                  Restaurant Breakdown
+                </h3>
+                <div className="space-y-4">
+                  {restaurants.map((restaurant, idx) => (
+                    <div
+                      key={idx}
+                      className="border-l-4 border-blue-300 pl-4 py-2 bg-blue-50"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-blue-900">
+                          {restaurant.restaurantName}
+                        </h4>
+                      </div>
+                      <div className="text-sm text-gray-800">
+                        <p>
+                          {restaurant.menuItems?.length || 0} items
+                        </p>
+                        <p className="font-medium">
+                          Customer: {formatCurrency(restaurant.customerTotal)}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Restaurant Net: {formatCurrency(restaurant.restaurantNetAmount)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-800">
-                      <p>
-                        {restaurant.employeeCount} employees •{" "}
-                        {restaurant.itemCount} items
-                      </p>
-                      <p className="font-medium">
-                        {formatCurrency(restaurant.totalAmount)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Employee Orders */}
-          {order.activeSubOrders && order.activeSubOrders.length > 0 && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <h3 className="font-semibold mb-4 text-gray-900">
-                Employee Orders
-              </h3>
-              <div className="space-y-3">
-                {order.activeSubOrders.map((subOrder) => (
-                  <div
-                    key={subOrder.id}
-                    className="bg-gray-50 p-3 rounded border border-gray-200"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {subOrder.employeeName}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {subOrder.employeeEmail}
-                        </p>
-                        {subOrder.jobTitle && (
-                          <p className="text-xs text-gray-500">
-                            {subOrder.jobTitle}
+          {(() => {
+            const subOrders = order.subOrders || order.activeSubOrders || [];
+            if (subOrders.length === 0) return null;
+
+            return (
+              <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                <h3 className="font-semibold mb-4 text-gray-900">
+                  Employee Orders
+                </h3>
+                <div className="space-y-3">
+                  {subOrders.map((subOrder) => (
+                    <div
+                      key={subOrder.id}
+                      className="bg-gray-50 p-3 rounded border border-gray-200"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {subOrder.employeeName}
                           </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">
-                          {formatCurrency(subOrder.totalAmount)}
-                        </p>
-                        <p className="text-xs text-gray-600 capitalize">
-                          {subOrder.status}
-                        </p>
-                      </div>
-                    </div>
-                    {subOrder.specialInstructions && (
-                      <p className="text-sm text-gray-700 italic mt-2">
-                        Note: {subOrder.specialInstructions}
-                      </p>
-                    )}
-                    {subOrder.dietaryRestrictions &&
-                      subOrder.dietaryRestrictions.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-xs text-gray-600">
-                            Dietary: {subOrder.dietaryRestrictions.join(", ")}
+                          <p className="text-sm text-gray-600">
+                            {subOrder.employeeEmail}
+                          </p>
+                          {subOrder.jobTitle && (
+                            <p className="text-xs text-gray-500">
+                              {subOrder.jobTitle}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">
+                            {formatCurrency(subOrder.customerTotal || subOrder.totalAmount)}
+                          </p>
+                          <p className="text-xs text-gray-600 capitalize">
+                            {subOrder.status}
                           </p>
                         </div>
+                      </div>
+                      {subOrder.specialInstructions && (
+                        <p className="text-sm text-gray-700 italic mt-2">
+                          Note: {subOrder.specialInstructions}
+                        </p>
                       )}
-                  </div>
-                ))}
+                      {subOrder.dietaryRestrictions &&
+                        subOrder.dietaryRestrictions.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-600">
+                              Dietary: {subOrder.dietaryRestrictions.join(", ")}
+                            </p>
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Delivery Info */}
           {(order.driverId || order.trackingUrl) && (
@@ -515,7 +530,7 @@ const CorporateOrderCard = ({
   order,
   onClick,
 }: {
-  order: CorporateOrder;
+  order: AdminCorporateOrderSummary;
   onClick: () => void;
 }) => {
   const getStatusColor = (status: string) => {
@@ -563,7 +578,7 @@ const CorporateOrderCard = ({
         </div>
         <div className="text-right">
           <p className="font-bold text-gray-900">
-            {formatCurrency(order.totalAmount)}
+            {formatCurrency(order.customerFinalTotal || order.totalAmount)}
           </p>
         </div>
       </div>
@@ -593,7 +608,7 @@ const CorporateOrderCard = ({
 
       <div className="flex justify-between items-center">
         <OrderTimer createdAt={order.createdAt} />
-        {order.paymentCompleted && (
+        {(order.paid || order.paymentCompleted) && (
           <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
             PAID
           </span>
@@ -609,14 +624,14 @@ const CorporateOrderColumn = ({
   onRefresh,
 }: {
   title: string;
-  orders: CorporateOrder[];
+  orders: AdminCorporateOrderSummary[];
   onRefresh: () => void;
 }) => {
   const [selectedOrder, setSelectedOrder] =
-    useState<CorporateOrderDetails | null>(null);
+    useState<AdminCorporateOrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleOrderClick = async (order: CorporateOrder) => {
+  const handleOrderClick = async (order: AdminCorporateOrderSummary) => {
     setIsLoading(true);
     try {
       const details = await corporateService.getOrderDetails(order.id);
@@ -671,7 +686,7 @@ const CorporateOrderColumn = ({
 };
 
 const CorporateOrdersScreen = () => {
-  const [allOrders, setAllOrders] = useState<CorporateOrder[]>([]);
+  const [allOrders, setAllOrders] = useState<AdminCorporateOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());

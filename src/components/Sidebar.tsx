@@ -7,6 +7,12 @@ import {
   faMap,
   faChevronLeft,
   faChevronRight,
+  faUtensils,
+  faBuilding,
+  faTags,
+  faReceipt,
+  faMoneyBillWave,
+  faUsers,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 
@@ -42,32 +48,43 @@ const iconCommonStyle = {
 const navItems = [
   {
     id: "home",
-    label: "Admin Dashboard",
+    label: "Dashboard",
     icon: <FontAwesomeIcon icon={faHome} style={iconCommonStyle} />,
   },
   {
     id: "orders",
-    label: "Orders Screen",
-    icon: <FontAwesomeIcon icon={faHome} style={iconCommonStyle} />,
+    label: "Orders",
+    icon: <FontAwesomeIcon icon={faReceipt} style={iconCommonStyle} />,
+  },
+  {
+    id: "restaurant",
+    label: "Restaurants",
+    icon: <FontAwesomeIcon icon={faUtensils} style={iconCommonStyle} />,
+  },
+  {
+    id: "catering",
+    label: "Catering Orders",
+    icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,
+  },
+  {
+    id: "corporate",
+    label: "Corporate Orders",
+    icon: <FontAwesomeIcon icon={faBuilding} style={iconCommonStyle} />,
   },
   {
     id: "promotions",
     label: "Promotions",
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M5 12l7-7 7 7-7 7-7-7z" fill="#040273" />
-      </svg>
-    ),
-  },
-  {
-    id: "restaurant",
-    label: "Restaurant Admin",
-    icon: <FontAwesomeIcon icon={faHome} style={iconCommonStyle} />,
+    icon: <FontAwesomeIcon icon={faTags} style={iconCommonStyle} />,
   },
   {
     id: "driver-status",
-    label: "Driver Status",
+    label: "Drivers",
     icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
+  },
+  {
+    id: "payout",
+    label: "Payouts",
+    icon: <FontAwesomeIcon icon={faMoneyBillWave} style={iconCommonStyle} />,
   },
   {
     id: "statistics",
@@ -77,21 +94,6 @@ const navItems = [
   {
     id: "map",
     label: "Map",
-    icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
-  },
-  {
-    id: "catering",
-    label: "Catering",
-    icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
-  },
-  {
-    id: "payout",
-    label: "Payouts",
-    icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
-  },
-  {
-    id: "corporate",
-    label: "Corporate Orders",
     icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
   },
 ];
@@ -174,14 +176,37 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
             </button>
           );
         })}
-        <button 
-          onClick={handleLogout}
-          className="w-full px-4 py-2 text-red-600 hover:bg-red-50"
-        >
-          Logout
-        </button>
       </nav>
-
+      <div style={{ padding: "16px", borderTop: "1px solid #f3f4f6" }}>
+        <button
+          onClick={handleLogout}
+          style={{
+            ...navBtnStyle,
+            color: "#dc2626",
+            fontWeight: 500,
+            justifyContent: expanded ? "flex-start" : "center",
+          }}
+        >
+          <span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ display: "block", margin: "0 auto" }}>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+          <span
+            style={{
+              ...labelStyle,
+              opacity: expanded ? 1 : 0,
+              width: expanded ? "auto" : 0,
+              marginLeft: expanded ? 12 : 0,
+              overflow: "hidden",
+              transition: "opacity 0.2s, width 0.2s, margin-left 0.2s",
+              display: expanded ? "inline" : "none",
+            }}
+          >
+            Logout
+          </span>
+        </button>
+      </div>
     </aside>
   );
 };

@@ -1000,6 +1000,7 @@ const CateringOrdersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState<string>("ACTIVE");
 
   const fetchAllOrders = useCallback(async () => {
     try {
@@ -1101,13 +1102,38 @@ const CateringOrdersScreen = () => {
     );
   }
 
+  const tabs = [
+    {
+      id: "ACTIVE",
+      label: "Active",
+      columns: [
+        { key: "PENDING_REVIEW", label: "Pending Review" },
+        { key: "ADMIN_REVIEWED", label: "Admin Reviewed" },
+        { key: "RESTAURANT_REVIEWED", label: "Restaurant Reviewed" },
+        { key: "PAYMENT_LINK_SENT", label: "Payment Link Sent" },
+        { key: "PAID", label: "Paid" },
+      ],
+    },
+    {
+      id: "COMPLETED",
+      label: "Completed",
+      columns: [
+        { key: "CONFIRMED", label: "Confirmed" },
+        { key: "COMPLETED", label: "Completed" },
+        { key: "CANCELLED", label: "Cancelled" },
+      ],
+    },
+  ];
+
+  const activeTabData = tabs.find((t) => t.id === activeTab);
+
   return (
-    <div className="p-4 h-screen bg-[#e8f4f8]">
+    <div className="p-4 h-screen bg-[#e8f4f8] flex flex-col">
       <div className="mb-4">
         <h1 className="text-2xl font-bold mb-2 text-gray-900">
           Catering Orders Overview
         </h1>
-        <div className="flex gap-6 text-sm text-gray-700">
+        <div className="flex gap-6 text-sm text-gray-700 mb-4">
           <span>
             Total Orders:{" "}
             <strong className="text-gray-900">{totalOrders}</strong>
@@ -1135,49 +1161,33 @@ const CateringOrdersScreen = () => {
             </strong>
           </span>
         </div>
+
+        <div className="flex gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto h-full">
-        <CateringOrderColumn
-          title={`Pending Review (${buckets.PENDING_REVIEW.length})`}
-          orders={buckets.PENDING_REVIEW}
-          onRefresh={fetchAllOrders}
-        />
-        <CateringOrderColumn
-          title={`Admin Reviewed (${buckets.ADMIN_REVIEWED.length})`}
-          orders={buckets.ADMIN_REVIEWED}
-          onRefresh={fetchAllOrders}
-        />
-        <CateringOrderColumn
-          title={`Restaurant Reviewed (${buckets.RESTAURANT_REVIEWED.length})`}
-          orders={buckets.RESTAURANT_REVIEWED}
-          onRefresh={fetchAllOrders}
-        />
-        <CateringOrderColumn
-          title={`Payment Link Sent (${buckets.PAYMENT_LINK_SENT.length})`}
-          orders={buckets.PAYMENT_LINK_SENT}
-          onRefresh={fetchAllOrders}
-        />
-        <CateringOrderColumn
-          title={`Paid (${buckets.PAID.length})`}
-          orders={buckets.PAID}
-          onRefresh={fetchAllOrders}
-        />
-        <CateringOrderColumn
-          title={`Confirmed (${buckets.CONFIRMED.length})`}
-          orders={buckets.CONFIRMED}
-          onRefresh={fetchAllOrders}
-        />
-        <CateringOrderColumn
-          title={`Completed (${buckets.COMPLETED.length})`}
-          orders={buckets.COMPLETED}
-          onRefresh={fetchAllOrders}
-        />
-        <CateringOrderColumn
-          title={`Cancelled (${buckets.CANCELLED.length})`}
-          orders={buckets.CANCELLED}
-          onRefresh={fetchAllOrders}
-        />
+      <div className="flex gap-4 overflow-x-auto flex-1">
+        {activeTabData?.columns.map((col) => (
+          <CateringOrderColumn
+            key={col.key}
+            title={`${col.label} (${buckets[col.key].length})`}
+            orders={buckets[col.key]}
+            onRefresh={fetchAllOrders}
+          />
+        ))}
       </div>
     </div>
   );

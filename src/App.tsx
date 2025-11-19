@@ -10,10 +10,10 @@ import StatisticsScreen from "./pages/StatisticsScreen";
 import AllOrdersScreen from "./pages/OrdersScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
 import orderService from "./services/order.service";
-import CateringOrdersScreen from "./pages/CateringScreen";
+import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import { PaymentStatus } from "./types/order.types";
-import CorporateOrdersScreen from "./pages/CorporateOrderScreen";
+import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 

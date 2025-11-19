@@ -130,7 +130,7 @@ export default function PromotionsScreen() {
       <div className="promotions-content">
         <div className="promotions-header">
           <div>
-            <h1 className="promotions-title">any Codes</h1>
+            <h1 className="promotions-title">Promo Codes</h1>
           </div>
           <div className="header-actions">
             <button onClick={fetchAll} className="btn btn-secondary">

@@ -22,7 +22,6 @@ export interface HappyHourTimeRemainingResponse {
   isHappyHourActive: boolean;
 }
 
-// Start Swift Hour for a restaurant (manual trigger)
 export const startSwiftHour = async (
   restaurantId: string,
   durationMinutes: number,
@@ -30,46 +29,45 @@ export const startSwiftHour = async (
   isHappyHour: boolean,
   freeDrink: boolean
 ): Promise<{ message: string }> => {
-  return http.post(`/promotions/${restaurantId}/swift-hour/start`, {
+  const res = await http.post<{ message: string }>(`/promotions/${restaurantId}/swift-hour/start`, {
     durationMinutes,
     discount,
     isHappyHour,
     freeDrink,
   });
+  return res.data;
 };
-// End Swift Hour for a restaurant (manual trigger)
+
 export const endSwiftHour = async (
   restaurantId: string
 ): Promise<{ message: string }> => {
-  return http.post(`/promotions/${restaurantId}/swift-hour/end`);
+  const res = await http.post<{ message: string }>(`/promotions/${restaurantId}/swift-hour/end`);
+  return res.data;
 };
 
-// Set Happy Hour (Swift Hour) for a restaurant
-export const setHappyHour: (
+export const setHappyHour = async (
   restaurantId: string,
   happyHour: HappyHour
-) => Promise<SetHappyHourResponse> = async (
-  restaurantId: string,
-  happyHour: HappyHour
-) => {
-  return http.post(
+): Promise<SetHappyHourResponse> => {
+  const res = await http.post<SetHappyHourResponse>(
     `/promotions/restaurant/happyhour/${restaurantId}`,
     happyHour
   );
+  return res.data;
 };
 
-// Get Happy Hour (Swift Hour) details for a restaurant
 export const getHappyHour = async (
   restaurantId: string
 ): Promise<GetHappyHourResponse> => {
-  return http.get(`/promotions/restaurant/happyhour/${restaurantId}`);
+  const res = await http.get<GetHappyHourResponse>(`/promotions/restaurant/happyhour/${restaurantId}`);
+  return res.data;
 };
 
-// Get Happy Hour (Swift Hour) time remaining for a restaurant
 export const getHappyHourTimeRemaining = async (
   restaurantId: string
 ): Promise<HappyHourTimeRemainingResponse> => {
-  return http.get(
+  const res = await http.get<HappyHourTimeRemainingResponse>(
     `/promotions/restaurant/happyhour/${restaurantId}/time-remaining`
   );
+  return res.data;
 };

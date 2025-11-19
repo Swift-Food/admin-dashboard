@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import RestaurantMultiSelect from "../RestaurantMultiSelect";
 
 export default function PromoForm({
   initialData,
@@ -13,7 +14,7 @@ export default function PromoForm({
     code: initialData?.code ?? "",
     name: initialData?.name ?? "",
     description: initialData?.description ?? "",
-    restaurantIds: initialData?.restaurantIds?.join(",") ?? "",
+    restaurantIds: initialData?.restaurantIds ?? [],
     discountAmount: initialData?.discountAmount ?? 0,
     discountType: initialData?.discountType ?? "PERCENT",
     currency: initialData?.currency ?? "GBP",
@@ -40,8 +41,8 @@ export default function PromoForm({
       code: form.code,
       name: form.name || undefined,
       description: form.description || undefined,
-      restaurantIds: form.restaurantIds
-        ? form.restaurantIds.split(/[,\s]+/).filter(Boolean)
+      restaurantIds: Array.isArray(form.restaurantIds)
+        ? form.restaurantIds
         : [],
       discountAmount: Number(form.discountAmount),
       discountType: form.discountType,
@@ -144,17 +145,10 @@ export default function PromoForm({
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">
-            Restaurant IDs (comma or space separated)
-          </label>
-          <input
-            value={form.restaurantIds}
-            onChange={(e) => handleChange("restaurantIds", e.target.value)}
-            className="form-input"
-            placeholder="e.g., rest_123, rest_456 (leave empty for all)"
-          />
-        </div>
+        <RestaurantMultiSelect
+          selectedIds={form.restaurantIds}
+          onChange={(ids) => handleChange("restaurantIds", ids)}
+        />
 
         <div className="form-grid form-grid-3">
           <div className="form-group">

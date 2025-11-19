@@ -1,4 +1,5 @@
 import http from "./http";
+import type { CateringOrder } from "../types/catering.types";
 
 export interface SendPaymentLinkDto {
   orderId: string;
@@ -9,8 +10,8 @@ export interface SendPaymentLinkDto {
   preview?: boolean;
 }
 
-const getOrders = async () => {
-  const res = await http.get("catering-orders");
+const getOrders = async (): Promise<CateringOrder[]> => {
+  const res = await http.get<CateringOrder[]>("catering-orders");
   return res.data;
 };
 
@@ -20,27 +21,27 @@ const reviewOrder = async (reviewDto: {
   depositAmount?: number;
   adminNotes?: string;
   reviewedBy: string;
-}) => {
+}): Promise<CateringOrder> => {
   console.log("reviewd by", reviewDto);
-  const res = await http.patch(
+  const res = await http.patch<CateringOrder>(
     `catering-orders/${reviewDto.orderId}/review`,
     reviewDto
   );
   return res.data;
 };
 
-const sendPaymentLink = async (payload: SendPaymentLinkDto) => {
-  const res = await http.post("catering-orders/send-payment-link", payload);
+const sendPaymentLink = async (payload: SendPaymentLinkDto): Promise<{ success: boolean; message: string }> => {
+  const res = await http.post<{ success: boolean; message: string }>("catering-orders/send-payment-link", payload);
   return res.data;
 };
 
-const cancelOrder = async (orderId: string) => {
-  const res = await http.patch(`catering-orders/${orderId}/cancel`);
+const cancelOrder = async (orderId: string): Promise<CateringOrder> => {
+  const res = await http.patch<CateringOrder>(`catering-orders/${orderId}/cancel`);
   return res.data;
 };
 
-const completeOrder = async (orderId: string) => {
-  const res = await http.post(`catering-orders/${orderId}/complete`);
+const completeOrder = async (orderId: string): Promise<CateringOrder> => {
+  const res = await http.post<CateringOrder>(`catering-orders/${orderId}/complete`);
   return res.data;
 };
 

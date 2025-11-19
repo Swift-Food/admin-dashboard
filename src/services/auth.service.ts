@@ -1,6 +1,6 @@
 import http from './http';
 import type { UserRole } from '../types/user.types';
-
+import type { AxiosResponse } from 'axios';
 
 export interface SignInDto {
   email: string;
@@ -17,18 +17,17 @@ export interface TokenPair {
 
 class AuthService {
   async loginConsumer(signInDto: SignInDto): Promise<TokenPair> {
-    const response = await http.post<TokenPair>(
+    const response: AxiosResponse<TokenPair> = await http.post<TokenPair>(
       `/auth/login-consumer`,
       signInDto
     );
-    
-    // Store tokens in localStorage
+
     if (response.data.access_token) {
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
     }
     console.log("logs in fine", response)
-    
+
     return response.data;
   }
 

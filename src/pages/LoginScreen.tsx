@@ -33,7 +33,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f5f7fa]">
       <div className="bg-white p-8 rounded-lg shadow-md w-96">
-        <h1 className="text-2xl font-bold mb-6 text-center">Admin Login</h1>
+        <h1 style={{ color: '#000', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', textAlign: 'center' }}>
+          Admin Login
+        </h1>
         <form onSubmit={handleSubmit}>
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -41,22 +43,40 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </div>
           )}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', color: '#000' }}>
+              Email
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                color: '#000',
+                backgroundColor: '#fff'
+              }}
               required
             />
           </div>
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', color: '#000' }}>
+              Password
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                color: '#000',
+                backgroundColor: '#fff'
+              }}
               required
               minLength={6}
             />
@@ -64,7 +84,16 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-400"
+            style={{
+              width: '100%',
+              backgroundColor: loading ? '#60a5fa' : '#2563eb',
+              color: '#fff',
+              padding: '0.5rem',
+              borderRadius: '0.5rem',
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: '500'
+            }}
           >
             {loading ? "Logging in..." : "Login"}
           </button>

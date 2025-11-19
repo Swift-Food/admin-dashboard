@@ -5,7 +5,6 @@ const api = axios.create({
   baseURL: BASE_URL,
 });
 
-// Add this interceptor to inject the token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
   if (token) {
@@ -14,5 +13,17 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      window.location.href = "/";
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

@@ -103,7 +103,7 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose }: { order: AdminCo
                         {subOrder.restaurants.flatMap(restaurant =>
                           (restaurant.menuItems || []).map((item, itemIdx) => (
                             <div key={`${restaurant.restaurantId}-${itemIdx}`} className="flex justify-between text-sm">
-                              <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                              <span className="text-gray-700">{item.quantity}x {item.menuItemName}</span>
                               <span className="font-medium text-gray-900">{formatCurrency(item.customerTotalPrice || 0)}</span>
                             </div>
                           ))

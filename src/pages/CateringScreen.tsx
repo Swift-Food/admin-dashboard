@@ -354,7 +354,7 @@ const CateringOrderDetailsModal = ({
                                 className="text-sm text-gray-800 flex justify-between"
                               >
                                 <span>
-                                  {menuItem.quantity}x {menuItem.name}
+                                  {menuItem.quantity}x {menuItem.menuItemName}
                                 </span>
                                 <span className="font-medium">
                                   {formatCurrency(price)}

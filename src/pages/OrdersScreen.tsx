@@ -304,7 +304,7 @@ const OrderDetailsModal = ({
                           >
                             <p>
                               {menuItem.quantity || 0}x{" "}
-                              {menuItem.name || "Unknown Item"} -{" "}
+                              {menuItem.menuItemName || "Unknown Item"} -{" "}
                               {formatCurrency(menuItem.totalPrice)}
                             </p>
                           </div>

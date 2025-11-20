@@ -108,6 +108,33 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose }: { order: Catering
             </div>
           )}
 
+          {/* Payment Link */}
+          {order.paymentLinkUrl && (
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-6 mb-8">
+              <h3 className="font-bold mb-3 text-blue-900 text-lg">💳 Payment Link</h3>
+              <div className="space-y-2">
+                <a
+                  href={order.paymentLinkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-700 hover:text-blue-900 font-medium text-base underline break-all"
+                >
+                  {order.paymentLinkUrl}
+                </a>
+                {order.paymentLinkSentAt && (
+                  <p className="text-sm text-gray-700">
+                    Sent: {new Date(order.paymentLinkSentAt).toLocaleString()}
+                  </p>
+                )}
+                {order.paid && order.paidAt && (
+                  <p className="text-sm text-green-700 font-semibold">
+                    ✓ Paid: {new Date(order.paidAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Order Items */}
           <div>
             <h3 className="text-xl font-bold text-gray-900 mb-4">Order Items ({(order.restaurants || order.orderItems || []).length} Restaurant{(order.restaurants || order.orderItems || []).length !== 1 ? 's' : ''})</h3>
@@ -127,7 +154,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose }: { order: Catering
                         return (
                           <div key={menuIdx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
                             <span className="text-base text-gray-900">
-                              <span className="font-bold text-purple-600">{menuItem.quantity}x</span> {menuItem.name}
+                              <span className="font-bold text-purple-600">{menuItem.quantity}x</span> {menuItem.menuItemName}
                             </span>
                             <span className="font-bold text-lg text-gray-900">{formatCurrency(price)}</span>
                           </div>

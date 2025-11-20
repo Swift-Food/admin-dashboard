@@ -550,7 +550,7 @@ const RestaurantAdminDashboard = () => {
                                               className="order-item"
                                             >
                                               <span className="item-name">
-                                                {item.quantity}x {item.name}
+                                                {item.quantity}x {item.menuItemName}
                                               </span>
                                               <span className="item-price">
                                                 $

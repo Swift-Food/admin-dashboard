@@ -5,7 +5,7 @@ import type {
 } from "../types/admin-corporate.types";
 import corporateService from "../services/corporate.service";
 
-const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: AdminCorporateOrderDetails | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
+const CorporateOrderDetailsModal = ({ order, isOpen, onClose }: { order: AdminCorporateOrderDetails | null; isOpen: boolean; onClose: () => void }) => {
   if (!isOpen || !order) return null;
 
   const formatCurrency = (amount?: number) => {
@@ -85,7 +85,7 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
           <div>
             <h3 className="text-xl font-bold text-gray-900 mb-4">Employee Orders ({order.subOrders?.length || 0})</h3>
             <div className="space-y-3">
-              {order.subOrders?.map((subOrder, idx) => (
+              {order.subOrders?.map((subOrder) => (
                 <div key={subOrder.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:border-blue-300 transition-colors">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -96,16 +96,18 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
                       <p className="text-2xl font-bold text-gray-900">{formatCurrency(subOrder.customerTotal)}</p>
                     </div>
                   </div>
-                  {subOrder.items && subOrder.items.length > 0 && (
+                  {subOrder.restaurants && subOrder.restaurants.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <p className="text-sm font-semibold text-gray-700 mb-2">Items:</p>
                       <div className="space-y-1">
-                        {subOrder.items.map((item, itemIdx) => (
-                          <div key={itemIdx} className="flex justify-between text-sm">
-                            <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                            <span className="font-medium text-gray-900">{formatCurrency(item.price * item.quantity)}</span>
-                          </div>
-                        ))}
+                        {subOrder.restaurants.flatMap(restaurant =>
+                          (restaurant.menuItems || []).map((item, itemIdx) => (
+                            <div key={`${restaurant.restaurantId}-${itemIdx}`} className="flex justify-between text-sm">
+                              <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                              <span className="font-medium text-gray-900">{formatCurrency(item.customerTotalPrice || 0)}</span>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   )}
@@ -469,7 +471,6 @@ const CorporateOrdersScreen = () => {
         order={selectedOrder}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
-        onOrderUpdated={fetchAllOrders}
       />
     </div>
   );

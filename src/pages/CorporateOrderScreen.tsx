@@ -256,7 +256,7 @@ const CorporateOrderDetailsModal = ({
 
           {/* Restaurant Breakdown */}
           {(() => {
-            const restaurants = order.restaurantBreakdown || order.restaurants || [];
+            const restaurants = order.restaurantBreakdown || [];
             if (restaurants.length === 0) return null;
 
             return (
@@ -295,7 +295,7 @@ const CorporateOrderDetailsModal = ({
 
           {/* Employee Orders */}
           {(() => {
-            const subOrders = order.subOrders || order.activeSubOrders || [];
+            const subOrders = order.subOrders || [];
             if (subOrders.length === 0) return null;
 
             return (
@@ -325,7 +325,7 @@ const CorporateOrderDetailsModal = ({
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-gray-900">
-                            {formatCurrency(subOrder.customerTotal || subOrder.totalAmount)}
+                            {formatCurrency(subOrder.customerTotal)}
                           </p>
                           <p className="text-xs text-gray-600 capitalize">
                             {subOrder.status}
@@ -578,7 +578,7 @@ const CorporateOrderCard = ({
         </div>
         <div className="text-right">
           <p className="font-bold text-gray-900">
-            {formatCurrency(order.customerFinalTotal || order.totalAmount)}
+            {formatCurrency(order.customerFinalTotal)}
           </p>
         </div>
       </div>
@@ -608,7 +608,7 @@ const CorporateOrderCard = ({
 
       <div className="flex justify-between items-center">
         <OrderTimer createdAt={order.createdAt} />
-        {(order.paid || order.paymentCompleted) && (
+        {order.paid && (
           <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
             PAID
           </span>

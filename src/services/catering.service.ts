@@ -30,8 +30,8 @@ const reviewOrder = async (reviewDto: {
   return res.data;
 };
 
-const sendPaymentLink = async (payload: SendPaymentLinkDto): Promise<{ success: boolean; message: string }> => {
-  const res = await http.post<{ success: boolean; message: string }>("catering-orders/send-payment-link", payload);
+const sendPaymentLink = async (payload: SendPaymentLinkDto): Promise<{ success: boolean; message: string; previewHtml?: string }> => {
+  const res = await http.post<{ success: boolean; message: string; previewHtml?: string }>("catering-orders/send-payment-link", payload);
   return res.data;
 };
 

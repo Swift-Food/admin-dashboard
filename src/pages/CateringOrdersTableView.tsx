@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { CateringOrder } from "../types/catering.types";
 import cateringService from "../services/catering.service";
 
-const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
+const CateringOrderDetailsModal = ({ order, isOpen, onClose }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void }) => {
   if (!isOpen || !order) return null;
 
   const formatCurrency = (amount?: number | string) => {
@@ -489,7 +489,6 @@ const CateringOrdersScreen = () => {
         order={selectedOrder}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
-        onOrderUpdated={fetchAllOrders}
       />
     </div>
   );

@@ -196,7 +196,7 @@ const CateringOrderDetailsModal = ({
 
       // If preview mode, show HTML preview instead of sending
       if (paymentLinkForm.preview) {
-        setPreviewHtml(response.previewHtml);
+        setPreviewHtml(response.previewHtml || "");
         return;
       }
 
@@ -296,9 +296,9 @@ const CateringOrderDetailsModal = ({
                   <span className="font-medium text-gray-900">Delivery:</span>{" "}
                   {typeof order.deliveryAddress === "string"
                     ? order.deliveryAddress
-                    : `${order.deliveryAddress?.addressLine1 || ""}, ${
+                    : `${order.deliveryAddress?.street || ""}, ${
                         order.deliveryAddress?.city || ""
-                      }, ${order.deliveryAddress?.zipcode || ""}`}
+                      }, ${order.deliveryAddress?.postcode || ""}`}
                 </p>
               </div>
             </div>

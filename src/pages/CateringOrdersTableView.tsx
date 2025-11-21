@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import type { CateringOrder } from "../types/catering.types";
 import cateringService from "../services/catering.service";
 
-const CateringOrderDetailsModal = ({ order, isOpen, onClose }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void }) => {
+const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showConfirmComplete, setShowConfirmComplete] = useState(false);
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+
   if (!isOpen || !order) return null;
 
   const formatCurrency = (amount?: number | string) => {
@@ -11,6 +16,40 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose }: { order: Catering
       return `£${numAmount.toFixed(2)}`;
     }
     return "N/A";
+  };
+
+  const handleCompleteOrder = async () => {
+    setIsCompleting(true);
+    try {
+      await cateringService.completeOrder(order.id);
+      setShowConfirmComplete(false);
+      if (onOrderUpdated) {
+        await onOrderUpdated();
+      }
+      onClose();
+    } catch (error: any) {
+      console.error("Failed to complete order:", error);
+      alert(error?.response?.data?.message || "Failed to complete order");
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    setIsCancelling(true);
+    try {
+      await cateringService.cancelOrder(order.id);
+      setShowConfirmCancel(false);
+      if (onOrderUpdated) {
+        await onOrderUpdated();
+      }
+      onClose();
+    } catch (error: any) {
+      console.error("Failed to cancel order:", error);
+      alert(error?.response?.data?.message || "Failed to cancel order");
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   return (
@@ -174,12 +213,79 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose }: { order: Catering
         </div>
 
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
-          <button
-            onClick={onClose}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
-          >
-            Close
-          </button>
+          {/* Confirmation dialogs */}
+          {showConfirmComplete && (
+            <div className="mb-4 bg-green-50 border-2 border-green-300 rounded-xl p-4">
+              <p className="text-green-900 font-semibold mb-3">Are you sure you want to mark this order as completed?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCompleteOrder}
+                  disabled={isCompleting}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-green-300"
+                >
+                  {isCompleting ? "Completing..." : "Yes, Complete"}
+                </button>
+                <button
+                  onClick={() => setShowConfirmComplete(false)}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showConfirmCancel && (
+            <div className="mb-4 bg-red-50 border-2 border-red-300 rounded-xl p-4">
+              <p className="text-red-900 font-semibold mb-3">Are you sure you want to cancel this order?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelOrder}
+                  disabled={isCancelling}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+                >
+                  {isCancelling ? "Cancelling..." : "Yes, Cancel Order"}
+                </button>
+                <button
+                  onClick={() => setShowConfirmCancel(false)}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                  No, Keep Order
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            {!["completed", "cancelled"].includes(order.status) && !showConfirmComplete && !showConfirmCancel && (
+              <>
+                {/* Complete button - only for paid or confirmed orders */}
+                {(order.status === "paid" || order.status === "confirmed") && (
+                  <button
+                    onClick={() => setShowConfirmComplete(true)}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                  >
+                    Mark as Completed
+                  </button>
+                )}
+
+                {/* Cancel button - available for all non-completed orders */}
+                <button
+                  onClick={() => setShowConfirmCancel(true)}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                >
+                  Cancel Order
+                </button>
+              </>
+            )}
+            <button
+              onClick={onClose}
+              className={`${["completed", "cancelled"].includes(order.status) || showConfirmComplete || showConfirmCancel ? "w-full" : "flex-1"} bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg`}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -516,6 +622,7 @@ const CateringOrdersScreen = () => {
         order={selectedOrder}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onOrderUpdated={fetchAllOrders}
       />
     </div>
   );

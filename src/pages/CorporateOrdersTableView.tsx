@@ -5,7 +5,10 @@ import type {
 } from "../types/admin-corporate.types";
 import corporateService from "../services/corporate.service";
 
-const CorporateOrderDetailsModal = ({ order, isOpen, onClose }: { order: AdminCorporateOrderDetails | null; isOpen: boolean; onClose: () => void }) => {
+const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: AdminCorporateOrderDetails | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showConfirmAction, setShowConfirmAction] = useState<string | null>(null);
+
   if (!isOpen || !order) return null;
 
   const formatCurrency = (amount?: number) => {
@@ -14,6 +17,68 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose }: { order: AdminCo
     }
     return "N/A";
   };
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    setIsUpdating(true);
+    try {
+      await corporateService.updateDeliveryStatus(order.id, newStatus as any);
+      setShowConfirmAction(null);
+      if (onOrderUpdated) {
+        await onOrderUpdated();
+      }
+      onClose();
+    } catch (error: any) {
+      console.error("Failed to update order:", error);
+      alert(error?.response?.data?.message || "Failed to update order status");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Determine available actions based on current status
+  const getAvailableActions = () => {
+    const actions: Array<{label: string, status: string, color: string, confirmText: string}> = [];
+
+    switch (order.status) {
+      case "pending_approval":
+        actions.push(
+          { label: "Approve Order", status: "approved", color: "green", confirmText: "approve" },
+          { label: "Reject Order", status: "rejected", color: "red", confirmText: "reject" }
+        );
+        break;
+      case "approved":
+        actions.push(
+          { label: "Send to Restaurant", status: "sent_to_restaurant", color: "blue", confirmText: "send to restaurant" },
+          { label: "Cancel Order", status: "cancelled", color: "red", confirmText: "cancel" }
+        );
+        break;
+      case "sent_to_restaurant":
+        actions.push(
+          { label: "Mark Restaurant Accepted", status: "restaurant_accepted", color: "green", confirmText: "mark as accepted" },
+          { label: "Mark Restaurant Rejected", status: "restaurant_rejected", color: "red", confirmText: "mark as rejected" }
+        );
+        break;
+      case "restaurant_accepted":
+        actions.push(
+          { label: "Mark as Preparing", status: "preparing", color: "orange", confirmText: "mark as preparing" }
+        );
+        break;
+      case "preparing":
+        actions.push(
+          { label: "Mark Out for Delivery", status: "out_for_delivery", color: "blue", confirmText: "mark out for delivery" }
+        );
+        break;
+      case "out_for_delivery":
+        actions.push(
+          { label: "Mark as Delivered", status: "delivered", color: "green", confirmText: "mark as delivered" }
+        );
+        break;
+    }
+
+    return actions;
+  };
+
+  const availableActions = getAvailableActions();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -118,12 +183,72 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose }: { order: AdminCo
         </div>
 
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
-          <button
-            onClick={onClose}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
-          >
-            Close
-          </button>
+          {/* Confirmation dialog */}
+          {showConfirmAction && (
+            <div className={`mb-4 ${
+              availableActions.find(a => a.status === showConfirmAction)?.color === 'green' ? 'bg-green-50 border-green-300' :
+              availableActions.find(a => a.status === showConfirmAction)?.color === 'red' ? 'bg-red-50 border-red-300' :
+              availableActions.find(a => a.status === showConfirmAction)?.color === 'orange' ? 'bg-orange-50 border-orange-300' :
+              'bg-blue-50 border-blue-300'
+            } border-2 rounded-xl p-4`}>
+              <p className={`${
+                availableActions.find(a => a.status === showConfirmAction)?.color === 'green' ? 'text-green-900' :
+                availableActions.find(a => a.status === showConfirmAction)?.color === 'red' ? 'text-red-900' :
+                availableActions.find(a => a.status === showConfirmAction)?.color === 'orange' ? 'text-orange-900' :
+                'text-blue-900'
+              } font-semibold mb-3`}>
+                Are you sure you want to {availableActions.find(a => a.status === showConfirmAction)?.confirmText} this order?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleStatusUpdate(showConfirmAction)}
+                  disabled={isUpdating}
+                  className={`flex-1 ${
+                    availableActions.find(a => a.status === showConfirmAction)?.color === 'green' ? 'bg-green-600 hover:bg-green-700 disabled:bg-green-300' :
+                    availableActions.find(a => a.status === showConfirmAction)?.color === 'red' ? 'bg-red-600 hover:bg-red-700 disabled:bg-red-300' :
+                    availableActions.find(a => a.status === showConfirmAction)?.color === 'orange' ? 'bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300' :
+                    'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300'
+                  } text-white font-bold py-2 px-4 rounded-lg transition-colors`}
+                >
+                  {isUpdating ? "Updating..." : "Yes, Confirm"}
+                </button>
+                <button
+                  onClick={() => setShowConfirmAction(null)}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            {availableActions.length > 0 && !showConfirmAction && (
+              <>
+                {availableActions.map((action) => (
+                  <button
+                    key={action.status}
+                    onClick={() => setShowConfirmAction(action.status)}
+                    className={`flex-1 ${
+                      action.color === 'green' ? 'bg-green-600 hover:bg-green-700' :
+                      action.color === 'red' ? 'bg-red-600 hover:bg-red-700' :
+                      action.color === 'orange' ? 'bg-orange-600 hover:bg-orange-700' :
+                      'bg-blue-600 hover:bg-blue-700'
+                    } text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg`}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </>
+            )}
+            <button
+              onClick={onClose}
+              className={`${availableActions.length > 0 && !showConfirmAction ? "flex-1" : "w-full"} bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg`}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -471,6 +596,7 @@ const CorporateOrdersScreen = () => {
         order={selectedOrder}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onOrderUpdated={fetchAllOrders}
       />
     </div>
   );

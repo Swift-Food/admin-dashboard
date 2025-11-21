@@ -47,6 +47,7 @@ export interface CateringOrderItem {
     name: string;
     quantity: number;
     totalPrice: number;
+    menuItemName: string;
   }>;
   specialInstructions?: string;
 }
@@ -61,12 +62,14 @@ export interface CateringOrder {
   eventTime: string;
   guestCount?: number;
   eventType?: string;
-  deliveryAddress?: string | {
-    street?: string;
-    city?: string;
-    postcode?: string;
-    country?: string;
-  };
+  deliveryAddress?:
+    | string
+    | {
+        street?: string;
+        city?: string;
+        postcode?: string;
+        country?: string;
+      };
   specialRequirements?: string;
 
   // Updated to use new PricingOrderItem structure (backend returns this as 'restaurants')

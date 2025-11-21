@@ -3,7 +3,6 @@ import type { Market } from "./market.types";
 import type { DriverUser } from "./user.types";
 import type { User } from "./user.types";
 
-
 // Order Status Types (using const assertions instead of enums)
 export const OrderStatus = {
   PLACED: "placed",
@@ -103,7 +102,7 @@ export interface OrderItem {
   restaurantName: string;
   menuItems: {
     menuItemId: string;
-    name: string;
+    menuItemName: string;
     quantity: number;
     unitPrice: number;
     totalPrice: number;

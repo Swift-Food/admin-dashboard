@@ -2,13 +2,15 @@
 // Source: src/features/event-management/events/dto/create-event.dto.ts
 // Source: src/shared/entities/events/event.entity.ts
 
-export enum EventStatus {
-  DRAFT = 'draft',
-  PUBLISHED = 'published',
-  ONGOING = 'ongoing',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-}
+export type EventStatus = 'draft' | 'published' | 'ongoing' | 'completed' | 'cancelled';
+
+export const EventStatus = {
+  DRAFT: 'draft' as const,
+  PUBLISHED: 'published' as const,
+  ONGOING: 'ongoing' as const,
+  COMPLETED: 'completed' as const,
+  CANCELLED: 'cancelled' as const,
+};
 
 export interface CreateEventDto {
   name: string;

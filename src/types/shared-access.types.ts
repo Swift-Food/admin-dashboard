@@ -1,10 +1,12 @@
 // Auto-generated from backend DTOs - 2025-11-22
 // Source: src/features/order-management/catering/dto/shared-access.dto.ts
 
-export enum SharedAccessRole {
-  VIEWER = 'viewer',
-  MANAGER = 'manager',
-}
+export type SharedAccessRole = 'viewer' | 'manager';
+
+export const SharedAccessRole = {
+  VIEWER: 'viewer' as const,
+  MANAGER: 'manager' as const,
+};
 
 // Auto-generated from backend DTOs - 2025-11-22
 // Source: src/features/order-management/catering/dto/shared-access.dto.ts

@@ -79,3 +79,8 @@ export interface PricingOrderItem {
   restaurantCommissionTotal: number;  // Total commission deducted
   restaurantNetAmount: number;        // Total restaurant receives after commission
 }
+
+// Backend DTO name aliases (for exact backend matching)
+export type PricingAddonDto = PricingAddon;
+export type PricingMenuItemDto = PricingMenuItem;
+export type PricingOrderItemDto = PricingOrderItem;

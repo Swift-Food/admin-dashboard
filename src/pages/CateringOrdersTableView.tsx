@@ -5,8 +5,10 @@ import cateringService from "../services/catering.service";
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
   const [showConfirmComplete, setShowConfirmComplete] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [showConfirmReview, setShowConfirmReview] = useState(false);
 
   if (!isOpen || !order) return null;
 
@@ -49,6 +51,28 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
       alert(error?.response?.data?.message || "Failed to cancel order");
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleReviewOrder = async () => {
+    setIsReviewing(true);
+    try {
+      const finalTotal = order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0;
+      await cateringService.reviewOrder({
+        orderId: order.id,
+        finalTotal: typeof finalTotal === 'string' ? parseFloat(finalTotal) : finalTotal,
+        reviewedBy: "Admin",
+      });
+      setShowConfirmReview(false);
+      if (onOrderUpdated) {
+        await onOrderUpdated();
+      }
+      onClose();
+    } catch (error: any) {
+      console.error("Failed to review order:", error);
+      alert(error?.response?.data?.message || "Failed to review order");
+    } finally {
+      setIsReviewing(false);
     }
   };
 
@@ -214,6 +238,27 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
           {/* Confirmation dialogs */}
+          {showConfirmReview && (
+            <div className="mb-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
+              <p className="text-blue-900 font-semibold mb-3">Are you sure you want to approve/review this order?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleReviewOrder}
+                  disabled={isReviewing}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300"
+                >
+                  {isReviewing ? "Reviewing..." : "Yes, Approve"}
+                </button>
+                <button
+                  onClick={() => setShowConfirmReview(false)}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {showConfirmComplete && (
             <div className="mb-4 bg-green-50 border-2 border-green-300 rounded-xl p-4">
               <p className="text-green-900 font-semibold mb-3">Are you sure you want to mark this order as completed?</p>
@@ -258,8 +303,18 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
           {/* Action buttons */}
           <div className="flex gap-3">
-            {!["completed", "cancelled"].includes(order.status) && !showConfirmComplete && !showConfirmCancel && (
+            {!["completed", "cancelled"].includes(order.status) && !showConfirmComplete && !showConfirmCancel && !showConfirmReview && (
               <>
+                {/* Approve/Review button - only for pending_review status */}
+                {order.status === "pending_review" && (
+                  <button
+                    onClick={() => setShowConfirmReview(true)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                  >
+                    Approve Order
+                  </button>
+                )}
+
                 {/* Complete button - only for paid or confirmed orders */}
                 {(order.status === "paid" || order.status === "confirmed") && (
                   <button
@@ -281,7 +336,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             )}
             <button
               onClick={onClose}
-              className={`${["completed", "cancelled"].includes(order.status) || showConfirmComplete || showConfirmCancel ? "w-full" : "flex-1"} bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg`}
+              className={`${["completed", "cancelled"].includes(order.status) || showConfirmComplete || showConfirmCancel || showConfirmReview ? "w-full" : "flex-1"} bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg`}
             >
               Close
             </button>

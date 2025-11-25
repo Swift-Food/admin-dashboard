@@ -200,14 +200,51 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
           {/* Financial Summary */}
           <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl mb-8 border-2 border-green-200">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Financial Summary</h3>
+
+            {/* Promo Codes Display */}
+            {order.promoCodes && order.promoCodes.length > 0 && (
+              <div className="mb-4 flex items-center gap-2">
+                <span className="text-sm font-semibold text-green-900">Promo Codes Applied:</span>
+                <div className="flex flex-wrap gap-2">
+                  {order.promoCodes.map((code, idx) => (
+                    <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-700 text-white">
+                      {code}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Customer Total</p>
-                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)}</p>
+                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Customer Paid</p>
+                <p className="text-2xl font-bold text-green-900">
+                  {formatCurrency(
+                    order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0
+                      ? (parseFloat((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0).toString()) - parseFloat(order.promoDiscount.toString()))
+                      : (order.customerFinalTotal || order.finalTotal || order.estimatedTotal)
+                  )}
+                </p>
+                {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
+                  <p className="text-xs text-green-600 mt-1">
+                    (Original: {formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)})
+                  </p>
+                )}
               </div>
               <div>
-                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Platform Commission</p>
-                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.platformCommissionRevenue)}</p>
+                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Net Commission</p>
+                <p className="text-2xl font-bold text-green-900">
+                  {formatCurrency(
+                    order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0
+                      ? (parseFloat((order.platformCommissionRevenue || 0).toString()) - parseFloat(order.promoDiscount.toString()))
+                      : order.platformCommissionRevenue
+                  )}
+                </p>
+                {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
+                  <p className="text-xs font-semibold text-red-600 mt-1">
+                    (Absorbed {formatCurrency(order.promoDiscount)} discount)
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-xs text-green-700 font-semibold uppercase mb-1">Restaurant Gross</p>

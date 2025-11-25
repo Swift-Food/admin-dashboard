@@ -91,6 +91,7 @@ export interface CateringOrder {
   serviceCharge?: number;
   deliveryFee?: number;
   promoDiscount?: number | string;
+  promoCodes?: string[];
 
   status:
     | "pending_review"

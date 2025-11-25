@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { CateringOrder } from "../types/catering.types";
-import cateringService from "../services/catering.service";
+import cateringService, { type SendPaymentLinkDto } from "../services/catering.service";
 
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
   const [isCompleting, setIsCompleting] = useState(false);
@@ -9,6 +9,15 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const [showConfirmComplete, setShowConfirmComplete] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [showConfirmReview, setShowConfirmReview] = useState(false);
+  const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
+  const [showSendPaymentModal, setShowSendPaymentModal] = useState(false);
+  const [paymentLinkForm, setPaymentLinkForm] = useState({
+    daysUntilDue: 7,
+    ccEmails: "",
+    publicNote: "",
+    internalNote: "",
+    preview: false,
+  });
 
   if (!isOpen || !order) return null;
 
@@ -75,6 +84,62 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
       setIsReviewing(false);
     }
   };
+
+  const handleSendPaymentLink = async () => {
+    setIsSendingPaymentLink(true);
+    try {
+      // Normalize / validate CC emails before sending
+      const ccEmailsArray = (paymentLinkForm.ccEmails || "")
+        .split(/[;,]+/) // split on commas or semicolons
+        .map((email) => email.trim())
+        .map((email) => email.replace(/\s+/g, "")) // remove stray internal whitespace
+        .filter((email) => email.length > 0)
+        .map((email) => email.toLowerCase());
+
+      // dedupe
+      const uniqueCcEmails = Array.from(new Set(ccEmailsArray));
+
+      // basic email validation
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const invalid = uniqueCcEmails.filter((e) => !emailRe.test(e));
+
+      if (invalid.length > 0) {
+        setIsSendingPaymentLink(false);
+        alert(`Invalid CC email(s): ${invalid.join(", ")}`);
+        return;
+      }
+
+      const payload: SendPaymentLinkDto = {
+        orderId: order.id,
+        daysUntilDue: paymentLinkForm.daysUntilDue || undefined,
+        ccEmails: uniqueCcEmails.length > 0 ? uniqueCcEmails : undefined,
+        publicNote: paymentLinkForm.publicNote || undefined,
+        internalNote: paymentLinkForm.internalNote || undefined,
+        preview: paymentLinkForm.preview,
+      };
+
+      await cateringService.sendPaymentLink(payload);
+
+      onClose();
+      if (onOrderUpdated) onOrderUpdated();
+      alert("Payment link sent successfully!");
+      setShowSendPaymentModal(false);
+    } catch (err: any) {
+      console.error("Error sending payment link:", err);
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to send payment link. Please try again.";
+      alert(`Failed to send payment link: ${serverMessage}`);
+    } finally {
+      setIsSendingPaymentLink(false);
+    }
+  };
+
+  const canSendPaymentLink =
+    order.status === "restaurant_reviewed" ||
+    order.status === "payment_link_sent";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -332,6 +397,25 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 >
                   Cancel Order
                 </button>
+
+                {/* Send Payment Link button */}
+                {canSendPaymentLink && (
+                  <button
+                    onClick={() => {
+                      setPaymentLinkForm({
+                        daysUntilDue: 7,
+                        ccEmails: "",
+                        publicNote: "",
+                        internalNote: "",
+                        preview: false,
+                      });
+                      setShowSendPaymentModal(true);
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                  >
+                    Send Payment Link
+                  </button>
+                )}
               </>
             )}
             <button
@@ -342,6 +426,120 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             </button>
           </div>
         </div>
+
+        {/* Send Payment Link Modal */}
+        {showSendPaymentModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg p-6 max-w-2xl mx-4 w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-4 text-gray-900">
+                Send Payment Link
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Days Until Due
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={paymentLinkForm.daysUntilDue}
+                    onChange={(e) =>
+                      setPaymentLinkForm({
+                        ...paymentLinkForm,
+                        daysUntilDue: parseInt(e.target.value) || 7,
+                      })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="7"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    How many days until payment is due (shown on invoice)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    CC Emails (Accounts Payable)
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentLinkForm.ccEmails}
+                    onChange={(e) =>
+                      setPaymentLinkForm({
+                        ...paymentLinkForm,
+                        ccEmails: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="email1@example.com, email2@example.com"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Comma-separated emails to CC on invoice
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Public Note
+                  </label>
+                  <textarea
+                    value={paymentLinkForm.publicNote}
+                    onChange={(e) =>
+                      setPaymentLinkForm({
+                        ...paymentLinkForm,
+                        publicNote: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    rows={2}
+                    placeholder="Shown to customer on invoice and email (e.g., 'Please include PO# in payment')"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Visible to customer
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Internal Note
+                  </label>
+                  <textarea
+                    value={paymentLinkForm.internalNote}
+                    onChange={(e) =>
+                      setPaymentLinkForm({
+                        ...paymentLinkForm,
+                        internalNote: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    rows={2}
+                    placeholder="Admin-only note (not sent to customer)"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Admin-only, not shared with customer
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowSendPaymentModal(false)}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendPaymentLink}
+                  disabled={isSendingPaymentLink}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-purple-300 disabled:cursor-not-allowed"
+                >
+                  {isSendingPaymentLink ? "Sending..." : "Send Payment Link"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

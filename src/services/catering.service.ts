@@ -18,6 +18,7 @@ const getOrders = async (): Promise<CateringOrder[]> => {
 const reviewOrder = async (reviewDto: {
   orderId: string;
   finalTotal: number;
+  collectionTime?: string;
   depositAmount?: number;
   adminNotes?: string;
   reviewedBy: string;

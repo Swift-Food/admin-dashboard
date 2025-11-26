@@ -73,6 +73,7 @@ const CateringOrderDetailsModal = ({
     finalTotal: "",
     depositAmount: "",
     adminNotes: "",
+    collectionTime: "",
     reviewedBy: "admin-user-id", // Replace with actual admin ID
   });
 
@@ -142,6 +143,7 @@ const CateringOrderDetailsModal = ({
       await cateringService.reviewOrder({
         orderId: order.id,
         finalTotal: finalTotal,
+        collectionTime: reviewForm.collectionTime,
         depositAmount: reviewForm.depositAmount
           ? parseFloat(reviewForm.depositAmount)
           : undefined,
@@ -487,6 +489,7 @@ const CateringOrderDetailsModal = ({
                       order.finalTotal ||
                       ""
                     ).toString(),
+                    collectionTime: order.collectionTime,
                     depositAmount: "",
                     adminNotes: "",
                     reviewedBy: "admin-user-id",
@@ -759,40 +762,23 @@ const CateringOrderDetailsModal = ({
                   className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Deposit Amount (£) - Optional
+                  Collection Time
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={reviewForm.depositAmount}
+                  type="datetime-local"
+                  value={reviewForm.collectionTime || ""}
                   onChange={(e) =>
                     setReviewForm({
                       ...reviewForm,
-                      depositAmount: e.target.value,
+                      collectionTime: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0.00"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Admin Notes - Optional
-                </label>
-                <textarea
-                  value={reviewForm.adminNotes}
-                  onChange={(e) =>
-                    setReviewForm({ ...reviewForm, adminNotes: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={3}
-                  placeholder="Add any notes about this order..."
-                />
-              </div>
             </div>
 
             <div className="flex gap-3 mt-6">

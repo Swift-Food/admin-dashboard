@@ -18,6 +18,13 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     internalNote: "",
     preview: false,
   });
+  const [reviewForm, setReviewForm] = useState({
+    finalTotal: "",
+    depositAmount: "",
+    adminNotes: "",
+    collectionTime: "",
+    reviewedBy: "Admin",
+  });
 
   if (!isOpen || !order) return null;
 
@@ -66,12 +73,19 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const handleReviewOrder = async () => {
     setIsReviewing(true);
     try {
-      const finalTotal = order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0;
+      const finalTotal = reviewForm.finalTotal 
+        ? parseFloat(reviewForm.finalTotal)
+        : (order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0);
+        
       await cateringService.reviewOrder({
         orderId: order.id,
         finalTotal: typeof finalTotal === 'string' ? parseFloat(finalTotal) : finalTotal,
-        reviewedBy: "Admin",
+        collectionTime: reviewForm.collectionTime || undefined,
+        depositAmount: reviewForm.depositAmount ? parseFloat(reviewForm.depositAmount) : undefined,
+        adminNotes: reviewForm.adminNotes || undefined,
+        reviewedBy: reviewForm.reviewedBy,
       });
+      
       setShowConfirmReview(false);
       if (onOrderUpdated) {
         await onOrderUpdated();
@@ -341,25 +355,101 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
           {/* Confirmation dialogs */}
           {showConfirmReview && (
-            <div className="mb-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
-              <p className="text-blue-900 font-semibold mb-3">Are you sure you want to approve/review this order?</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleReviewOrder}
-                  disabled={isReviewing}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300"
-                >
-                  {isReviewing ? "Reviewing..." : "Yes, Approve"}
-                </button>
-                <button
-                  onClick={() => setShowConfirmReview(false)}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+  <div className="mb-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
+    <p className="text-blue-900 font-semibold mb-3">Review Order Details</p>
+    
+    <div className="space-y-4 mb-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Final Total (£)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          value={
+            reviewForm.finalTotal ||
+            (order.customerFinalTotal || order.finalTotal || order.estimatedTotal)?.toString() ||
+            ""
+          }
+          onChange={(e) =>
+            setReviewForm({ ...reviewForm, finalTotal: e.target.value })
+          }
+          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Collection Time
+        </label>
+        <input
+          type="datetime-local"
+          value={reviewForm.collectionTime || ""}
+          onChange={(e) =>
+            setReviewForm({
+              ...reviewForm,
+              collectionTime: e.target.value,
+            })
+          }
+          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Deposit Amount (£) - Optional
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          value={reviewForm.depositAmount}
+          onChange={(e) =>
+            setReviewForm({
+              ...reviewForm,
+              depositAmount: e.target.value,
+            })
+          }
+          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="0.00"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Admin Notes - Optional
+        </label>
+        <textarea
+          value={reviewForm.adminNotes}
+          onChange={(e) =>
+            setReviewForm({
+              ...reviewForm,
+              adminNotes: e.target.value,
+            })
+          }
+          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          rows={3}
+          placeholder="Internal notes about this order..."
+        />
+      </div>
+    </div>
+    
+    <div className="flex gap-3">
+      <button
+        onClick={handleReviewOrder}
+        disabled={isReviewing}
+        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300"
+      >
+        {isReviewing ? "Reviewing..." : "Yes, Approve"}
+      </button>
+      <button
+        onClick={() => setShowConfirmReview(false)}
+        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
 
           {showConfirmComplete && (
             <div className="mb-4 bg-green-50 border-2 border-green-300 rounded-xl p-4">

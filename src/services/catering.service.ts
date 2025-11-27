@@ -17,12 +17,13 @@ const getOrders = async (): Promise<CateringOrder[]> => {
 
 const reviewOrder = async (reviewDto: {
   orderId: string;
-  finalTotal: number;
+  // finalTotal removed - it's already calculated when order was created
   depositAmount?: number;
+  collectionTime?: string;
   adminNotes?: string;
   reviewedBy: string;
 }): Promise<CateringOrder> => {
-  console.log("reviewd by", reviewDto);
+  console.log("Reviewing order:", reviewDto);
   const res = await http.patch<CateringOrder>(
     `catering-orders/${reviewDto.orderId}/review`,
     reviewDto

@@ -66,10 +66,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const handleReviewOrder = async () => {
     setIsReviewing(true);
     try {
-      const finalTotal = order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0;
+      // finalTotal is already calculated when order was created - no need to send it
       await cateringService.reviewOrder({
         orderId: order.id,
-        finalTotal: typeof finalTotal === 'string' ? parseFloat(finalTotal) : finalTotal,
         reviewedBy: "Admin",
       });
       setShowConfirmReview(false);

@@ -226,15 +226,11 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               <div>
                 <p className="text-xs text-green-700 font-semibold uppercase mb-1">Customer Paid</p>
                 <p className="text-2xl font-bold text-green-900">
-                  {formatCurrency(
-                    order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0
-                      ? (parseFloat((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0).toString()) - parseFloat(order.promoDiscount.toString()))
-                      : (order.customerFinalTotal || order.finalTotal || order.estimatedTotal)
-                  )}
+                  {formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)}
                 </p>
                 {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
                   <p className="text-xs text-green-600 mt-1">
-                    (Original: {formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)})
+                    (Original: {formatCurrency((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0) + parseFloat(order.promoDiscount.toString()))})
                   </p>
                 )}
               </div>

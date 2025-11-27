@@ -60,6 +60,7 @@ export interface CateringOrder {
   customerPhone: string;
   eventDate: string;
   eventTime: string;
+    collectionTime: string;
   guestCount?: number;
   eventType?: string;
   deliveryAddress?:

@@ -18,15 +18,45 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     internalNote: "",
     preview: false,
   });
-  const [reviewForm, setReviewForm] = useState({
+  const [reviewForm, setReviewForm] = useState<{
+    finalTotal: string;
+    collectionTime: string;
+    restaurantCollectionTimes: { [restaurantId: string]: string }; // ✅ NEW
+    depositAmount: string;
+    adminNotes: string;
+    reviewedBy: string;
+  }>({
     finalTotal: "",
+    collectionTime: "",
+    restaurantCollectionTimes: {}, // ✅ NEW
     depositAmount: "",
     adminNotes: "",
-    collectionTime: "",
-    reviewedBy: "Admin",
+    reviewedBy: "admin",
   });
 
+  useEffect(() => {
+    if (order && showConfirmReview) {
+      // Initialize with default times for each restaurant
+      const initialRestaurantTimes: { [restaurantId: string]: string } = {};
+      
+      order.restaurants?.forEach((restaurant) => {
+        // Use existing collection time or calculate from event time
+        initialRestaurantTimes[restaurant.restaurantId] = 
+          restaurant.collectionTime || 
+          order.collectionTime || 
+          "";
+      });
+  
+      setReviewForm((prev) => ({
+        ...prev,
+        restaurantCollectionTimes: initialRestaurantTimes,
+      }));
+    }
+  }, [order, showConfirmReview]);
+
   if (!isOpen || !order) return null;
+
+ 
 
   const formatCurrency = (amount?: number | string) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -76,11 +106,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
       const finalTotal = reviewForm.finalTotal 
         ? parseFloat(reviewForm.finalTotal)
         : (order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0);
-        
+  
       await cateringService.reviewOrder({
         orderId: order.id,
         finalTotal: typeof finalTotal === 'string' ? parseFloat(finalTotal) : finalTotal,
         collectionTime: reviewForm.collectionTime || undefined,
+        restaurantCollectionTimes: reviewForm.restaurantCollectionTimes, // ✅ NEW
         depositAmount: reviewForm.depositAmount ? parseFloat(reviewForm.depositAmount) : undefined,
         adminNotes: reviewForm.adminNotes || undefined,
         reviewedBy: reviewForm.reviewedBy,
@@ -355,101 +386,145 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
           {/* Confirmation dialogs */}
           {showConfirmReview && (
-  <div className="mb-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
-    <p className="text-blue-900 font-semibold mb-3">Review Order Details</p>
-    
-    <div className="space-y-4 mb-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Final Total (£)
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          value={
-            reviewForm.finalTotal ||
-            (order.customerFinalTotal || order.finalTotal || order.estimatedTotal)?.toString() ||
-            ""
-          }
-          onChange={(e) =>
-            setReviewForm({ ...reviewForm, finalTotal: e.target.value })
-          }
-          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
+            <div className="mb-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
+              <p className="text-blue-900 font-semibold mb-3">Review Order Details</p>
+              
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Final Total (£)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={
+                      reviewForm.finalTotal ||
+                      (order.customerFinalTotal || order.finalTotal || order.estimatedTotal)?.toString() ||
+                      ""
+                    }
+                    onChange={(e) =>
+                      setReviewForm({ ...reviewForm, finalTotal: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Collection Time
-        </label>
-        <input
-          type="datetime-local"
-          value={reviewForm.collectionTime || ""}
-          onChange={(e) =>
-            setReviewForm({
-              ...reviewForm,
-              collectionTime: e.target.value,
-            })
-          }
-          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Global Collection Time (Fallback)
+                  </label>
+                  <input
+                    type="time"
+                    value={reviewForm.collectionTime || ""}
+                    onChange={(e) =>
+                      setReviewForm({
+                        ...reviewForm,
+                        collectionTime: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This will be used for any restaurant without a specific collection time
+                  </p>
+                </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Deposit Amount (£) - Optional
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          value={reviewForm.depositAmount}
-          onChange={(e) =>
-            setReviewForm({
-              ...reviewForm,
-              depositAmount: e.target.value,
-            })
-          }
-          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="0.00"
-        />
-      </div>
+                {/* ✅ NEW: Per-Restaurant Collection Times */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Restaurant Collection Times
+                  </label>
+                  <div className="space-y-3 bg-white p-3 rounded-lg border border-gray-200">
+                    {order.restaurants?.map((restaurant) => (
+                      <div key={restaurant.restaurantId} className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {restaurant.restaurantName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {restaurant.menuItems?.length || 0} items
+                          </p>
+                        </div>
+                        <div className="w-32">
+                          <input
+                            type="time"
+                            value={reviewForm.restaurantCollectionTimes[restaurant.restaurantId] || ""}
+                            onChange={(e) =>
+                              setReviewForm({
+                                ...reviewForm,
+                                restaurantCollectionTimes: {
+                                  ...reviewForm.restaurantCollectionTimes,
+                                  [restaurant.restaurantId]: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-2 py-1.5 text-sm border text-gray-900 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="HH:MM"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Set specific collection times for each restaurant based on their preparation needs
+                  </p>
+                </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Admin Notes - Optional
-        </label>
-        <textarea
-          value={reviewForm.adminNotes}
-          onChange={(e) =>
-            setReviewForm({
-              ...reviewForm,
-              adminNotes: e.target.value,
-            })
-          }
-          className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows={3}
-          placeholder="Internal notes about this order..."
-        />
-      </div>
-    </div>
-    
-    <div className="flex gap-3">
-      <button
-        onClick={handleReviewOrder}
-        disabled={isReviewing}
-        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300"
-      >
-        {isReviewing ? "Reviewing..." : "Yes, Approve"}
-      </button>
-      <button
-        onClick={() => setShowConfirmReview(false)}
-        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
-      >
-        Cancel
-      </button>
-    </div>
-  </div>
-)}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Deposit Amount (£) - Optional
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={reviewForm.depositAmount}
+                    onChange={(e) =>
+                      setReviewForm({
+                        ...reviewForm,
+                        depositAmount: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Admin Notes - Optional
+                  </label>
+                  <textarea
+                    value={reviewForm.adminNotes}
+                    onChange={(e) =>
+                      setReviewForm({
+                        ...reviewForm,
+                        adminNotes: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Internal notes about this order..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={handleReviewOrder}
+                  disabled={isReviewing}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300"
+                >
+                  {isReviewing ? "Reviewing..." : "Yes, Approve"}
+                </button>
+                <button
+                  onClick={() => setShowConfirmReview(false)}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {showConfirmComplete && (
             <div className="mb-4 bg-green-50 border-2 border-green-300 rounded-xl p-4">

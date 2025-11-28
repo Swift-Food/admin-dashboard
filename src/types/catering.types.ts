@@ -7,6 +7,55 @@ export interface PricingAddon {
   groupTitle?: string;
 }
 
+export interface MealSession {
+  id: string;
+  sessionName: string;
+  sessionOrder: number;
+  sessionDate: string;
+  eventTime: string;
+  collectionTime: string;
+  guestCount?: number;
+  specialRequirements?: string;
+
+  // Order items for this session
+  orderItems: PricingOrderItem[];
+
+  // Session pricing
+  subtotal: number;
+  deliveryFee: number;
+  serviceCharge: number;
+  promoDiscount: number;
+  promotionDiscount: number;
+  sessionTotal: number;
+
+  // Applied promotions for this session
+  appliedPromotions?: {
+    [restaurantId: string]: Array<{
+      id: string;
+      name: string;
+      type: string;
+      discountAmount: number;
+    }>;
+  };
+
+  // Restaurant reviews for this session
+  restaurantReviews?: string[];
+  restaurantRejections?: string[];
+
+  // Restaurant-specific collection times
+  restaurantCollectionTimes?: {
+    [restaurantId: string]: string;
+  };
+
+  // Reminders
+  reminder24HourSent: boolean;
+  reminder1HourSent: boolean;
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PricingMenuItem {
   menuItemId: string;
   menuItemName: string;
@@ -29,14 +78,24 @@ export interface PricingMenuItem {
 export interface PricingOrderItem {
   restaurantId: string;
   restaurantName: string;
+  status: string;
+  specialInstructions?: string;
+  collectionTime?: string; // ✅ NEW: Restaurant-specific collection time
+  reminderConfirmed?: boolean;
+  reminderConfirmedAt?: string;
+
   menuItems: PricingMenuItem[];
-  customerSubtotal: number;
+
+  // Restaurant-level totals
   customerTotal: number;
   restaurantGrossAmount: number;
-  restaurantNetAmount: number;
   restaurantCommissionTotal: number;
-  platformCommissionRevenue: number;
-  specialInstructions?: string;
+  restaurantNetAmount: number;
+
+  // Additional fields for display
+  sessionName?: string; // ✅ NEW: For multi-meal orders
+  sessionDate?: string; // ✅ NEW: For multi-meal orders
+  sessionTime?: string; // ✅ NEW: For multi-meal orders
 }
 
 // Legacy interface - kept for backward compatibility with old data
@@ -58,9 +117,13 @@ export interface CateringOrder {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  
+  // ============================================================
+  // EVENT DETAILS (from primary/first meal session)
+  // ============================================================
   eventDate: string;
   eventTime: string;
-    collectionTime: string;
+  collectionTime: string;
   guestCount?: number;
   eventType?: string;
   deliveryAddress?:
@@ -73,18 +136,29 @@ export interface CateringOrder {
       };
   specialRequirements?: string;
 
+  // ============================================================
+  // ✅ NEW: Multi-meal support
+  // ============================================================
+  isMultiMeal?: boolean; // Flag to indicate multi-meal order
+  mealSessionCount?: number; // Number of meal sessions
+  mealSessions?: MealSession[]; // Detailed meal sessions (if multi-meal)
+
+  // ============================================================
+  // ORDER ITEMS (aggregated across all sessions for backward compatibility)
+  // ============================================================
   // Updated to use new PricingOrderItem structure (backend returns this as 'restaurants')
   restaurants?: PricingOrderItem[];
 
   // Legacy field - kept for backward compatibility with old data
   orderItems?: CateringOrderItem[];
 
-  // Pricing fields
+  // ============================================================
+  // PRICING (aggregated across all sessions)
+  // ============================================================
   customerFinalTotal?: number;
   platformCommissionRevenue?: number;
   restaurantsTotalGross?: number;
   restaurantsTotalNet?: number;
-
   estimatedTotal?: number;
   finalTotal?: number;
   depositAmount?: number | string;
@@ -92,8 +166,12 @@ export interface CateringOrder {
   serviceCharge?: number;
   deliveryFee?: number;
   promoDiscount?: number | string;
+  promotionDiscount?: number;
   promoCodes?: string[];
 
+  // ============================================================
+  // STATUS
+  // ============================================================
   status:
     | "pending_review"
     | "admin_reviewed"
@@ -104,19 +182,62 @@ export interface CateringOrder {
     | "cancelled"
     | "completed";
 
-  // Payment fields
+  // ============================================================
+  // PAYMENT
+  // ============================================================
   stripePaymentIntentId?: string;
   paid?: boolean;
   paymentLinkUrl?: string;
   paymentLinkSentAt?: string;
   paidAt?: string;
 
-  // Admin fields
+  // ============================================================
+  // ADMIN
+  // ============================================================
   adminNotes?: string;
   reviewedBy?: string;
   reviewedAt?: string;
+  restaurantReviews?: string[];
+  restaurantRejections?: string[];
 
-  // Timestamps
+  // ============================================================
+  // RESTAURANT PAYOUTS
+  // ============================================================
+  restaurantPayoutDetails?: {
+    [restaurantId: string]: {
+      selectedAccountId?: string;
+      accountName?: string;
+      stripeAccountId?: string;
+      earningsAmount?: number;
+      selectedAt?: string;
+    };
+  };
+
+  // ============================================================
+  // TIMESTAMPS
+  // ============================================================
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CateringOrderSummary {
+  id: string;
+  orderReference: string;
+  eventDate: string;
+  deliveryDate?: string; // Alias for eventDate
+  eventTime?: string;
+  status: CateringOrder['status'];
+  
+  // Multi-meal indicators
+  isMultiMeal?: boolean;
+  mealSessionCount?: number;
+  
+  customerFinalTotal?: number;
+  restaurantCount?: number;
+  customerName: string;
+  guestCount?: number;
+  eventType?: string;
+  paid?: boolean;
+  createdAt: string;
+}
+

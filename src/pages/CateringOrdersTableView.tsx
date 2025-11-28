@@ -21,14 +21,19 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const [reviewForm, setReviewForm] = useState<{
     finalTotal: string;
     collectionTime: string;
-    restaurantCollectionTimes: { [restaurantId: string]: string }; // ✅ NEW
+    // ✅ UPDATED: Session-specific restaurant collection times
+    sessionRestaurantCollectionTimes: {
+      [sessionId: string]: {
+        [restaurantId: string]: string;
+      };
+    };
     depositAmount: string;
     adminNotes: string;
     reviewedBy: string;
   }>({
     finalTotal: "",
     collectionTime: "",
-    restaurantCollectionTimes: {}, // ✅ NEW
+    sessionRestaurantCollectionTimes: {}, // ✅ NEW structure
     depositAmount: "",
     adminNotes: "",
     reviewedBy: "admin",
@@ -36,20 +41,40 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
   useEffect(() => {
     if (order && showConfirmReview) {
-      // Initialize with default times for each restaurant
-      const initialRestaurantTimes: { [restaurantId: string]: string } = {};
-      
-      order.restaurants?.forEach((restaurant) => {
-        // Use existing collection time or calculate from event time
-        initialRestaurantTimes[restaurant.restaurantId] = 
-          restaurant.collectionTime || 
-          order.collectionTime || 
-          "";
-      });
+      // ✅ UPDATED: Initialize times for each session and restaurant
+      const sessionRestaurantTimes: {
+        [sessionId: string]: { [restaurantId: string]: string };
+      } = {};
+  
+      // Multi-meal order: Initialize per session
+      if (order.mealSessions && order.mealSessions.length > 0) {
+        order.mealSessions.forEach((session) => {
+          sessionRestaurantTimes[session.id] = {};
+          
+          session.orderItems.forEach((restaurant) => {
+            // Use existing restaurant-specific time, or session default, or order default
+            sessionRestaurantTimes[session.id][restaurant.restaurantId] =
+              session.restaurantCollectionTimes?.[restaurant.restaurantId] ||
+              restaurant.collectionTime ||
+              session.collectionTime ||
+              order.collectionTime ||
+              "";
+          });
+        });
+      } else {
+        // Single-meal order: Use a default session ID
+        const defaultSessionId = "default";
+        sessionRestaurantTimes[defaultSessionId] = {};
+        
+        order.restaurants?.forEach((restaurant) => {
+          sessionRestaurantTimes[defaultSessionId][restaurant.restaurantId] =
+            restaurant.collectionTime || order.collectionTime || "";
+        });
+      }
   
       setReviewForm((prev) => ({
         ...prev,
-        restaurantCollectionTimes: initialRestaurantTimes,
+        sessionRestaurantCollectionTimes: sessionRestaurantTimes,
       }));
     }
   }, [order, showConfirmReview]);
@@ -103,11 +128,15 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const handleReviewOrder = async () => {
     setIsReviewing(true);
     try {
-      
+      const finalTotal = reviewForm.finalTotal 
+        ? parseFloat(reviewForm.finalTotal)
+        : (order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0);
+  
       await cateringService.reviewOrder({
         orderId: order.id,
+        finalTotal: typeof finalTotal === 'string' ? parseFloat(finalTotal) : finalTotal,
         collectionTime: reviewForm.collectionTime || undefined,
-        restaurantCollectionTimes: reviewForm.restaurantCollectionTimes, // ✅ NEW
+        sessionRestaurantCollectionTimes: reviewForm.sessionRestaurantCollectionTimes, // ✅ Session-based structure
         depositAmount: reviewForm.depositAmount ? parseFloat(reviewForm.depositAmount) : undefined,
         adminNotes: reviewForm.adminNotes || undefined,
         reviewedBy: reviewForm.reviewedBy,
@@ -382,6 +411,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               <p className="text-blue-900 font-semibold mb-3">Review Order Details</p>
               
               <div className="space-y-4 mb-4">
+                {/* Final Total */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Final Total (£)
@@ -401,6 +431,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   />
                 </div>
 
+                {/* Global Collection Time */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Global Collection Time (Fallback)
@@ -417,51 +448,143 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                     className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    This will be used for any restaurant without a specific collection time
+                    Default time used if no specific time is set
                   </p>
                 </div>
 
-                {/* ✅ NEW: Per-Restaurant Collection Times */}
+                {/* ✅ UPDATED: Per-Session Restaurant Collection Times */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Restaurant Collection Times
+                    Restaurant Collection Times by Session
                   </label>
-                  <div className="space-y-3 bg-white p-3 rounded-lg border border-gray-200">
-                    {order.restaurants?.map((restaurant) => (
-                      <div key={restaurant.restaurantId} className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            {restaurant.restaurantName}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {restaurant.menuItems?.length || 0} items
-                          </p>
+                  
+                  {/* Multi-meal order: Show sessions */}
+                  {order.mealSessions && order.mealSessions.length > 0 ? (
+                    <div className="space-y-4">
+                      {order.mealSessions.map((session, sessionIndex) => (
+                        <div key={session.id} className="bg-white p-4 rounded-lg border-2 border-gray-300">
+                          <div className="mb-3 pb-2 border-b border-gray-200">
+                            <h4 className="font-bold text-gray-900 text-base">
+                              {session.sessionName}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(session.sessionDate).toLocaleDateString()} at {session.eventTime}
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {session.orderItems.map((restaurant) => (
+                              <div key={restaurant.restaurantId} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {restaurant.restaurantName}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {restaurant.menuItems?.length || 0} items
+                                  </p>
+                                </div>
+                                <div className="w-32">
+                                  <input
+                                    type="time"
+                                    value={
+                                      reviewForm.sessionRestaurantCollectionTimes[session.id]?.[restaurant.restaurantId] || ""
+                                    }
+                                    onChange={(e) => {
+                                      setReviewForm({
+                                        ...reviewForm,
+                                        sessionRestaurantCollectionTimes: {
+                                          ...reviewForm.sessionRestaurantCollectionTimes,
+                                          [session.id]: {
+                                            ...reviewForm.sessionRestaurantCollectionTimes[session.id],
+                                            [restaurant.restaurantId]: e.target.value,
+                                          },
+                                        },
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1.5 text-sm border text-gray-900 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="HH:MM"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Quick action: Copy to all restaurants in this session */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const firstTime = Object.values(
+                                reviewForm.sessionRestaurantCollectionTimes[session.id] || {}
+                              )[0];
+                              if (firstTime) {
+                                const updatedSessionTimes: { [key: string]: string } = {};
+                                session.orderItems.forEach((r) => {
+                                  updatedSessionTimes[r.restaurantId] = firstTime;
+                                });
+                                setReviewForm({
+                                  ...reviewForm,
+                                  sessionRestaurantCollectionTimes: {
+                                    ...reviewForm.sessionRestaurantCollectionTimes,
+                                    [session.id]: updatedSessionTimes,
+                                  },
+                                });
+                              }
+                            }}
+                            className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Copy first time to all in this session
+                          </button>
                         </div>
-                        <div className="w-32">
-                          <input
-                            type="time"
-                            value={reviewForm.restaurantCollectionTimes[restaurant.restaurantId] || ""}
-                            onChange={(e) =>
-                              setReviewForm({
-                                ...reviewForm,
-                                restaurantCollectionTimes: {
-                                  ...reviewForm.restaurantCollectionTimes,
-                                  [restaurant.restaurantId]: e.target.value,
-                                },
-                              })
-                            }
-                            className="w-full px-2 py-1.5 text-sm border text-gray-900 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="HH:MM"
-                          />
-                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    // Single-meal order: Show restaurants without sessions
+                    <div className="bg-white p-3 rounded-lg border border-gray-200">
+                      <div className="space-y-3">
+                        {order.restaurants?.map((restaurant) => (
+                          <div key={restaurant.restaurantId} className="flex items-center gap-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {restaurant.restaurantName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {restaurant.menuItems?.length || 0} items
+                              </p>
+                            </div>
+                            <div className="w-32">
+                              <input
+                                type="time"
+                                value={
+                                  reviewForm.sessionRestaurantCollectionTimes["default"]?.[restaurant.restaurantId] || ""
+                                }
+                                onChange={(e) =>
+                                  setReviewForm({
+                                    ...reviewForm,
+                                    sessionRestaurantCollectionTimes: {
+                                      ...reviewForm.sessionRestaurantCollectionTimes,
+                                      default: {
+                                        ...reviewForm.sessionRestaurantCollectionTimes["default"],
+                                        [restaurant.restaurantId]: e.target.value,
+                                      },
+                                    },
+                                  })
+                                }
+                                className="w-full px-2 py-1.5 text-sm border text-gray-900 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="HH:MM"
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Set specific collection times for each restaurant based on their preparation needs
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 Each restaurant can have different collection times per meal session
                   </p>
                 </div>
 
+                {/* Deposit Amount */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Deposit Amount (£) - Optional
@@ -481,6 +604,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   />
                 </div>
 
+                {/* Admin Notes */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Admin Notes - Optional

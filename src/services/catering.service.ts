@@ -17,10 +17,12 @@ const getOrders = async (): Promise<CateringOrder[]> => {
 
 const reviewOrder = async (reviewDto: {
   orderId: string;
-  // finalTotal removed - it's already calculated when order was created
+  finalTotal?: number; // Keep for backward compatibility
   depositAmount?: number;
   collectionTime?: string;
-  restaurantCollectionTimes?: { [restaurantId: string]: string }; // ✅ NEW
+  sessionRestaurantCollectionTimes?: { // ✅ UPDATED to session-based
+    [sessionId: string]: { [restaurantId: string]: string };
+  };
   adminNotes?: string;
   reviewedBy: string;
 }): Promise<CateringOrder> => {

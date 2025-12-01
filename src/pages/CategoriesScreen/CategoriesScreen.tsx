@@ -19,9 +19,11 @@ import {
   removeMenuItems,
   moveMenuItems,
   getAllGroupTitles,
+  getAllRestaurants,
   type Category,
   type Subcategory,
   type MenuItem,
+  type Restaurant,
 } from "../../services/subcategory.service";
 import "./CategoriesScreen.css";
 
@@ -34,6 +36,8 @@ const CategoriesScreen: React.FC = () => {
   const [subcategories, setSubcategories] = useState<Record<string, Subcategory[]>>({});
   const [loadingSubcategories, setLoadingSubcategories] = useState<Record<string, boolean>>({});
   const [groupTitles, setGroupTitles] = useState<string[]>([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
 
   // Modal states
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
@@ -46,18 +50,34 @@ const CategoriesScreen: React.FC = () => {
   // Form states
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
-  const [restaurantId, setRestaurantId] = useState("");
   const [targetSubcategoryId, setTargetSubcategoryId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchCategories();
-    fetchGroupTitles();
+    fetchRestaurants();
   }, []);
 
-  const fetchGroupTitles = async () => {
+  useEffect(() => {
+    if (selectedRestaurantId) {
+      fetchGroupTitles(selectedRestaurantId);
+    } else {
+      setGroupTitles([]);
+    }
+  }, [selectedRestaurantId]);
+
+  const fetchRestaurants = async () => {
     try {
-      const titles = await getAllGroupTitles();
+      const data = await getAllRestaurants();
+      setRestaurants(data);
+    } catch (err) {
+      console.error("Error fetching restaurants:", err);
+    }
+  };
+
+  const fetchGroupTitles = async (restaurantId: string) => {
+    try {
+      const titles = await getAllGroupTitles(restaurantId);
       setGroupTitles(titles);
     } catch (err) {
       console.error("Error fetching group titles:", err);
@@ -165,14 +185,14 @@ const CategoriesScreen: React.FC = () => {
   };
 
   const handleAddMenuItemsByGroupTitle = async () => {
-    if (!selectedSubcategory || !groupTitle.trim()) return;
+    if (!selectedSubcategory || !groupTitle.trim() || !selectedRestaurantId) return;
 
     try {
       setSubmitting(true);
       const result = await addMenuItemsByGroupTitle(
         selectedSubcategory.id,
         groupTitle.trim(),
-        restaurantId.trim() || undefined
+        selectedRestaurantId
       );
 
       alert(`Successfully added ${result.added} menu items to "${selectedSubcategory.name}"`);
@@ -188,7 +208,7 @@ const CategoriesScreen: React.FC = () => {
 
       setShowAddByGroupTitle(false);
       setGroupTitle("");
-      setRestaurantId("");
+      setSelectedRestaurantId("");
       setSelectedSubcategory(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to add menu items");
@@ -475,13 +495,34 @@ const CategoriesScreen: React.FC = () => {
               Adding to: <strong>{selectedSubcategory.name}</strong>
             </p>
             <div className="form-group">
+              <label>Restaurant *</label>
+              <select
+                value={selectedRestaurantId}
+                onChange={(e) => {
+                  setSelectedRestaurantId(e.target.value);
+                  setGroupTitle("");
+                }}
+                className="form-select"
+              >
+                <option value="">Select a restaurant...</option>
+                {restaurants.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.restaurant_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
               <label>Group Title *</label>
               <select
                 value={groupTitle}
                 onChange={(e) => setGroupTitle(e.target.value)}
                 className="form-select"
+                disabled={!selectedRestaurantId}
               >
-                <option value="">Select a group title...</option>
+                <option value="">
+                  {selectedRestaurantId ? "Select a group title..." : "Select a restaurant first"}
+                </option>
                 {groupTitles.map((title) => (
                   <option key={title} value={title}>
                     {title}
@@ -489,19 +530,7 @@ const CategoriesScreen: React.FC = () => {
                 ))}
               </select>
               <small>
-                This will add all menu items that have this exact groupTitle value
-              </small>
-            </div>
-            <div className="form-group">
-              <label>Restaurant ID (optional)</label>
-              <input
-                type="text"
-                value={restaurantId}
-                onChange={(e) => setRestaurantId(e.target.value)}
-                placeholder="Leave empty for all restaurants"
-              />
-              <small>
-                Filter to only add items from a specific restaurant
+                This will add all menu items from this group
               </small>
             </div>
             <div className="modal-actions">
@@ -514,7 +543,7 @@ const CategoriesScreen: React.FC = () => {
               <button
                 className="btn btn-primary"
                 onClick={handleAddMenuItemsByGroupTitle}
-                disabled={submitting || !groupTitle.trim()}
+                disabled={submitting || !groupTitle.trim() || !selectedRestaurantId}
               >
                 {submitting ? "Adding..." : "Add Items"}
               </button>

@@ -157,7 +157,18 @@ export const moveMenuItems = async (
   return res.data;
 };
 
-export const getAllGroupTitles = async (): Promise<string[]> => {
-  const res = await http.get<string[]>("/menu-item/group-titles");
+export const getAllGroupTitles = async (restaurantId?: string): Promise<string[]> => {
+  const params = restaurantId ? `?restaurantId=${restaurantId}` : '';
+  const res = await http.get<string[]>(`/menu-item/group-titles${params}`);
+  return res.data;
+};
+
+export interface Restaurant {
+  id: string;
+  restaurant_name: string;
+}
+
+export const getAllRestaurants = async (): Promise<Restaurant[]> => {
+  const res = await http.get<Restaurant[]>("/restaurant");
   return res.data;
 };

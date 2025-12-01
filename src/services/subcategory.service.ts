@@ -156,3 +156,8 @@ export const moveMenuItems = async (
   );
   return res.data;
 };
+
+export const getAllGroupTitles = async (): Promise<string[]> => {
+  const res = await http.get<string[]>("/menu-item/group-titles");
+  return res.data;
+};

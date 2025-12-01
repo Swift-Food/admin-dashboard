@@ -18,6 +18,7 @@ import {
   addMenuItemsByGroupTitle,
   removeMenuItems,
   moveMenuItems,
+  getAllGroupTitles,
   type Category,
   type Subcategory,
   type MenuItem,
@@ -32,6 +33,7 @@ const CategoriesScreen: React.FC = () => {
   const [expandedSubcategory, setExpandedSubcategory] = useState<string | null>(null);
   const [subcategories, setSubcategories] = useState<Record<string, Subcategory[]>>({});
   const [loadingSubcategories, setLoadingSubcategories] = useState<Record<string, boolean>>({});
+  const [groupTitles, setGroupTitles] = useState<string[]>([]);
 
   // Modal states
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
@@ -50,7 +52,17 @@ const CategoriesScreen: React.FC = () => {
 
   useEffect(() => {
     fetchCategories();
+    fetchGroupTitles();
   }, []);
+
+  const fetchGroupTitles = async () => {
+    try {
+      const titles = await getAllGroupTitles();
+      setGroupTitles(titles);
+    } catch (err) {
+      console.error("Error fetching group titles:", err);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -464,13 +476,18 @@ const CategoriesScreen: React.FC = () => {
             </p>
             <div className="form-group">
               <label>Group Title *</label>
-              <input
-                type="text"
+              <select
                 value={groupTitle}
                 onChange={(e) => setGroupTitle(e.target.value)}
-                placeholder="e.g., Soft Drinks, Pizzas, Starters"
-                autoFocus
-              />
+                className="form-select"
+              >
+                <option value="">Select a group title...</option>
+                {groupTitles.map((title) => (
+                  <option key={title} value={title}>
+                    {title}
+                  </option>
+                ))}
+              </select>
               <small>
                 This will add all menu items that have this exact groupTitle value
               </small>

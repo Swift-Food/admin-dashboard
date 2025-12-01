@@ -42,6 +42,12 @@ export interface RemoveMenuItemsResponse {
   subcategory: Subcategory;
 }
 
+export interface MoveMenuItemsResponse {
+  moved: number;
+  fromSubcategory: Subcategory;
+  toSubcategory: Subcategory;
+}
+
 // ============================================
 // CATEGORY OPERATIONS
 // ============================================
@@ -136,5 +142,17 @@ export const removeMenuItems = async (
 
 export const getMenuItemCount = async (subcategoryId: string): Promise<number> => {
   const res = await http.get<number>(`/subcategory/${subcategoryId}/items/count`);
+  return res.data;
+};
+
+export const moveMenuItems = async (
+  fromSubcategoryId: string,
+  toSubcategoryId: string,
+  menuItemIds: string[]
+): Promise<MoveMenuItemsResponse> => {
+  const res = await http.post<MoveMenuItemsResponse>(
+    `/subcategory/${fromSubcategoryId}/menu-items/move`,
+    { toSubcategoryId, menuItemIds }
+  );
   return res.data;
 };

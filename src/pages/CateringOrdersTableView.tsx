@@ -461,7 +461,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   {/* Multi-meal order: Show sessions */}
                   {order.mealSessions && order.mealSessions.length > 0 ? (
                     <div className="space-y-4">
-                      {order.mealSessions.map((session, sessionIndex) => (
+                      {order.mealSessions.map((session) => (
                         <div key={session.id} className="bg-white p-4 rounded-lg border-2 border-gray-300">
                           <div className="mb-3 pb-2 border-b border-gray-200">
                             <h4 className="font-bold text-gray-900 text-base">

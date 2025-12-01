@@ -330,7 +330,7 @@
 
 .menu-items-header {
   display: grid;
-  grid-template-columns: 1fr 100px 120px 60px;
+  grid-template-columns: 1fr 80px 120px 80px;
   gap: 12px;
   padding: 8px 12px;
   font-size: 0.75rem;
@@ -343,7 +343,7 @@
 
 .menu-item-row {
   display: grid;
-  grid-template-columns: 1fr 100px 120px 60px;
+  grid-template-columns: 1fr 80px 120px 80px;
   gap: 12px;
   padding: 10px 12px;
   align-items: center;
@@ -398,4 +398,28 @@
 .btn-xs svg {
   width: 14px;
   height: 14px;
+}
+
+/* Menu item actions */
+.menu-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Form select */
+.form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }

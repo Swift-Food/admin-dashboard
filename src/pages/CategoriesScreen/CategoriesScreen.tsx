@@ -8,6 +8,7 @@ import {
   Package,
   FolderOpen,
   X,
+  MoveRight,
 } from "lucide-react";
 import {
   getAllCategories,
@@ -16,6 +17,7 @@ import {
   deleteSubcategory,
   addMenuItemsByGroupTitle,
   removeMenuItems,
+  moveMenuItems,
   type Category,
   type Subcategory,
   type MenuItem,
@@ -34,13 +36,16 @@ const CategoriesScreen: React.FC = () => {
   // Modal states
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
   const [showAddByGroupTitle, setShowAddByGroupTitle] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
 
   // Form states
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
   const [restaurantId, setRestaurantId] = useState("");
+  const [targetSubcategoryId, setTargetSubcategoryId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -190,6 +195,69 @@ const CategoriesScreen: React.FC = () => {
     setShowAddByGroupTitle(true);
   };
 
+  const openMoveModal = (subcategory: Subcategory, menuItem: MenuItem) => {
+    setSelectedSubcategory(subcategory);
+    setSelectedMenuItem(menuItem);
+    setTargetSubcategoryId("");
+    setShowMoveModal(true);
+  };
+
+  const handleMoveMenuItem = async () => {
+    if (!selectedSubcategory || !selectedMenuItem || !targetSubcategoryId) return;
+
+    try {
+      setSubmitting(true);
+      const result = await moveMenuItems(
+        selectedSubcategory.id,
+        targetSubcategoryId,
+        [selectedMenuItem.id]
+      );
+
+      // Update both subcategories in local state
+      const fromCategoryId = selectedSubcategory.categoryId;
+      setSubcategories((prev) => {
+        const updated = { ...prev };
+
+        // Update source subcategory
+        updated[fromCategoryId] = updated[fromCategoryId]?.map((s) =>
+          s.id === selectedSubcategory.id ? result.fromSubcategory : s
+        ) || [];
+
+        // Update target subcategory (might be in a different category)
+        const toCategoryId = result.toSubcategory.categoryId;
+        if (updated[toCategoryId]) {
+          updated[toCategoryId] = updated[toCategoryId].map((s) =>
+            s.id === targetSubcategoryId ? result.toSubcategory : s
+          );
+        }
+
+        return updated;
+      });
+
+      setShowMoveModal(false);
+      setSelectedSubcategory(null);
+      setSelectedMenuItem(null);
+      setTargetSubcategoryId("");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to move item");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Get all subcategories for the move dropdown (excluding the current one)
+  const getAllSubcategoriesForMove = (): Subcategory[] => {
+    const allSubcats: Subcategory[] = [];
+    Object.values(subcategories).forEach((subs) => {
+      subs.forEach((sub) => {
+        if (sub.id !== selectedSubcategory?.id) {
+          allSubcats.push(sub);
+        }
+      });
+    });
+    return allSubcats;
+  };
+
   if (loading) {
     return (
       <div className="categories-loading">
@@ -316,13 +384,22 @@ const CategoriesScreen: React.FC = () => {
                                     <span className="menu-item-group">
                                       {item.groupTitle || "-"}
                                     </span>
-                                    <button
-                                      className="btn btn-xs btn-danger"
-                                      onClick={() => handleRemoveMenuItem(subcategory, item.id)}
-                                      title="Remove from subcategory"
-                                    >
-                                      <X size={14} />
-                                    </button>
+                                    <div className="menu-item-actions">
+                                      <button
+                                        className="btn btn-xs btn-secondary"
+                                        onClick={() => openMoveModal(subcategory, item)}
+                                        title="Move to another subcategory"
+                                      >
+                                        <MoveRight size={14} />
+                                      </button>
+                                      <button
+                                        className="btn btn-xs btn-danger"
+                                        onClick={() => handleRemoveMenuItem(subcategory, item.id)}
+                                        title="Remove from subcategory"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -423,6 +500,50 @@ const CategoriesScreen: React.FC = () => {
                 disabled={submitting || !groupTitle.trim()}
               >
                 {submitting ? "Adding..." : "Add Items"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move Menu Item Modal */}
+      {showMoveModal && selectedSubcategory && selectedMenuItem && (
+        <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Move Menu Item</h2>
+            <p className="modal-subtitle">
+              Moving: <strong>{selectedMenuItem.name}</strong>
+              <br />
+              From: <strong>{selectedSubcategory.name}</strong>
+            </p>
+            <div className="form-group">
+              <label>Move to Subcategory *</label>
+              <select
+                value={targetSubcategoryId}
+                onChange={(e) => setTargetSubcategoryId(e.target.value)}
+                className="form-select"
+              >
+                <option value="">Select a subcategory...</option>
+                {getAllSubcategoriesForMove().map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowMoveModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleMoveMenuItem}
+                disabled={submitting || !targetSubcategoryId}
+              >
+                {submitting ? "Moving..." : "Move Item"}
               </button>
             </div>
           </div>

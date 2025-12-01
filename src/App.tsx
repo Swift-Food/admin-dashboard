@@ -9,6 +9,7 @@ import MapScreen from "./pages/MapScreen";
 import StatisticsScreen from "./pages/StatisticsScreen";
 import AllOrdersScreen from "./pages/OrdersScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
+import CategoriesScreen from "./pages/CategoriesScreen/CategoriesScreen";
 import orderService from "./services/order.service";
 import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
@@ -91,6 +92,8 @@ function App() {
         return <WithdrawalAdminDashboard />;
       case "restaurant":
         return <RestaurantAdminDashboard />;
+      case "categories":
+        return <CategoriesScreen />;
       case "driver-status":
         return <DriverStatusScreen />;
       case "statistics":

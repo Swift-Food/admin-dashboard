@@ -1155,7 +1155,7 @@ const CateringOrdersScreen = () => {
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-base font-bold text-gray-900">
-                        {formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)}
+                        {formatCurrency(order.customerFinalTotal)}
                       </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">

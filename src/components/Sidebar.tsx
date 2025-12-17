@@ -14,6 +14,7 @@ import {
   faMoneyBillWave,
   faUsers,
   faLayerGroup,
+  faBox,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 
@@ -27,6 +28,7 @@ export type SidebarPage =
   | "statistics"
   | "map"
   | "catering"
+  | "bundles"
   | "payout"
   | "corporate";
 
@@ -72,6 +74,11 @@ const navItems = [
     id: "catering",
     label: "Catering Orders",
     icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,
+  },
+  {
+    id: "bundles",
+    label: "Catering Bundles",
+    icon: <FontAwesomeIcon icon={faBox} style={iconCommonStyle} />,
   },
   {
     id: "corporate",

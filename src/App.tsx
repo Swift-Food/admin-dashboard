@@ -10,6 +10,7 @@ import StatisticsScreen from "./pages/StatisticsScreen";
 import AllOrdersScreen from "./pages/OrdersScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
 import CategoriesScreen from "./pages/CategoriesScreen/CategoriesScreen";
+import BundlesScreen from "./pages/BundlesScreen/BundlesScreen";
 import orderService from "./services/order.service";
 import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
@@ -23,58 +24,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
   const prevOrderIdsRef = useRef<string[]>([]);
 
-  useEffect(() => {
-    const newOrderSound = new Audio("/sounds/new-order.mp3");
-    const paidOrderSound = new Audio("/sounds/brainrot.mp3");
 
-    const pollOrders = async () => {
-      try {
-        const orders = await orderService.getOrders();
-        const currentOrderIds = orders.map((o: any) => o.id);
-
-        // Find newly appeared orders
-        const newOrders = orders.filter(
-          (o: any) => !prevOrderIdsRef.current.includes(o.id)
-        );
-
-        console.log(
-          "Polling - prevOrderIds:",
-          prevOrderIdsRef.current.length,
-          "newOrders:",
-          newOrders.length
-        );
-
-        // Avoid initial-load sound (require we have seen at least one previous poll)
-        if (prevOrderIdsRef.current.length > 0 && newOrders.length > 0) {
-          const anyPaid = newOrders.some(
-            (o: any) =>
-              (o.payment && o.payment.status === PaymentStatus.PAID) ||
-              o.paymentStatus === PaymentStatus.PAID
-          );
-
-          console.log("anyPaid:", anyPaid);
-          const soundToPlay = anyPaid ? paidOrderSound : newOrderSound;
-          console.log(
-            "Playing sound:",
-            anyPaid ? "brainrot.mp3" : "new-order.mp3"
-          );
-          soundToPlay.currentTime = 0;
-          soundToPlay
-            .play()
-            .catch((err) => console.error("Audio play error:", err));
-        }
-
-        prevOrderIdsRef.current = currentOrderIds;
-      } catch (e) {
-        console.error("Poll error:", e);
-      }
-    };
-
-    const intervalId = setInterval(pollOrders, 10000);
-    // run once immediately
-    pollOrders();
-    return () => clearInterval(intervalId);
-  }, []);
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
@@ -88,6 +38,8 @@ function App() {
         return <PromotionsScreen />;
       case "catering":
         return <CateringOrdersScreen />;
+      case "bundles":
+        return <BundlesScreen />;
       case "payout":
         return <WithdrawalAdminDashboard />;
       case "restaurant":

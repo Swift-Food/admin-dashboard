@@ -15,6 +15,7 @@ import {
   faUsers,
   faLayerGroup,
   faBox,
+  faCreditCard,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 
@@ -30,7 +31,8 @@ export type SidebarPage =
   | "catering"
   | "bundles"
   | "payout"
-  | "corporate";
+  | "corporate"
+  | "stripe-accounts";
 
 interface SidebarProps {
   currentPage: SidebarPage;
@@ -99,6 +101,11 @@ const navItems = [
     id: "payout",
     label: "Payouts",
     icon: <FontAwesomeIcon icon={faMoneyBillWave} style={iconCommonStyle} />,
+  },
+  {
+    id: "stripe-accounts",
+    label: "Stripe Accounts",
+    icon: <FontAwesomeIcon icon={faCreditCard} style={iconCommonStyle} />,
   },
   {
     id: "statistics",

@@ -16,6 +16,7 @@ import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import { PaymentStatus } from "./types/order.types";
 import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
+import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -54,7 +55,9 @@ function App() {
         return <MapScreen />;
       case "corporate":
         return <CorporateOrdersScreen/>
-      
+      case "stripe-accounts":
+        return <StripeAccountsScreen />
+
       default:
         return <RestaurantAdminDashboard />;
     }

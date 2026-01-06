@@ -16,6 +16,7 @@ import {
   faLayerGroup,
   faBox,
   faCreditCard,
+  faWrench,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 
@@ -32,7 +33,8 @@ export type SidebarPage =
   | "bundles"
   | "payout"
   | "corporate"
-  | "stripe-accounts";
+  | "stripe-accounts"
+  | "miscellaneous";
 
 interface SidebarProps {
   currentPage: SidebarPage;
@@ -116,6 +118,11 @@ const navItems = [
     id: "map",
     label: "Map",
     icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
+  },
+  {
+    id: "miscellaneous",
+    label: "Miscellaneous",
+    icon: <FontAwesomeIcon icon={faWrench} style={iconCommonStyle} />,
   },
 ];
 

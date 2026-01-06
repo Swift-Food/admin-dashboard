@@ -1,11 +1,75 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import http from "../services/http";
 
+interface Restaurant {
+  id: string;
+  restaurant_name: string;
+}
+
+interface CateringOrder {
+  id: string;
+  customerName: string;
+  eventDate: string;
+}
+
 const MiscellaneousScreen: React.FC = () => {
-  const [orderRefs, setOrderRefs] = useState("");
+  const [selectedRefs, setSelectedRefs] = useState<string[]>([]);
   const [restaurantId, setRestaurantId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [orders, setOrders] = useState<CateringOrder[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const [orderSearch, setOrderSearch] = useState("");
+  const [showOrderDropdown, setShowOrderDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [restaurantsRes, ordersRes] = await Promise.all([
+          http.get("restaurants"),
+          http.get("catering-orders/admin"),
+        ]);
+        setRestaurants(restaurantsRes.data || []);
+        setOrders(ordersRes.data || []);
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowOrderDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getOrderRef = (id: string) => id.substring(0, 4).toUpperCase();
+
+  const filteredOrders = orders.filter((order) => {
+    const ref = getOrderRef(order.id);
+    const searchLower = orderSearch.toLowerCase();
+    return (
+      ref.toLowerCase().includes(searchLower) ||
+      order.customerName?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const toggleOrderRef = (ref: string) => {
+    setSelectedRefs((prev) =>
+      prev.includes(ref) ? prev.filter((r) => r !== ref) : [...prev, ref]
+    );
+  };
 
   const handleDownloadReceipts = async () => {
     setLoading(true);
@@ -13,18 +77,18 @@ const MiscellaneousScreen: React.FC = () => {
 
     try {
       const params = new URLSearchParams();
-      if (orderRefs.trim()) {
-        params.append("refs", orderRefs.trim());
+      if (selectedRefs.length > 0) {
+        params.append("refs", selectedRefs.join(","));
       }
-      if (restaurantId.trim()) {
-        params.append("restaurantId", restaurantId.trim());
+      if (restaurantId) {
+        params.append("restaurantId", restaurantId);
       }
 
-      const response = await http.get(`catering-orders/admin/export-receipts?${params.toString()}`, {
-        responseType: "blob",
-      });
+      const response = await http.get(
+        `catering-orders/admin/export-receipts?${params.toString()}`,
+        { responseType: "blob" }
+      );
 
-      // Create download link
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
@@ -50,7 +114,6 @@ const MiscellaneousScreen: React.FC = () => {
         Miscellaneous
       </h1>
 
-      {/* Download Receipts Section */}
       <div
         style={{
           background: "#fff",
@@ -64,11 +127,11 @@ const MiscellaneousScreen: React.FC = () => {
           Download Receipts
         </h2>
         <p style={{ color: "#64748b", marginBottom: 20, fontSize: 14 }}>
-          Export catering order receipt data to xlsx. You can filter by specific order references
-          or restaurant ID.
+          Export catering order receipt data to xlsx.
         </p>
 
-        <div style={{ marginBottom: 16 }}>
+        {/* Order References Multi-Select */}
+        <div style={{ marginBottom: 16 }} ref={dropdownRef}>
           <label
             style={{
               display: "block",
@@ -78,27 +141,138 @@ const MiscellaneousScreen: React.FC = () => {
               color: "#475569",
             }}
           >
-            Order References (comma-separated)
+            Order References
           </label>
-          <input
-            type="text"
-            value={orderRefs}
-            onChange={(e) => setOrderRefs(e.target.value)}
-            placeholder="e.g., 3A46, 47D5, FC1B"
+          <div
             style={{
-              width: "100%",
-              padding: "10px 12px",
-              borderRadius: 8,
               border: "1px solid #e2e8f0",
-              fontSize: 14,
-              outline: "none",
+              borderRadius: 8,
+              minHeight: 42,
+              padding: "6px 12px",
+              cursor: "pointer",
+              position: "relative",
             }}
-          />
+            onClick={() => setShowOrderDropdown(true)}
+          >
+            {selectedRefs.length === 0 ? (
+              <span style={{ color: "#94a3b8", fontSize: 14 }}>
+                {loadingData ? "Loading..." : "Select orders..."}
+              </span>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {selectedRefs.map((ref) => (
+                  <span
+                    key={ref}
+                    style={{
+                      background: "#e0e7ff",
+                      color: "#3730a3",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      fontSize: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {ref}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleOrderRef(ref);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                        fontSize: 14,
+                        color: "#3730a3",
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {showOrderDropdown && (
+            <div
+              style={{
+                position: "absolute",
+                zIndex: 10,
+                background: "#fff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 8,
+                marginTop: 4,
+                width: 552,
+                maxHeight: 300,
+                overflow: "hidden",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Search by ref or customer name..."
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "none",
+                  borderBottom: "1px solid #e2e8f0",
+                  outline: "none",
+                  fontSize: 14,
+                }}
+                autoFocus
+              />
+              <div style={{ maxHeight: 250, overflowY: "auto" }}>
+                {filteredOrders.slice(0, 50).map((order) => {
+                  const ref = getOrderRef(order.id);
+                  const isSelected = selectedRefs.includes(ref);
+                  return (
+                    <div
+                      key={order.id}
+                      onClick={() => toggleOrderRef(ref)}
+                      style={{
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        background: isSelected ? "#e0e7ff" : "transparent",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        borderBottom: "1px solid #f1f5f9",
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>{ref}</span>
+                        <span style={{ color: "#64748b", marginLeft: 8 }}>
+                          {order.customerName}
+                        </span>
+                      </div>
+                      <span style={{ color: "#94a3b8", fontSize: 12 }}>
+                        {order.eventDate
+                          ? new Date(order.eventDate).toLocaleDateString("en-GB")
+                          : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+                {filteredOrders.length === 0 && (
+                  <div style={{ padding: 12, color: "#94a3b8", textAlign: "center" }}>
+                    No orders found
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
             Leave empty to export last 100 orders
           </p>
         </div>
 
+        {/* Restaurant Dropdown */}
         <div style={{ marginBottom: 20 }}>
           <label
             style={{
@@ -109,13 +283,11 @@ const MiscellaneousScreen: React.FC = () => {
               color: "#475569",
             }}
           >
-            Restaurant ID (optional)
+            Restaurant (optional)
           </label>
-          <input
-            type="text"
+          <select
             value={restaurantId}
             onChange={(e) => setRestaurantId(e.target.value)}
-            placeholder="e.g., 7390b43d-e430-4fda-b87b-a5f393985be7"
             style={{
               width: "100%",
               padding: "10px 12px",
@@ -123,8 +295,17 @@ const MiscellaneousScreen: React.FC = () => {
               border: "1px solid #e2e8f0",
               fontSize: 14,
               outline: "none",
+              background: "#fff",
+              cursor: "pointer",
             }}
-          />
+          >
+            <option value="">All restaurants</option>
+            {restaurants.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.restaurant_name}
+              </option>
+            ))}
+          </select>
           <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
             Filter to only include items for a specific restaurant
           </p>
@@ -148,16 +329,16 @@ const MiscellaneousScreen: React.FC = () => {
 
         <button
           onClick={handleDownloadReceipts}
-          disabled={loading}
+          disabled={loading || loadingData}
           style={{
-            background: loading ? "#94a3b8" : "#2563eb",
+            background: loading || loadingData ? "#94a3b8" : "#2563eb",
             color: "#fff",
             border: "none",
             borderRadius: 8,
             padding: "12px 24px",
             fontSize: 14,
             fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
+            cursor: loading || loadingData ? "not-allowed" : "pointer",
             display: "flex",
             alignItems: "center",
             gap: 8,
@@ -179,7 +360,14 @@ const MiscellaneousScreen: React.FC = () => {
             </>
           ) : (
             <>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
               </svg>
               Download Receipts (xlsx)

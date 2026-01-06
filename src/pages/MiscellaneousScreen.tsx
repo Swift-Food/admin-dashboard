@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import http from "../services/http";
+import { getAllRestaurantsAdminDashboard } from "../services/restaurant.service";
+import cateringService from "../services/catering.service";
 
 interface Restaurant {
   id: string;
@@ -29,12 +31,12 @@ const MiscellaneousScreen: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [restaurantsRes, ordersRes] = await Promise.all([
-          http.get("restaurants"),
-          http.get("catering-orders/admin"),
+        const [restaurantsData, ordersData] = await Promise.all([
+          getAllRestaurantsAdminDashboard(),
+          cateringService.getOrders(),
         ]);
-        setRestaurants(restaurantsRes.data || []);
-        setOrders(ordersRes.data || []);
+        setRestaurants(restaurantsData || []);
+        setOrders(ordersData || []);
       } catch (err) {
         console.error("Failed to fetch data:", err);
       } finally {
@@ -131,7 +133,7 @@ const MiscellaneousScreen: React.FC = () => {
         </p>
 
         {/* Order References Multi-Select */}
-        <div style={{ marginBottom: 16 }} ref={dropdownRef}>
+        <div style={{ marginBottom: 16, position: "relative" }} ref={dropdownRef}>
           <label
             style={{
               display: "block",
@@ -150,7 +152,6 @@ const MiscellaneousScreen: React.FC = () => {
               minHeight: 42,
               padding: "6px 12px",
               cursor: "pointer",
-              position: "relative",
             }}
             onClick={() => setShowOrderDropdown(true)}
           >
@@ -201,12 +202,14 @@ const MiscellaneousScreen: React.FC = () => {
             <div
               style={{
                 position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
                 zIndex: 10,
                 background: "#fff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 8,
                 marginTop: 4,
-                width: 552,
                 maxHeight: 300,
                 overflow: "hidden",
                 boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
@@ -224,44 +227,46 @@ const MiscellaneousScreen: React.FC = () => {
                   borderBottom: "1px solid #e2e8f0",
                   outline: "none",
                   fontSize: 14,
+                  boxSizing: "border-box",
                 }}
                 autoFocus
               />
               <div style={{ maxHeight: 250, overflowY: "auto" }}>
-                {filteredOrders.slice(0, 50).map((order) => {
-                  const ref = getOrderRef(order.id);
-                  const isSelected = selectedRefs.includes(ref);
-                  return (
-                    <div
-                      key={order.id}
-                      onClick={() => toggleOrderRef(ref)}
-                      style={{
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        background: isSelected ? "#e0e7ff" : "transparent",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        borderBottom: "1px solid #f1f5f9",
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>{ref}</span>
-                        <span style={{ color: "#64748b", marginLeft: 8 }}>
-                          {order.customerName}
+                {filteredOrders.length > 0 ? (
+                  filteredOrders.slice(0, 50).map((order) => {
+                    const ref = getOrderRef(order.id);
+                    const isSelected = selectedRefs.includes(ref);
+                    return (
+                      <div
+                        key={order.id}
+                        onClick={() => toggleOrderRef(ref)}
+                        style={{
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                          background: isSelected ? "#e0e7ff" : "transparent",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          borderBottom: "1px solid #f1f5f9",
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>{ref}</span>
+                          <span style={{ color: "#64748b", marginLeft: 8 }}>
+                            {order.customerName}
+                          </span>
+                        </div>
+                        <span style={{ color: "#94a3b8", fontSize: 12 }}>
+                          {order.eventDate
+                            ? new Date(order.eventDate).toLocaleDateString("en-GB")
+                            : ""}
                         </span>
                       </div>
-                      <span style={{ color: "#94a3b8", fontSize: 12 }}>
-                        {order.eventDate
-                          ? new Date(order.eventDate).toLocaleDateString("en-GB")
-                          : ""}
-                      </span>
-                    </div>
-                  );
-                })}
-                {filteredOrders.length === 0 && (
+                    );
+                  })
+                ) : (
                   <div style={{ padding: 12, color: "#94a3b8", textAlign: "center" }}>
-                    No orders found
+                    {loadingData ? "Loading orders..." : "No orders found"}
                   </div>
                 )}
               </div>
@@ -288,6 +293,7 @@ const MiscellaneousScreen: React.FC = () => {
           <select
             value={restaurantId}
             onChange={(e) => setRestaurantId(e.target.value)}
+            disabled={loadingData}
             style={{
               width: "100%",
               padding: "10px 12px",
@@ -296,10 +302,10 @@ const MiscellaneousScreen: React.FC = () => {
               fontSize: 14,
               outline: "none",
               background: "#fff",
-              cursor: "pointer",
+              cursor: loadingData ? "not-allowed" : "pointer",
             }}
           >
-            <option value="">All restaurants</option>
+            <option value="">{loadingData ? "Loading..." : "All restaurants"}</option>
             {restaurants.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.restaurant_name}

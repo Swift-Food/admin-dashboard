@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import "./App.css";
 import "leaflet/dist/leaflet.css";
 import Sidebar from "./components/Sidebar";
@@ -11,10 +11,8 @@ import AllOrdersScreen from "./pages/OrdersScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
 import CategoriesScreen from "./pages/CategoriesScreen/CategoriesScreen";
 import BundlesScreen from "./pages/BundlesScreen/BundlesScreen";
-import orderService from "./services/order.service";
 import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
-import { PaymentStatus } from "./types/order.types";
 import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import MiscellaneousScreen from "./pages/MiscellaneousScreen";
@@ -24,7 +22,6 @@ import LoginScreen from "./pages/LoginScreen";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
-  const prevOrderIdsRef = useRef<string[]>([]);
 
 
 

@@ -16,6 +16,7 @@ import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import MiscellaneousScreen from "./pages/MiscellaneousScreen";
+import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -57,6 +58,8 @@ function App() {
         return <StripeAccountsScreen />
       case "miscellaneous":
         return <MiscellaneousScreen />
+      case "event-categories":
+        return <EventCategoriesScreen />
 
       default:
         return <RestaurantAdminDashboard />;

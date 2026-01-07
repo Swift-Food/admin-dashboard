@@ -15,6 +15,7 @@ const ICON_CATEGORIES: Record<string, string[]> = {
   Travel: ["car", "plane", "train", "bus", "bike", "ship", "truck", "map", "compass", "globe", "navigation"],
   Food: ["coffee", "pizza", "apple", "cake", "utensil", "cup", "wine", "beer", "cookie", "salad", "soup"],
   Health: ["heart", "activity", "pill", "hospital", "stethoscope", "thermometer", "bandage", "syringe"],
+  Sports: ["trophy", "medal", "target", "goal", "dumbbell", "volleyball", "gamepad", "bike", "flag"],
   Tech: ["computer", "laptop", "monitor", "keyboard", "mouse", "cpu", "server", "database", "wifi", "bluetooth", "usb", "code", "terminal", "git"],
   Social: ["share", "like", "thumb", "star", "bookmark", "flag", "award", "trophy"],
   Nature: ["tree", "leaf", "flower", "plant", "mountain", "wave", "flame", "zap"],

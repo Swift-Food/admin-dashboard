@@ -50,6 +50,8 @@ interface LucideIconPickerProps {
   placeholder?: string;
 }
 
+const ICONS_PER_PAGE = 100;
+
 const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
   value,
   onChange,
@@ -58,6 +60,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [visibleCount, setVisibleCount] = useState(ICONS_PER_PAGE);
 
   const allIcons = useMemo(() => getAllIconNames(), []);
 
@@ -82,6 +85,10 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
     return icons;
   }, [allIcons, search, selectedCategory]);
 
+  // Reset visible count when filters change
+  const displayedIcons = filteredIcons.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredIcons.length;
+
   const renderIcon = (iconName: string, size: number = 20) => {
     const IconComponent = (LucideIcons as any)[iconName];
     if (!IconComponent) return null;
@@ -104,6 +111,21 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
     setIsOpen(false);
     setSearch("");
     setSelectedCategory("All");
+    setVisibleCount(ICONS_PER_PAGE);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setVisibleCount(ICONS_PER_PAGE);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setVisibleCount(ICONS_PER_PAGE);
+  };
+
+  const loadMore = () => {
+    setVisibleCount((prev) => prev + ICONS_PER_PAGE);
   };
 
   return (
@@ -235,7 +257,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
                   type="text"
                   placeholder="Search icons..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   autoFocus
                   style={{
                     width: "100%",
@@ -263,7 +285,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
               {Object.keys(ICON_CATEGORIES).map((category) => (
                 <button
                   key={category}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => handleCategoryChange(category)}
                   style={{
                     padding: "6px 14px",
                     borderRadius: 20,
@@ -283,7 +305,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
 
             {/* Results count */}
             <div style={{ padding: "8px 24px", fontSize: 13, color: "#6b7280" }}>
-              {filteredIcons.length} icons
+              Showing {displayedIcons.length} of {filteredIcons.length} icons
               {selectedCategory !== "All" && ` in ${selectedCategory}`}
               {search && ` matching "${search}"`}
             </div>
@@ -318,7 +340,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
                     gap: 8,
                   }}
                 >
-                  {filteredIcons.map((iconName) => (
+                  {displayedIcons.map((iconName) => (
                     <button
                       key={iconName}
                       onClick={() => handleSelect(iconName)}
@@ -366,6 +388,25 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
                       </span>
                     </button>
                   ))}
+                  {hasMore && (
+                    <button
+                      onClick={loadMore}
+                      style={{
+                        gridColumn: "1 / -1",
+                        padding: "12px 24px",
+                        marginTop: 8,
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 10,
+                        background: "#f9fafb",
+                        color: "#374151",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        fontWeight: 500,
+                      }}
+                    >
+                      Load More ({filteredIcons.length - visibleCount} remaining)
+                    </button>
+                  )}
                 </div>
               )}
             </div>

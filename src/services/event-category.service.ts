@@ -2,6 +2,7 @@ import http from "./http";
 import type {
   EventCategory,
   EventSubcategory,
+  CreateCategoryDto,
   UpdateCategoryDto,
   CreateSubcategoryDto,
   UpdateSubcategoryDto,
@@ -19,6 +20,13 @@ export const getCategory = async (id: string): Promise<EventCategory> => {
   return res.data;
 };
 
+export const createCategory = async (
+  data: CreateCategoryDto
+): Promise<EventCategory> => {
+  const res = await http.post<EventCategory>("/events/admin/categories", data);
+  return res.data;
+};
+
 export const updateCategory = async (
   id: string,
   data: UpdateCategoryDto
@@ -26,6 +34,13 @@ export const updateCategory = async (
   const res = await http.patch<EventCategory>(
     `/events/admin/categories/${id}`,
     data
+  );
+  return res.data;
+};
+
+export const deleteCategory = async (id: string): Promise<DeleteResponse> => {
+  const res = await http.delete<DeleteResponse>(
+    `/events/admin/categories/${id}`
   );
   return res.data;
 };
@@ -73,7 +88,9 @@ export const reorderSubcategories = async (
 export default {
   getAllCategories,
   getCategory,
+  createCategory,
   updateCategory,
+  deleteCategory,
   createSubcategory,
   updateSubcategory,
   deleteSubcategory,

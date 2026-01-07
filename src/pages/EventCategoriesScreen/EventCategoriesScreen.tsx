@@ -14,6 +14,7 @@ import eventCategoryService from "../../services/event-category.service";
 import type {
   EventCategory,
   EventSubcategory,
+  CreateCategoryDto,
   UpdateCategoryDto,
   CreateSubcategoryDto,
   UpdateSubcategoryDto,
@@ -30,6 +31,7 @@ const EventCategoriesScreen: React.FC = () => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   // Modal states
+  const [showAddCategory, setShowAddCategory] = useState(false);
   const [showEditCategory, setShowEditCategory] = useState(false);
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
   const [showEditSubcategory, setShowEditSubcategory] = useState(false);
@@ -39,6 +41,7 @@ const EventCategoriesScreen: React.FC = () => {
   const [selectedSubcategory, setSelectedSubcategory] = useState<EventSubcategory | null>(null);
 
   // Form states for category
+  const [categoryName, setCategoryName] = useState("");
   const [categoryDescription, setCategoryDescription] = useState("");
   const [categoryIconName, setCategoryIconName] = useState<string | null>(null);
 
@@ -70,21 +73,46 @@ const EventCategoriesScreen: React.FC = () => {
     setExpandedCategory(expandedCategory === categoryId ? null : categoryId);
   };
 
+  // Category Create
+  const handleAddCategory = async () => {
+    if (!categoryName.trim()) return;
+
+    try {
+      setSubmitting(true);
+      const dto: CreateCategoryDto = {
+        name: categoryName.trim(),
+        description: categoryDescription || undefined,
+        iconName: categoryIconName || undefined,
+      };
+
+      const newCategory = await eventCategoryService.createCategory(dto);
+      setCategories((prev) => [...prev, { ...newCategory, subcategories: [] }]);
+      setShowAddCategory(false);
+      resetCategoryForm();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create category");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Category Edit
   const openEditCategoryModal = (category: EventCategory, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedCategory(category);
+    setCategoryName(category.name);
     setCategoryDescription(category.description || "");
     setCategoryIconName(category.iconName);
     setShowEditCategory(true);
   };
 
   const handleUpdateCategory = async () => {
-    if (!selectedCategory) return;
+    if (!selectedCategory || !categoryName.trim()) return;
 
     try {
       setSubmitting(true);
       const dto: UpdateCategoryDto = {
+        name: categoryName.trim(),
         description: categoryDescription || undefined,
         iconName: categoryIconName || undefined,
       };
@@ -104,8 +132,22 @@ const EventCategoriesScreen: React.FC = () => {
     }
   };
 
+  // Category Delete
+  const handleDeleteCategory = async (category: EventCategory, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to delete "${category.name}"? This will also delete all its subcategories.`)) return;
+
+    try {
+      await eventCategoryService.deleteCategory(category.id);
+      setCategories((prev) => prev.filter((c) => c.id !== category.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete category");
+    }
+  };
+
   const resetCategoryForm = () => {
     setSelectedCategory(null);
+    setCategoryName("");
     setCategoryDescription("");
     setCategoryIconName(null);
   };
@@ -267,8 +309,14 @@ const EventCategoriesScreen: React.FC = () => {
       <div className="event-categories-header">
         <div>
           <h1>Event Categories</h1>
-          <p>Manage event category metadata and subcategories</p>
+          <p>Manage event categories and subcategories</p>
         </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowAddCategory(true)}
+        >
+          <Plus size={18} /> Add Category
+        </button>
       </div>
 
       <div className="event-categories-list">
@@ -320,6 +368,13 @@ const EventCategoriesScreen: React.FC = () => {
                   onClick={(e) => openAddSubcategoryModal(category, e)}
                 >
                   <Plus size={16} /> Add Subcategory
+                </button>
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={(e) => handleDeleteCategory(category, e)}
+                  title={category.eventCount > 0 ? "Cannot delete - has events" : "Delete category"}
+                >
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
@@ -385,14 +440,81 @@ const EventCategoriesScreen: React.FC = () => {
         ))}
       </div>
 
+      {/* Add Category Modal */}
+      {showAddCategory && (
+        <div className="modal-overlay" onClick={() => setShowAddCategory(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Add Category</h2>
+            <p className="modal-subtitle">Create a new event category</p>
+
+            <div className="form-group">
+              <label>Category Name *</label>
+              <input
+                type="text"
+                value={categoryName}
+                onChange={(e) => setCategoryName(e.target.value)}
+                placeholder="e.g., Music, Sports, Business"
+                autoFocus
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Description</label>
+              <textarea
+                value={categoryDescription}
+                onChange={(e) => setCategoryDescription(e.target.value)}
+                placeholder="Brief description of this category"
+                rows={3}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Icon</label>
+              <LucideIconPicker
+                value={categoryIconName}
+                onChange={setCategoryIconName}
+                placeholder="Select a category icon..."
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowAddCategory(false);
+                  resetCategoryForm();
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddCategory}
+                disabled={submitting || !categoryName.trim()}
+              >
+                {submitting ? "Creating..." : "Create Category"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Category Modal */}
       {showEditCategory && selectedCategory && (
         <div className="modal-overlay" onClick={() => setShowEditCategory(false)}>
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit Category: {formatCategoryName(selectedCategory.name)}</h2>
-            <p className="modal-subtitle">
-              Update category metadata (name is fixed as enum type)
-            </p>
+            <h2>Edit Category</h2>
+            <p className="modal-subtitle">Update category details</p>
+
+            <div className="form-group">
+              <label>Category Name *</label>
+              <input
+                type="text"
+                value={categoryName}
+                onChange={(e) => setCategoryName(e.target.value)}
+                placeholder="Category name"
+              />
+            </div>
 
             <div className="form-group">
               <label>Description</label>
@@ -426,7 +548,7 @@ const EventCategoriesScreen: React.FC = () => {
               <button
                 className="btn btn-primary"
                 onClick={handleUpdateCategory}
-                disabled={submitting}
+                disabled={submitting || !categoryName.trim()}
               >
                 {submitting ? "Saving..." : "Save Changes"}
               </button>

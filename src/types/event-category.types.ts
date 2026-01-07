@@ -17,8 +17,17 @@ export interface EventCategory {
   subcategories: EventSubcategory[];
 }
 
-export interface UpdateCategoryDto {
+export interface CreateCategoryDto {
+  name: string;
   description?: string;
+  image?: string;
+  iconName?: string;
+}
+
+export interface UpdateCategoryDto {
+  name?: string;
+  description?: string;
+  image?: string;
   iconName?: string;
 }
 

@@ -1,117 +1,27 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import * as LucideIcons from "lucide-react";
 
-// Curated list of icons suitable for events
-const ICON_LIST = [
-  // Events & Activities
-  "Calendar",
-  "CalendarDays",
-  "CalendarCheck",
-  "Clock",
-  "Timer",
-  "Ticket",
-  "TicketCheck",
-  "PartyPopper",
-  "Sparkles",
-  "Star",
-  "Award",
-  "Trophy",
-  "Medal",
-  "Crown",
-  // People & Groups
-  "Users",
-  "UserPlus",
-  "UsersRound",
-  "PersonStanding",
-  "Handshake",
-  "Heart",
-  "HeartHandshake",
-  // Business & Professional
-  "Briefcase",
-  "Building",
-  "Building2",
-  "Landmark",
-  "GraduationCap",
-  "BookOpen",
-  "Presentation",
-  "PieChart",
-  "TrendingUp",
-  "Target",
-  "Lightbulb",
-  // Arts & Entertainment
-  "Music",
-  "Music2",
-  "Mic",
-  "Mic2",
-  "MicVocal",
-  "Film",
-  "Camera",
-  "Palette",
-  "Brush",
-  "Pen",
-  "Drama",
-  "Theater",
-  // Food & Dining
-  "Utensils",
-  "UtensilsCrossed",
-  "ChefHat",
-  "Coffee",
-  "Wine",
-  "Beer",
-  "Pizza",
-  "Cake",
-  "Cookie",
-  // Sports & Fitness
-  "Dumbbell",
-  "Bike",
-  "Volleyball",
-  "Basketball",
-  "FootballIcon",
-  "Tennis",
-  "Sword",
-  "Mountain",
-  "TreePine",
-  // Technology & Innovation
-  "Laptop",
-  "Monitor",
-  "Smartphone",
-  "Wifi",
-  "Rocket",
-  "Cpu",
-  "Code",
-  "CodeXml",
-  "Gamepad2",
-  // Social & Community
-  "MessageCircle",
-  "MessagesSquare",
-  "Share2",
-  "Globe",
-  "Earth",
-  "Flag",
-  "Megaphone",
-  // Health & Wellness
-  "Activity",
-  "HeartPulse",
-  "Stethoscope",
-  "Apple",
-  "Leaf",
-  "Flower",
-  "Sun",
-  "Moon",
-  // Misc
-  "MapPin",
-  "Navigation",
-  "Plane",
-  "Car",
-  "Train",
-  "Compass",
-  "Gift",
-  "Gem",
-  "Zap",
-  "Flame",
-  "Droplet",
-  "Rainbow",
-];
+// Get all icon names dynamically from lucide-react
+const getAllIconNames = (): string[] => {
+  const excluded = new Set([
+    "createLucideIcon",
+    "default",
+    "IconNode",
+    "LucideIcon",
+    "LucideProps",
+    "icons",
+  ]);
+
+  return Object.keys(LucideIcons).filter((key) => {
+    // Filter out non-icon exports
+    if (excluded.has(key)) return false;
+    // Icons start with uppercase letter
+    if (key[0] !== key[0].toUpperCase()) return false;
+    // Check if it's a valid React component
+    const value = (LucideIcons as any)[key];
+    return value && (typeof value === "function" || typeof value === "object");
+  });
+};
 
 interface LucideIconPickerProps {
   value: string | null;
@@ -128,6 +38,8 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const allIcons = useMemo(() => getAllIconNames(), []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -141,9 +53,12 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredIcons = ICON_LIST.filter((name) =>
-    name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredIcons = useMemo(() => {
+    if (!search) return allIcons.slice(0, 200); // Show first 200 by default
+    return allIcons.filter((name) =>
+      name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [allIcons, search]);
 
   const renderIcon = (iconName: string, size: number = 20) => {
     const IconComponent = (LucideIcons as any)[iconName];
@@ -234,7 +149,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
           <div style={{ padding: 8, borderBottom: "1px solid #e2e8f0" }}>
             <input
               type="text"
-              placeholder="Search icons..."
+              placeholder={`Search ${allIcons.length} icons...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
@@ -251,7 +166,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
           </div>
           <div
             style={{
-              maxHeight: 280,
+              maxHeight: 320,
               overflowY: "auto",
               padding: 8,
               display: "grid",
@@ -313,6 +228,19 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
                 }}
               >
                 No icons found
+              </div>
+            )}
+            {!search && filteredIcons.length < allIcons.length && (
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  padding: 8,
+                  textAlign: "center",
+                  color: "#94a3b8",
+                  fontSize: 12,
+                }}
+              >
+                Type to search all {allIcons.length} icons
               </div>
             )}
           </div>

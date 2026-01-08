@@ -489,6 +489,58 @@
   font-size: 13px;
 }
 
+/* Image Upload Section */
+.image-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.image-preview-container {
+  position: relative;
+  display: inline-block;
+  width: fit-content;
+}
+
+.image-preview {
+  width: 200px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+}
+
+.image-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+
+.image-upload-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.image-upload-or {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.image-url-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 0 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .bundles-header {
@@ -512,5 +564,14 @@
   .bundle-image {
     width: 60px;
     height: 60px;
+  }
+
+  .image-upload-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .image-url-input {
+    min-width: unset;
   }
 }

@@ -16,6 +16,9 @@ export interface TokenPair {
 }
 
 class AuthService {
+  private isRefreshing = false;
+  private refreshSubscribers: ((token: string) => void)[] = [];
+
   async loginConsumer(signInDto: SignInDto): Promise<TokenPair> {
     const response: AxiosResponse<TokenPair> = await http.post<TokenPair>(
       `/auth/login-consumer`,
@@ -29,6 +32,47 @@ class AuthService {
     console.log("logs in fine", response)
 
     return response.data;
+  }
+
+  async refreshAccessToken(): Promise<TokenPair | null> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      return null;
+    }
+
+    try {
+      const response: AxiosResponse<TokenPair> = await http.post<TokenPair>(
+        `/auth/refresh`,
+        { refresh_token: refreshToken }
+      );
+
+      if (response.data.access_token) {
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem('refresh_token', response.data.refresh_token);
+      }
+
+      return response.data;
+    } catch (error) {
+      this.logout();
+      return null;
+    }
+  }
+
+  getIsRefreshing(): boolean {
+    return this.isRefreshing;
+  }
+
+  setIsRefreshing(value: boolean): void {
+    this.isRefreshing = value;
+  }
+
+  subscribeToTokenRefresh(callback: (token: string) => void): void {
+    this.refreshSubscribers.push(callback);
+  }
+
+  onTokenRefreshed(token: string): void {
+    this.refreshSubscribers.forEach(callback => callback(token));
+    this.refreshSubscribers = [];
   }
 
   logout() {

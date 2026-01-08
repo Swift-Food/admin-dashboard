@@ -9,6 +9,8 @@ import {
   FolderOpen,
   X,
   MoveRight,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   getAllCategories,
@@ -20,6 +22,10 @@ import {
   moveMenuItems,
   getAllGroupTitles,
   getAllRestaurants,
+  reorderCategories,
+  reorderSubcategories,
+  createCategory,
+  deleteCategory,
   type Category,
   type Subcategory,
   type MenuItem,
@@ -43,12 +49,14 @@ const CategoriesScreen: React.FC = () => {
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
   const [showAddByGroupTitle, setShowAddByGroupTitle] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
 
   // Form states
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
   const [targetSubcategoryId, setTargetSubcategoryId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -227,6 +235,82 @@ const CategoriesScreen: React.FC = () => {
     setShowAddByGroupTitle(true);
   };
 
+  const handleMoveCategory = async (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= categories.length) return;
+
+    const newCategories = [...categories];
+    [newCategories[index], newCategories[newIndex]] = [newCategories[newIndex], newCategories[index]];
+
+    // Optimistic update
+    setCategories(newCategories);
+
+    try {
+      const categoryIds = newCategories.map((c) => c.id);
+      await reorderCategories(categoryIds);
+    } catch (err) {
+      // Revert on error
+      setCategories(categories);
+      alert(err instanceof Error ? err.message : "Failed to reorder categories");
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    try {
+      setSubmitting(true);
+      const newCat = await createCategory({
+        name: newCategoryName.trim(),
+        displayOrder: categories.length,
+      });
+      setCategories([...categories, newCat]);
+      setShowAddCategory(false);
+      setNewCategoryName("");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create category");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!confirm("Are you sure you want to delete this category? All subcategories will be deleted.")) return;
+
+    try {
+      await deleteCategory(categoryId);
+      setCategories(categories.filter((c) => c.id !== categoryId));
+      if (expandedCategory === categoryId) {
+        setExpandedCategory(null);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete category");
+    }
+  };
+
+  const handleMoveSubcategory = async (categoryId: string, index: number, direction: "up" | "down") => {
+    const catSubcategories = subcategories[categoryId];
+    if (!catSubcategories) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= catSubcategories.length) return;
+
+    const newSubcategories = [...catSubcategories];
+    [newSubcategories[index], newSubcategories[newIndex]] = [newSubcategories[newIndex], newSubcategories[index]];
+
+    // Optimistic update
+    setSubcategories((prev) => ({ ...prev, [categoryId]: newSubcategories }));
+
+    try {
+      const subcategoryIds = newSubcategories.map((s) => s.id);
+      await reorderSubcategories(categoryId, subcategoryIds);
+    } catch (err) {
+      // Revert on error
+      setSubcategories((prev) => ({ ...prev, [categoryId]: catSubcategories }));
+      alert(err instanceof Error ? err.message : "Failed to reorder subcategories");
+    }
+  };
+
   const openMoveModal = (subcategory: Subcategory, menuItem: MenuItem) => {
     setSelectedSubcategory(subcategory);
     setSelectedMenuItem(menuItem);
@@ -318,16 +402,46 @@ const CategoriesScreen: React.FC = () => {
           <h1>Categories & Subcategories</h1>
           <p>Manage menu categories, subcategories, and their items</p>
         </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowAddCategory(true)}
+        >
+          <Plus size={16} /> Add Category
+        </button>
       </div>
 
       <div className="categories-list">
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <div key={category.id} className="category-card">
             <div
               className="category-header"
               onClick={() => handleExpandCategory(category.id)}
             >
               <div className="category-info">
+                <div className="category-reorder-buttons">
+                  <button
+                    className="btn btn-xs btn-ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveCategory(index, "up");
+                    }}
+                    disabled={index === 0}
+                    title="Move up"
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    className="btn btn-xs btn-ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveCategory(index, "down");
+                    }}
+                    disabled={index === categories.length - 1}
+                    title="Move down"
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
                 {expandedCategory === category.id ? (
                   <ChevronDown size={20} />
                 ) : (
@@ -335,17 +449,31 @@ const CategoriesScreen: React.FC = () => {
                 )}
                 <FolderOpen size={20} className="category-icon" />
                 <span className="category-name">{category.name}</span>
-                <span className="category-clicks">{category.clicks} clicks</span>
+                <span className="category-clicks">
+                  {subcategories[category.id]?.length ?? category.subcategories?.length ?? 0} subcategories
+                </span>
               </div>
-              <button
-                className="btn btn-sm btn-secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openAddSubcategoryModal(category.id);
-                }}
-              >
-                <Plus size={16} /> Add Subcategory
-              </button>
+              <div className="category-actions">
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openAddSubcategoryModal(category.id);
+                  }}
+                >
+                  <Plus size={16} /> Add Subcategory
+                </button>
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCategory(category.id);
+                  }}
+                  title="Delete category"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
 
             {expandedCategory === category.id && (
@@ -361,9 +489,27 @@ const CategoriesScreen: React.FC = () => {
                   </div>
                 ) : (
                   <div className="subcategories-list">
-                    {subcategories[category.id]?.map((subcategory) => (
+                    {subcategories[category.id]?.map((subcategory, subIndex) => (
                       <div key={subcategory.id} className="subcategory-wrapper">
                         <div className="subcategory-item">
+                          <div className="subcategory-reorder-buttons">
+                            <button
+                              className="btn btn-xs btn-ghost"
+                              onClick={() => handleMoveSubcategory(category.id, subIndex, "up")}
+                              disabled={subIndex === 0}
+                              title="Move up"
+                            >
+                              <ArrowUp size={12} />
+                            </button>
+                            <button
+                              className="btn btn-xs btn-ghost"
+                              onClick={() => handleMoveSubcategory(category.id, subIndex, "down")}
+                              disabled={subIndex === (subcategories[category.id]?.length || 0) - 1}
+                              title="Move down"
+                            >
+                              <ArrowDown size={12} />
+                            </button>
+                          </div>
                           <div
                             className="subcategory-info"
                             onClick={() => handleExpandSubcategory(subcategory.id)}
@@ -590,6 +736,40 @@ const CategoriesScreen: React.FC = () => {
                 disabled={submitting || !targetSubcategoryId}
               >
                 {submitting ? "Moving..." : "Move Item"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Category Modal */}
+      {showAddCategory && (
+        <div className="modal-overlay" onClick={() => setShowAddCategory(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Add Category</h2>
+            <div className="form-group">
+              <label>Category Name</label>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Beverages, Main Courses"
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddCategory(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddCategory}
+                disabled={submitting || !newCategoryName.trim()}
+              >
+                {submitting ? "Creating..." : "Create"}
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, Trash2, Edit, ChevronDown, ChevronUp, X } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Plus, Trash2, Edit, ChevronDown, ChevronUp, X, Upload } from "lucide-react";
 import type {
   CateringBundle,
   CateringBundleItem,
@@ -10,8 +10,10 @@ import {
   createBundle,
   updateBundle,
   deleteBundle,
+  uploadImage,
 } from "../../services/bundles.service";
 import { getCateringMenuItems } from "../../services/menuItems.service";
+import ImageCropper from "../../components/ImageCropper";
 import "./BundlesScreen.css";
 
 interface BundleFormData {
@@ -36,6 +38,9 @@ const BundlesScreen = () => {
   const [expandedBundles, setExpandedBundles] = useState<Set<string>>(
     new Set()
   );
+  const [uploading, setUploading] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<BundleFormData>({
     name: "",
@@ -122,6 +127,59 @@ const BundlesScreen = () => {
       baseGuestCount: 10,
       items: [],
     });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Please select a valid image file (JPEG, PNG, WebP, or GIF)");
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image file size must be less than 10MB");
+      return;
+    }
+
+    // Create a data URL to show in the cropper
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    try {
+      setUploading(true);
+      setImageToCrop(null);
+
+      // Convert blob to file for upload
+      const file = new File([croppedBlob], "cropped-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      const imageUrl = await uploadImage(file);
+      setFormData({ ...formData, imageUrl });
+    } catch (err: any) {
+      alert(err.message || "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setImageToCrop(null);
   };
 
   const handleAddItem = () => {
@@ -307,7 +365,7 @@ const BundlesScreen = () => {
                       )}
                       <div className="bundle-meta">
                         <span className="bundle-price">
-                          ${bundle.pricePerPerson}/person
+                          £{bundle.pricePerPerson}/person
                         </span>
                         <span className="bundle-guests">
                           Base: {bundle.baseGuestCount} guests
@@ -386,33 +444,79 @@ const BundlesScreen = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="bundle-form">
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">
-                    Bundle Name <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="e.g. Executive Lunch Package"
-                  />
-                </div>
+              <div className="form-group">
+                <label className="form-label">
+                  Bundle Name <span className="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="e.g. Executive Lunch Package"
+                />
+              </div>
 
-                <div className="form-group">
-                  <label className="form-label">Image URL</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.imageUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, imageUrl: e.target.value })
-                    }
-                    placeholder="https://..."
-                  />
+              <div className="form-group">
+                <label className="form-label">Bundle Image</label>
+                <div className="image-upload-section">
+                  {formData.imageUrl && (
+                    <div className="image-preview-container">
+                      <img
+                        src={formData.imageUrl}
+                        alt="Bundle preview"
+                        className="image-preview"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger image-remove-btn"
+                        onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                      >
+                        <X size={14} />
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                  <div className="image-upload-controls">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleImageUpload}
+                      style={{ display: "none" }}
+                      id="bundle-image-upload"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <>Uploading...</>
+                      ) : (
+                        <>
+                          <Upload size={16} />
+                          Upload Image
+                        </>
+                      )}
+                    </button>
+                    <span className="image-upload-or">or</span>
+                    <input
+                      type="text"
+                      className="form-input image-url-input"
+                      value={formData.imageUrl}
+                      onChange={(e) =>
+                        setFormData({ ...formData, imageUrl: e.target.value })
+                      }
+                      placeholder="Paste image URL..."
+                    />
+                  </div>
+                  <p className="form-hint">
+                    Supported formats: JPEG, PNG, WebP, GIF. Max size: 10MB
+                  </p>
                 </div>
               </div>
 
@@ -432,7 +536,7 @@ const BundlesScreen = () => {
               <div className="form-grid-2">
                 <div className="form-group">
                   <label className="form-label">
-                    Price Per Person ($) <span className="required">*</span>
+                    Price Per Person (£) <span className="required">*</span>
                   </label>
                   <input
                     type="number"
@@ -512,7 +616,7 @@ const BundlesScreen = () => {
                             <option value="">Select menu item...</option>
                             {menuItems.map((menuItem) => (
                               <option key={menuItem.id} value={menuItem.id}>
-                                {menuItem.name} - ${menuItem.price} (
+                                {menuItem.name} - £{menuItem.price} (
                                 {menuItem.groupTitle}) - {menuItem.restaurant.restaurant_name}
                               </option>
                             ))}
@@ -566,6 +670,15 @@ const BundlesScreen = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={4 / 3}
+        />
       )}
     </div>
   );

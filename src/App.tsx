@@ -15,6 +15,8 @@ import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import StripeAccountsScreen from "./pages/StripeAccountsScreen";
+import MiscellaneousScreen from "./pages/MiscellaneousScreen";
+import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -54,6 +56,10 @@ function App() {
         return <CorporateOrdersScreen/>
       case "stripe-accounts":
         return <StripeAccountsScreen />
+      case "miscellaneous":
+        return <MiscellaneousScreen />
+      case "event-categories":
+        return <EventCategoriesScreen />
 
       default:
         return <RestaurantAdminDashboard />;
@@ -63,7 +69,7 @@ function App() {
   return (
     <div className="flex min-h-screen bg-[#f5f7fa]">
       <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-      <main className="flex-1">{renderPage()}</main>
+      <main className="flex-1 overflow-x-auto min-w-0">{renderPage()}</main>
     </div>
   );
 }

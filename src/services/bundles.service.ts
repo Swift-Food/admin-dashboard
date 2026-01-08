@@ -5,6 +5,19 @@ import type {
   UpdateCateringBundleDto,
 } from "../types/bundles.types";
 
+// Image upload function
+export const uploadImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("upload", file);
+
+  const res = await http.post<string>("/image-upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};
+
 export const getAllBundles = async (): Promise<CateringBundle[]> => {
   const res = await http.get<CateringBundle[]>("/catering-bundles");
   return res.data;

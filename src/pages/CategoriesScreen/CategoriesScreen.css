@@ -423,3 +423,28 @@
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
+
+/* Category reorder buttons */
+.category-reorder-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: 4px;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #9ca3af;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-ghost:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

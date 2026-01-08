@@ -10,6 +10,7 @@ export interface Category {
   images?: string;
   selectedImage?: string;
   clicks: number;
+  displayOrder: number;
   subcategories?: Subcategory[];
 }
 
@@ -59,6 +60,11 @@ export const getAllCategories = async (): Promise<Category[]> => {
 
 export const getCategoryById = async (id: string): Promise<Category> => {
   const res = await http.get<Category>(`/categories/${id}`);
+  return res.data;
+};
+
+export const reorderCategories = async (categoryIds: string[]): Promise<Category[]> => {
+  const res = await http.patch<Category[]>("/categories/reorder", { categoryIds });
   return res.data;
 };
 

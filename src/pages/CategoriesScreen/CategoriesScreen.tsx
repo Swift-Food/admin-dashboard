@@ -9,6 +9,8 @@ import {
   FolderOpen,
   X,
   MoveRight,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   getAllCategories,
@@ -20,6 +22,7 @@ import {
   moveMenuItems,
   getAllGroupTitles,
   getAllRestaurants,
+  reorderCategories,
   type Category,
   type Subcategory,
   type MenuItem,
@@ -227,6 +230,26 @@ const CategoriesScreen: React.FC = () => {
     setShowAddByGroupTitle(true);
   };
 
+  const handleMoveCategory = async (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= categories.length) return;
+
+    const newCategories = [...categories];
+    [newCategories[index], newCategories[newIndex]] = [newCategories[newIndex], newCategories[index]];
+
+    // Optimistic update
+    setCategories(newCategories);
+
+    try {
+      const categoryIds = newCategories.map((c) => c.id);
+      await reorderCategories(categoryIds);
+    } catch (err) {
+      // Revert on error
+      setCategories(categories);
+      alert(err instanceof Error ? err.message : "Failed to reorder categories");
+    }
+  };
+
   const openMoveModal = (subcategory: Subcategory, menuItem: MenuItem) => {
     setSelectedSubcategory(subcategory);
     setSelectedMenuItem(menuItem);
@@ -321,13 +344,37 @@ const CategoriesScreen: React.FC = () => {
       </div>
 
       <div className="categories-list">
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <div key={category.id} className="category-card">
             <div
               className="category-header"
               onClick={() => handleExpandCategory(category.id)}
             >
               <div className="category-info">
+                <div className="category-reorder-buttons">
+                  <button
+                    className="btn btn-xs btn-ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveCategory(index, "up");
+                    }}
+                    disabled={index === 0}
+                    title="Move up"
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    className="btn btn-xs btn-ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveCategory(index, "down");
+                    }}
+                    disabled={index === categories.length - 1}
+                    title="Move down"
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
                 {expandedCategory === category.id ? (
                   <ChevronDown size={20} />
                 ) : (
@@ -335,7 +382,9 @@ const CategoriesScreen: React.FC = () => {
                 )}
                 <FolderOpen size={20} className="category-icon" />
                 <span className="category-name">{category.name}</span>
-                <span className="category-clicks">{category.clicks} clicks</span>
+                <span className="category-clicks">
+                  {subcategories[category.id]?.length ?? category.subcategories?.length ?? 0} subcategories
+                </span>
               </div>
               <button
                 className="btn btn-sm btn-secondary"

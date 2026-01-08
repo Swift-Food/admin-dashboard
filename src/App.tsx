@@ -69,7 +69,7 @@ function App() {
   return (
     <div className="flex min-h-screen bg-[#f5f7fa]">
       <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-      <main className="flex-1">{renderPage()}</main>
+      <main className="flex-1 overflow-x-auto min-w-0">{renderPage()}</main>
     </div>
   );
 }

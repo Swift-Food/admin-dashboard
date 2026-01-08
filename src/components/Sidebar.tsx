@@ -383,6 +383,11 @@ const sidebarStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   overflowY: "auto",
+  flexShrink: 0,
+  position: "sticky",
+  top: 0,
+  left: 0,
+  zIndex: 100,
 };
 
 const headerStyle: React.CSSProperties = {

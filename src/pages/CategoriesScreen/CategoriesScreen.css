@@ -5,6 +5,9 @@
 }
 
 .categories-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 24px;
 }
 
@@ -424,12 +427,27 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+/* Category actions */
+.category-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 /* Category reorder buttons */
 .category-reorder-buttons {
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin-right: 4px;
+}
+
+/* Subcategory reorder buttons */
+.subcategory-reorder-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: 8px;
 }
 
 .btn-ghost {

@@ -68,6 +68,15 @@ export const reorderCategories = async (categoryIds: string[]): Promise<Category
   return res.data;
 };
 
+export const createCategory = async (data: { name: string; displayOrder?: number }): Promise<Category> => {
+  const res = await http.post<Category>("/categories", data);
+  return res.data;
+};
+
+export const deleteCategory = async (id: string): Promise<void> => {
+  await http.delete(`/categories/${id}`);
+};
+
 // ============================================
 // SUBCATEGORY OPERATIONS
 // ============================================
@@ -106,6 +115,17 @@ export const updateSubcategory = async (
 
 export const deleteSubcategory = async (id: string): Promise<void> => {
   await http.delete(`/subcategory/${id}`);
+};
+
+export const reorderSubcategories = async (
+  categoryId: string,
+  subcategoryIds: string[]
+): Promise<Subcategory[]> => {
+  const res = await http.patch<Subcategory[]>(
+    `/subcategory/category/${categoryId}/reorder`,
+    { subcategoryIds }
+  );
+  return res.data;
 };
 
 // ============================================

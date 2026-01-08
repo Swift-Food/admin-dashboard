@@ -365,7 +365,7 @@ const BundlesScreen = () => {
                       )}
                       <div className="bundle-meta">
                         <span className="bundle-price">
-                          ${bundle.pricePerPerson}/person
+                          £{bundle.pricePerPerson}/person
                         </span>
                         <span className="bundle-guests">
                           Base: {bundle.baseGuestCount} guests
@@ -536,7 +536,7 @@ const BundlesScreen = () => {
               <div className="form-grid-2">
                 <div className="form-group">
                   <label className="form-label">
-                    Price Per Person ($) <span className="required">*</span>
+                    Price Per Person (£) <span className="required">*</span>
                   </label>
                   <input
                     type="number"
@@ -616,7 +616,7 @@ const BundlesScreen = () => {
                             <option value="">Select menu item...</option>
                             {menuItems.map((menuItem) => (
                               <option key={menuItem.id} value={menuItem.id}>
-                                {menuItem.name} - ${menuItem.price} (
+                                {menuItem.name} - £{menuItem.price} (
                                 {menuItem.groupTitle}) - {menuItem.restaurant.restaurant_name}
                               </option>
                             ))}

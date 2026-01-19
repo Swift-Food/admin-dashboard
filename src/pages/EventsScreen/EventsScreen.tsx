@@ -7,7 +7,6 @@ import {
   Calendar,
   Users,
   Ticket,
-  Eye,
   X,
   ChevronLeft,
   ChevronRight,

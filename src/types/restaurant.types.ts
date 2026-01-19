@@ -77,3 +77,16 @@ export interface UpdateAvailabilityDto {
   isOpen: boolean;
   deviceToken: string | null;
 }
+
+export interface UpdateRestaurantDto {
+  restaurant_name?: string;
+  restaurant_description?: string;
+  commission?: number;
+  featured?: boolean;
+  fsa?: number;
+  fsaLink?: string;
+  autoAccept?: boolean;
+  restaurantNumber?: string;
+  phoneNumber?: string;
+  email?: string;
+}

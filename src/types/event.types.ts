@@ -68,3 +68,51 @@ export interface Event {
   guestTickets?: any[]; // GuestTicket[]
   collaborators?: any[]; // EventCollaborator[]
 }
+
+// Admin dashboard types
+export interface AdminEvent {
+  id: string;
+  name: string;
+  description: string;
+  eventImage: string | null;
+  status: EventStatus;
+  isPrivate: boolean;
+  startDateTime: string;
+  endDateTime: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerEventUserId: string;
+  ticketCount: number;
+  guestCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminEventSearchParams {
+  search?: string;
+  status?: EventStatus;
+  skip?: number;
+  take?: number;
+}
+
+export interface AdminEventSearchResponse {
+  events: AdminEvent[];
+  total: number;
+  skip: number;
+  take: number;
+}
+
+export interface AdminUpdateEventDto {
+  name?: string;
+  description?: string;
+  status?: EventStatus;
+  eventImage?: string;
+}
+
+export interface EventStats {
+  total: number;
+  published: number;
+  draft: number;
+  cancelled: number;
+  completed: number;
+}

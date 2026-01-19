@@ -2,6 +2,7 @@ import http from "./http";
 import type {
   Restaurant,
   UpdateAvailabilityDto,
+  UpdateRestaurantDto,
 } from "../types/restaurant.types";
 
 import type { Market } from "../types/market.types";
@@ -188,6 +189,14 @@ const toggleRestaurantStatus = async (
   });
 };
 
+const updateRestaurant = async (
+  id: string,
+  updateDto: UpdateRestaurantDto
+): Promise<RestaurantResponse> => {
+  const res = await http.patch<RestaurantResponse>(`/restaurant/${id}`, updateDto);
+  return res.data;
+};
+
 // ============================================
 // CREATE OPERATIONS
 // ============================================
@@ -368,6 +377,7 @@ export {
   // Update operations
   updateRestaurantAvailability,
   toggleRestaurantStatus,
+  updateRestaurant,
   // Create operations
   createRestaurantUser,
   createAddress,
@@ -388,6 +398,7 @@ export type {
   RestaurantOrdersResponse,
   // Request DTOs
   UpdateAvailabilityDto,
+  UpdateRestaurantDto,
   CreateRestaurantUserDto,
   CreateAddressDto,
   CreateRestaurantDto,

@@ -29,6 +29,7 @@ export type SidebarPage =
   | "restaurant"
   | "categories"
   | "event-categories"
+  | "events"
   | "driver-status"
   | "statistics"
   | "map"
@@ -129,6 +130,11 @@ const navSections: NavSection[] = [
       {
         id: "event-categories",
         label: "Event Categories",
+        icon: <FontAwesomeIcon icon={faCalendarAlt} style={iconCommonStyle} />,
+      },
+      {
+        id: "events",
+        label: "Events",
         icon: <FontAwesomeIcon icon={faCalendarAlt} style={iconCommonStyle} />,
       },
       {

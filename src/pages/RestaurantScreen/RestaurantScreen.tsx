@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from "react";
 import {
   AlertCircle,
-  CheckCircle,
-  ShoppingBag,
-  Clock,
   Plus,
   Save,
   Edit2,
   X,
   MapPin,
-  Star,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 
 import {
   getAllRestaurantsAdminDashboard,
   toggleRestaurantStatus,
-  getRestaurantOrders,
   updateRestaurant,
+  deleteRestaurant,
 } from "../../services/restaurant.service";
 import type { RestaurantResponse, UpdateRestaurantDto } from "../../services/restaurant.service";
 
@@ -30,18 +27,16 @@ const RestaurantAdminDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [restaurantOrders, setRestaurantOrders] = useState<
-    Record<string, any[]>
-  >({});
-  const [loadingOrders, setLoadingOrders] = useState<Record<string, boolean>>(
-    {}
-  );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<UpdateRestaurantDto>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Delete modal state
+  const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRestaurants();
@@ -76,36 +71,8 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
-  const fetchRestaurantOrders = async (restaurantId: string) => {
-    if (restaurantOrders[restaurantId]) return;
-
-    try {
-      setLoadingOrders((prev) => ({ ...prev, [restaurantId]: true }));
-      const data = await getRestaurantOrders(restaurantId);
-
-      const orders: any[] = [];
-      Object.values(data).forEach((restaurantOrders) => {
-        Object.values(restaurantOrders).forEach((order) => {
-          orders.push(order);
-        });
-      });
-
-      setRestaurantOrders((prev) => ({ ...prev, [restaurantId]: orders }));
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-      setRestaurantOrders((prev) => ({ ...prev, [restaurantId]: [] }));
-    } finally {
-      setLoadingOrders((prev) => ({ ...prev, [restaurantId]: false }));
-    }
-  };
-
   const handleExpandRestaurant = (restaurantId: string) => {
-    const newExpandedId = expandedId === restaurantId ? null : restaurantId;
-    setExpandedId(newExpandedId);
-
-    if (newExpandedId && !restaurantOrders[restaurantId]) {
-      fetchRestaurantOrders(restaurantId);
-    }
+    setExpandedId(expandedId === restaurantId ? null : restaurantId);
   };
 
   const handleRestaurantCreated = () => {
@@ -118,11 +85,8 @@ const RestaurantAdminDashboard = () => {
       restaurant_name: restaurant.restaurant_name,
       restaurant_description: restaurant.restaurant_description || "",
       commission: restaurant.commission ?? 20,
-      featured: restaurant.featured,
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
-      autoAccept: restaurant.autoAccept ?? false,
-      restaurantNumber: restaurant.restaurantNumber || "",
     });
   };
 
@@ -157,24 +121,22 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      PENDING: "status-pending",
-      PREPARING: "status-preparing",
-      READY: "status-ready",
-      COMPLETED: "status-completed",
-      CANCELLED: "status-cancelled",
-    };
-    return colors[status] || "status-default";
-  };
+  const handleDeleteRestaurant = async () => {
+    if (!deleteModalRestaurant) return;
 
-  const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      setDeletingId(deleteModalRestaurant.id);
+      await deleteRestaurant(deleteModalRestaurant.id);
+      setRestaurants(restaurants.filter((r) => r.id !== deleteModalRestaurant.id));
+      setDeleteModalRestaurant(null);
+      if (expandedId === deleteModalRestaurant.id) {
+        setExpandedId(null);
+      }
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : "Failed to delete restaurant"}`);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) {
@@ -214,7 +176,7 @@ const RestaurantAdminDashboard = () => {
           <div>
             <h1 className="dashboard-title">Restaurant Management</h1>
             <p className="dashboard-subtitle">
-              Manage restaurant availability and view login credentials
+              Manage restaurant availability and settings
             </p>
           </div>
           <button
@@ -388,19 +350,6 @@ const RestaurantAdminDashboard = () => {
                                     </div>
 
                                     <div className="form-field">
-                                      <label className="field-label">Restaurant #</label>
-                                      <input
-                                        type="text"
-                                        value={editForm.restaurantNumber || ""}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, restaurantNumber: e.target.value })
-                                        }
-                                        className="form-input"
-                                        placeholder="e.g., R001"
-                                      />
-                                    </div>
-
-                                    <div className="form-field">
                                       <label className="field-label">
                                         Commission Rate (%)
                                         <span className="field-hint">Platform fee percentage</span>
@@ -437,7 +386,7 @@ const RestaurantAdminDashboard = () => {
                                       </select>
                                     </div>
 
-                                    <div className="form-field full-width">
+                                    <div className="form-field">
                                       <label className="field-label">FSA Link</label>
                                       <input
                                         type="url"
@@ -463,59 +412,14 @@ const RestaurantAdminDashboard = () => {
                                       />
                                     </div>
                                   </div>
-
-                                  <div className="toggle-options">
-                                    <label className="toggle-option">
-                                      <input
-                                        type="checkbox"
-                                        checked={editForm.featured || false}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, featured: e.target.checked })
-                                        }
-                                      />
-                                      <span className="toggle-label">
-                                        <Star size={16} />
-                                        Featured Restaurant
-                                      </span>
-                                    </label>
-
-                                    <label className="toggle-option">
-                                      <input
-                                        type="checkbox"
-                                        checked={editForm.autoAccept || false}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, autoAccept: e.target.checked })
-                                        }
-                                      />
-                                      <span className="toggle-label">
-                                        <CheckCircle size={16} />
-                                        Auto-Accept Orders
-                                      </span>
-                                    </label>
-                                  </div>
                                 </div>
                               ) : (
                                 <div className="settings-display">
                                   <div className="settings-grid">
-                                    <div className="setting-item">
-                                      <span className="setting-label">Rating</span>
-                                      <span className="setting-value">
-                                        <Star size={14} className="icon-star" />
-                                        {restaurant.averageRating != null
-                                          ? Number(restaurant.averageRating).toFixed(1)
-                                          : "N/A"}/5
-                                      </span>
-                                    </div>
                                     <div className="setting-item highlight">
                                       <span className="setting-label">Commission</span>
                                       <span className="setting-value commission-value">
                                         {restaurant.commission ?? 20}%
-                                      </span>
-                                    </div>
-                                    <div className="setting-item">
-                                      <span className="setting-label">Restaurant #</span>
-                                      <span className="setting-value">
-                                        {restaurant.restaurantNumber || "N/A"}
                                       </span>
                                     </div>
                                     <div className="setting-item">
@@ -534,18 +438,6 @@ const RestaurantAdminDashboard = () => {
                                             <ExternalLink size={12} />
                                           </a>
                                         )}
-                                      </span>
-                                    </div>
-                                    <div className="setting-item">
-                                      <span className="setting-label">Featured</span>
-                                      <span className={`setting-value ${restaurant.featured ? "badge-yes" : "badge-no"}`}>
-                                        {restaurant.featured ? "Yes" : "No"}
-                                      </span>
-                                    </div>
-                                    <div className="setting-item">
-                                      <span className="setting-label">Auto-Accept</span>
-                                      <span className={`setting-value ${restaurant.autoAccept ? "badge-yes" : "badge-no"}`}>
-                                        {restaurant.autoAccept ? "Yes" : "No"}
                                       </span>
                                     </div>
                                   </div>
@@ -568,116 +460,14 @@ const RestaurantAdminDashboard = () => {
                                       </span>
                                     </div>
                                   )}
-                                </div>
-                              )}
-                            </div>
 
-                            <div className="orders-section">
-                              <div className="orders-header">
-                                <div className="orders-title-group">
-                                  <ShoppingBag size={20} />
-                                  <h3 className="section-title">
-                                    Ongoing Orders
-                                  </h3>
-                                </div>
-                                {loadingOrders[restaurant.id] && (
-                                  <div className="orders-loading">
-                                    <div className="orders-spinner"></div>
-                                    Loading...
-                                  </div>
-                                )}
-                              </div>
-
-                              {restaurantOrders[restaurant.id]?.length > 0 ? (
-                                <div className="orders-list">
-                                  {restaurantOrders[restaurant.id].map(
-                                    (order) => (
-                                      <div
-                                        key={order.orderId}
-                                        className="order-card"
-                                      >
-                                        <div className="order-header">
-                                          <div>
-                                            <div className="order-id">
-                                              Order #{order.orderId.slice(0, 8)}
-                                            </div>
-                                            <div className="order-time">
-                                              <Clock size={14} />
-                                              <span>
-                                                {formatDate(order.timestamp)}
-                                              </span>
-                                            </div>
-                                          </div>
-                                          <span
-                                            className={`order-status ${getStatusColor(
-                                              order.status
-                                            )}`}
-                                          >
-                                            {order.status}
-                                          </span>
-                                        </div>
-
-                                        <div className="order-items">
-                                          {order.items.map((item: any, idx : number) => (
-                                            <div
-                                              key={idx}
-                                              className="order-item"
-                                            >
-                                              <span className="item-name">
-                                                {item.quantity}x {item.menuItemName}
-                                              </span>
-                                              <span className="item-price">
-                                                $
-                                                {(
-                                                  item.price * item.quantity
-                                                ).toFixed(2)}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-
-                                        {order.specialInstructions && (
-                                          <div className="special-instructions">
-                                            <p>
-                                              <span className="instructions-label">
-                                                Special Instructions:
-                                              </span>{" "}
-                                              {order.specialInstructions}
-                                            </p>
-                                          </div>
-                                        )}
-
-                                        <div className="order-footer">
-                                          <div className="prep-time">
-                                            {order.prepTimeMinutes && (
-                                              <span>
-                                                Prep Time:{" "}
-                                                {order.prepTimeMinutes} min
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="order-total">
-                                            <div className="total-line">
-                                              Total:{" "}
-                                              <span className="total-value">
-                                                ${order.totalPrice.toFixed(2)}
-                                              </span>
-                                            </div>
-                                            <div className="cost-line">
-                                              Restaurant Cost: $
-                                              {order.restaurantCost.toFixed(2)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="orders-empty">
-                                  {loadingOrders[restaurant.id]
-                                    ? "Loading orders..."
-                                    : "No ongoing orders"}
+                                  <button
+                                    onClick={() => setDeleteModalRestaurant(restaurant)}
+                                    className="btn btn-delete-restaurant"
+                                  >
+                                    <Trash2 size={16} />
+                                    Delete Restaurant
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -704,6 +494,56 @@ const RestaurantAdminDashboard = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={handleRestaurantCreated}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalRestaurant && (
+        <div className="modal-overlay" onClick={() => setDeleteModalRestaurant(null)}>
+          <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Delete Restaurant</h2>
+              <button
+                className="modal-close"
+                onClick={() => setDeleteModalRestaurant(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="delete-warning">
+              <AlertCircle size={48} color="#ef4444" />
+              <p>Are you sure you want to delete this restaurant?</p>
+              <p className="restaurant-delete-name">{deleteModalRestaurant.restaurant_name}</p>
+              <p className="delete-note">
+                This action cannot be undone. All associated data including orders and menu items will be permanently deleted.
+              </p>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteModalRestaurant(null)}
+                disabled={deletingId === deleteModalRestaurant.id}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteRestaurant}
+                disabled={deletingId === deleteModalRestaurant.id}
+              >
+                {deletingId === deleteModalRestaurant.id ? (
+                  <>
+                    <div className="btn-spinner"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Restaurant"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

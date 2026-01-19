@@ -197,6 +197,10 @@ const updateRestaurant = async (
   return res.data;
 };
 
+const deleteRestaurant = async (id: string): Promise<void> => {
+  await http.delete(`/restaurant/${id}`);
+};
+
 // ============================================
 // CREATE OPERATIONS
 // ============================================
@@ -378,6 +382,8 @@ export {
   updateRestaurantAvailability,
   toggleRestaurantStatus,
   updateRestaurant,
+  // Delete operations
+  deleteRestaurant,
   // Create operations
   createRestaurantUser,
   createAddress,

@@ -212,8 +212,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     order.status === "payment_link_sent";
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-50 overflow-auto" onClick={onClose}>
-      <div className="bg-white rounded-xl w-full max-w-5xl mx-4 my-4 max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-50 overflow-x-auto overflow-y-auto p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl w-full max-w-5xl min-w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl flex-shrink-0" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-xl">
           <div className="flex justify-between items-start">
             <div>

@@ -209,8 +209,8 @@ const CateringOrderDetailsModal = ({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-50 overflow-auto">
-      <div className="bg-white rounded-lg w-full max-w-4xl mx-4 my-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 flex items-center justify-center z-50 overflow-x-auto overflow-y-auto p-4">
+      <div className="bg-white rounded-lg w-full max-w-4xl min-w-[600px] max-h-[90vh] overflow-y-auto flex-shrink-0">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">

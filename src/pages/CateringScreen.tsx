@@ -187,23 +187,38 @@ const CateringOrderDetailsModal = ({
       // If preview mode, show HTML preview instead of sending
       if (paymentLinkForm.preview) {
         setPreviewHtml(response.previewHtml || "");
+        setIsSendingPaymentLink(false);
         return;
       }
 
-      // Normal send flow
+      // Normal send flow - success
+      setIsSendingPaymentLink(false);
       onClose();
       if (onOrderUpdated) onOrderUpdated();
       alert("Payment link sent successfully!");
       setShowSendPaymentModal(false);
     } catch (err: any) {
       console.error("Error sending payment link:", err);
+
+      // Check if this is a network timeout - the operation likely succeeded
+      const isNetworkError = err?.code === "ERR_NETWORK" || err?.message === "Network Error";
+
+      if (isNetworkError) {
+        alert(
+          "Request timed out, but the invoice may have been sent successfully. " +
+          "Please check your email and refresh the page before trying again."
+        );
+        // Keep button disabled for 30s on network errors since operation likely succeeded
+        setTimeout(() => setIsSendingPaymentLink(false), 30000);
+        return;
+      }
+
       const serverMessage =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
         "Failed to send payment link. Please try again.";
       alert(`Failed to send payment link: ${serverMessage}`);
-    } finally {
       setIsSendingPaymentLink(false);
     }
   };

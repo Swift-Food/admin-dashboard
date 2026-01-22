@@ -209,8 +209,8 @@ const CateringOrderDetailsModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-[2%]">
+      <div className="bg-white rounded-lg w-[95%] md:w-[85%] lg:w-[75%] max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
@@ -524,8 +524,8 @@ const CateringOrderDetailsModal = ({
             )}
 
             {showSendPaymentModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-                <div className="bg-white rounded-lg p-6 max-w-2xl mx-4 w-full max-h-[90vh] overflow-y-auto">
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-[2%]">
+                <div className="bg-white rounded-lg p-6 w-[95%] md:w-[70%] lg:w-[50%] max-h-[90vh] overflow-y-auto">
                   <h3 className="text-lg font-bold mb-4 text-gray-900">
                     Send Payment Link
                   </h3>
@@ -667,8 +667,8 @@ const CateringOrderDetailsModal = ({
 
             {/* Preview Modal - shows when preview is generated */}
             {previewHtml && (
-              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-                <div className="bg-white rounded-lg max-w-4xl mx-4 w-full max-h-[90vh] overflow-y-auto">
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-[2%]">
+                <div className="bg-white rounded-lg w-[95%] md:w-[85%] lg:w-[75%] max-h-[90vh] overflow-y-auto">
                   <div className="flex justify-between items-center p-4 border-b border-gray-200">
                     <h3 className="text-lg font-bold text-gray-900">
                       Invoice Preview
@@ -719,8 +719,8 @@ const CateringOrderDetailsModal = ({
 
       {/* Review Modal */}
       {showReviewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-[2%]">
+          <div className="bg-white rounded-lg p-6 w-[95%] md:w-[60%] lg:w-[40%] max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4 text-gray-900">
               Review Order
             </h3>
@@ -831,8 +831,8 @@ const CateringOrderDetailsModal = ({
 
       {/* Cancel Confirmation Dialog */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-[2%]">
+          <div className="bg-white rounded-lg p-6 w-[95%] md:w-[50%] lg:w-[35%]">
             <h3 className="text-lg font-bold mb-2 text-gray-900">
               Cancel Catering Order?
             </h3>

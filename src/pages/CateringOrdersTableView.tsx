@@ -212,8 +212,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     order.status === "payment_link_sent";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-[2%]" onClick={onClose}>
+      <div className="bg-white rounded-xl w-[95%] md:w-[85%] lg:w-[80%] max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-xl">
           <div className="flex justify-between items-start">
             <div>
@@ -747,8 +747,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
         {/* Send Payment Link Modal */}
         {showSendPaymentModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-lg p-6 max-w-2xl mx-4 w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-[2%]" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg p-6 w-[95%] md:w-[70%] lg:w-[50%] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold mb-4 text-gray-900">
                 Send Payment Link
               </h3>

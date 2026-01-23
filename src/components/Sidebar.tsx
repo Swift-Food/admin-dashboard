@@ -55,6 +55,8 @@ interface NavSection {
 interface SidebarProps {
   currentPage: SidebarPage;
   onNavigate: (page: SidebarPage) => void;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
 }
 
 const handleLogout = () => {
@@ -200,8 +202,7 @@ const navSections: NavSection[] = [
   },
 ];
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
-  const [expanded, setExpanded] = useState(true);
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, onExpandedChange }) => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (sectionId: string) => {
@@ -242,7 +243,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
         </span>
         <button
           style={toggleBtnStyle}
-          onClick={() => setExpanded((e) => !e)}
+          onClick={() => onExpandedChange(!expanded)}
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
           <FontAwesomeIcon
@@ -390,10 +391,9 @@ const sidebarStyle: React.CSSProperties = {
   flexDirection: "column",
   overflowY: "auto",
   flexShrink: 0,
-  position: "sticky",
+  position: "fixed",
   top: 0,
   left: 0,
-  zIndex: 100,
 };
 
 const headerStyle: React.CSSProperties = {

@@ -8,6 +8,7 @@ import type {
   CorporateOrderStatusType,
 } from "../types/admin-corporate.types";
 import { CorporateOrderStatus } from "../types/admin-corporate.types";
+import { Modal } from "../components/Modal";
 import corporateService from "../services/corporate.service";
 
 const OrderTimer = ({ createdAt }: { createdAt: string }) => {
@@ -146,7 +147,7 @@ const CorporateOrderDetailsModal = ({
     getAvailableStatuses(order.status as CorporateOrderStatusType).length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <Modal open={true} onClose={onClose} overlayOpacity={50}>
       <div className="bg-white rounded-lg max-w-6xl max-h-[90vh] overflow-y-auto w-full">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
@@ -422,9 +423,8 @@ const CorporateOrderDetailsModal = ({
       
 
       {/* Status Update Modal */}
-      {showStatusModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
+      <Modal open={showStatusModal} onClose={() => setShowStatusModal(false)} overlayOpacity={60}>
+        <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
             <h3 className="text-lg font-bold mb-4 text-gray-900">
               Update Order Status
             </h3>
@@ -520,9 +520,8 @@ const CorporateOrderDetailsModal = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        </Modal>
+    </Modal>
   );
 };
 
@@ -669,11 +668,9 @@ const CorporateOrderColumn = ({
         )}
       </div>
 
-      {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="text-white text-lg">Loading...</div>
-        </div>
-      )}
+      <Modal open={isLoading} onClose={() => {}} overlayOpacity={30} closeOnOverlayClick={false}>
+        <div className="text-white text-lg">Loading...</div>
+      </Modal>
 
       <CorporateOrderDetailsModal
         order={selectedOrder}

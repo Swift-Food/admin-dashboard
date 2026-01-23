@@ -1,6 +1,7 @@
 import  { useEffect, useState } from "react";
 import promotionsService from "../../services/promo-code.service";
 import type { PromoCodeDto } from "../../services/promo-code.service";
+import { getAllRestaurants } from "../../services/restaurant.service";
 import PromoForm from "../../components/PromoForm";
 import "./PromotionsScreen.css";
 
@@ -10,12 +11,21 @@ export default function PromotionsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [restaurantMap, setRestaurantMap] = useState<Record<string, string>>({});
 
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const data = await promotionsService.getPromoCodes();
-      setPromos(data);
+      const [promoData, restaurantData] = await Promise.all([
+        promotionsService.getPromoCodes(),
+        getAllRestaurants(),
+      ]);
+      setPromos(promoData);
+      const rMap: Record<string, string> = {};
+      restaurantData.forEach((r: any) => {
+        rMap[r.id] = r.restaurant_name;
+      });
+      setRestaurantMap(rMap);
       setError(null);
     } catch (e: any) {
       console.error("Failed to load promos:", e);
@@ -174,6 +184,7 @@ export default function PromotionsScreen() {
                     <th>Code</th>
                     <th>Name</th>
                     <th>Discount</th>
+                    <th>Restaurants</th>
                     <th>Applies To</th>
                     <th>Status</th>
                     <th>Uses</th>
@@ -204,6 +215,20 @@ export default function PromotionsScreen() {
                             ? `${p.discountAmount}%`
                             : `£${p.discountAmount}`}
                         </span>
+                      </td>
+                      <td>
+                        {p.restaurantIds && p.restaurantIds.length > 0 ? (
+                          <span
+                            className="restaurants-badge"
+                            title={p.restaurantIds.map((id: string) => restaurantMap[id] || id).join(", ")}
+                          >
+                            {p.restaurantIds.length <= 2
+                              ? p.restaurantIds.map((id: string) => restaurantMap[id] || "Unknown").join(", ")
+                              : `${p.restaurantIds.length} restaurants`}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#9ca3af" }}>All</span>
+                        )}
                       </td>
                       <td>
                         <span className={getAppliesBadgeClass(p.appliesTo)}>

@@ -87,6 +87,7 @@ const RestaurantAdminDashboard = () => {
       commission: restaurant.commission ?? 20,
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
+      restaurantType: restaurant.restaurantType || "restaurant",
     });
   };
 
@@ -196,7 +197,6 @@ const RestaurantAdminDashboard = () => {
                 <tr>
                   <th>Restaurant</th>
                   <th>Type</th>
-                  <th>Market</th>
                   <th>Contact</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -220,9 +220,6 @@ const RestaurantAdminDashboard = () => {
                         <span className="type-badge">
                           {restaurant.restaurantType}
                         </span>
-                      </td>
-                      <td className="market-cell">
-                        {restaurant.market?.market_name || "N/A"}
                       </td>
                       <td className="contact-cell">
                         <div>{restaurant.phoneNumber || "N/A"}</div>
@@ -289,7 +286,7 @@ const RestaurantAdminDashboard = () => {
                     </tr>
                     {expandedId === restaurant.id && (
                       <tr>
-                        <td colSpan={6} className="expanded-cell">
+                        <td colSpan={5} className="expanded-cell">
                           <div className="expanded-content">
                             {/* Restaurant Settings Section */}
                             <div className="settings-section">
@@ -397,6 +394,21 @@ const RestaurantAdminDashboard = () => {
                                         className="form-input"
                                         placeholder="https://ratings.food.gov.uk/..."
                                       />
+                                    </div>
+
+                                    <div className="form-field">
+                                      <label className="field-label">Restaurant Type</label>
+                                      <select
+                                        value={editForm.restaurantType || "restaurant"}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, restaurantType: e.target.value })
+                                        }
+                                        className="form-input"
+                                      >
+                                        <option value="restaurant">Restaurant</option>
+                                        <option value="stall">Stall</option>
+                                        <option value="coming_soon">Coming Soon</option>
+                                      </select>
                                     </div>
 
                                     <div className="form-field full-width">

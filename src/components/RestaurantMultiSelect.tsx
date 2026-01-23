@@ -1,33 +1,32 @@
-import React, { useState, useEffect } from "react";
-import { X, ChevronDown } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Check, Search } from "lucide-react";
 import type { RestaurantResponse } from "../services/restaurant.service";
-import { getAllRestaurantsAdminDashboard } from "../services/restaurant.service";
+import { getAllRestaurants } from "../services/restaurant.service";
 
 interface RestaurantMultiSelectProps {
   selectedIds: string[];
   onChange: (selectedIds: string[]) => void;
   disabled?: boolean;
-  isLoading?: boolean;
 }
 
 const RestaurantMultiSelect: React.FC<RestaurantMultiSelectProps> = ({
   selectedIds,
   onChange,
   disabled = false,
-  isLoading = false,
 }) => {
   const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
         setLoading(true);
-        const data = await getAllRestaurantsAdminDashboard();
-        setRestaurants(data);
+        const data = await getAllRestaurants();
+        console.log("Fetched restaurants:", data);
+        setRestaurants(data || []);
         setError(null);
       } catch (err) {
         setError("Failed to load restaurants");
@@ -41,6 +40,7 @@ const RestaurantMultiSelect: React.FC<RestaurantMultiSelectProps> = ({
   }, []);
 
   const handleRestaurantToggle = (restaurantId: string) => {
+    if (disabled) return;
     if (selectedIds.includes(restaurantId)) {
       onChange(selectedIds.filter((id) => id !== restaurantId));
     } else {
@@ -49,6 +49,7 @@ const RestaurantMultiSelect: React.FC<RestaurantMultiSelectProps> = ({
   };
 
   const handleSelectAll = () => {
+    if (disabled) return;
     if (selectedIds.length === restaurants.length) {
       onChange([]);
     } else {
@@ -56,298 +57,137 @@ const RestaurantMultiSelect: React.FC<RestaurantMultiSelectProps> = ({
     }
   };
 
-  const handleRemoveTag = (restaurantId: string) => {
-    onChange(selectedIds.filter((id) => id !== restaurantId));
+  const handleClearAll = () => {
+    if (disabled) return;
+    onChange([]);
   };
 
   const filteredRestaurants = restaurants.filter(
     (r) =>
-      r.restaurant_name.toLowerCase().includes(filterText.toLowerCase()) ||
-      r.id.toLowerCase().includes(filterText.toLowerCase())
+      r.restaurant_name?.toLowerCase().includes(filterText.toLowerCase()) ||
+      r.id?.toLowerCase().includes(filterText.toLowerCase())
   );
 
   const selectedRestaurants = restaurants.filter((r) =>
     selectedIds.includes(r.id)
   );
 
-  return (
-    <div className="form-group">
-      <label className="form-label">
-        Restaurants (Leave empty to apply to all)
-      </label>
-
-      {error && (
-        <div
-          style={{
-            padding: "0.75rem",
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: "0.375rem",
-            color: "#b91c1c",
-            fontSize: "0.875rem",
-            marginBottom: "0.5rem",
-          }}
-        >
-          {error}
+  if (loading) {
+    return (
+      <div className="restaurant-select-container">
+        <label className="restaurant-select-label">
+          Restaurants <span className="label-hint">(Leave empty for all)</span>
+        </label>
+        <div className="restaurant-select-loading">
+          <div className="spinner-small"></div>
+          <span>Loading restaurants...</span>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="restaurant-select-container">
+        <label className="restaurant-select-label">Restaurants</label>
+        <div className="restaurant-select-error">{error}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="restaurant-select-container" ref={containerRef}>
+      <div className="restaurant-select-header">
+        <label className="restaurant-select-label">
+          Restaurants <span className="label-hint">(Leave empty for all)</span>
+        </label>
+        <div className="restaurant-select-actions">
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            disabled={disabled}
+            className="btn-link"
+          >
+            {selectedIds.length === restaurants.length ? "Deselect All" : "Select All"}
+          </button>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              disabled={disabled}
+              className="btn-link btn-link-danger"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Selected Tags */}
       {selectedRestaurants.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.5rem",
-            marginBottom: "0.75rem",
-            minHeight: "2rem",
-          }}
-        >
+        <div className="selected-tags">
           {selectedRestaurants.map((restaurant) => (
-            <div
-              key={restaurant.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.35rem 0.75rem",
-                backgroundColor: "#dbeafe",
-                border: "1px solid #bfdbfe",
-                borderRadius: "9999px",
-                fontSize: "0.875rem",
-                color: "#1e40af",
-              }}
-            >
-              <span>{restaurant.restaurant_name}</span>
+            <span key={restaurant.id} className="selected-tag">
+              {restaurant.restaurant_name}
               <button
                 type="button"
-                onClick={() => handleRemoveTag(restaurant.id)}
+                onClick={() => handleRestaurantToggle(restaurant.id)}
                 disabled={disabled}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  cursor: disabled ? "not-allowed" : "pointer",
-                  color: "inherit",
-                  display: "flex",
-                  alignItems: "center",
-                }}
+                className="tag-remove"
               >
-                <X size={16} />
+                <X size={14} />
               </button>
-            </div>
+            </span>
           ))}
         </div>
       )}
 
-      {/* Dropdown Button */}
-      <div style={{ position: "relative" }}>
-        <button
-          type="button"
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          disabled={disabled || loading || isLoading}
-          style={{
-            width: "100%",
-            padding: "0.625rem 0.875rem",
-            border: isDropdownOpen ? "2px solid #2563eb" : "1px solid #d1d5db",
-            borderRadius: "0.5rem",
-            backgroundColor: "white",
-            fontSize: "0.875rem",
-            color: "#374151",
-            cursor: disabled || loading || isLoading ? "not-allowed" : "pointer",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            textAlign: "left",
-            transition: "all 0.15s",
-          }}
-        >
-          <span style={{ opacity: loading || isLoading ? 0.6 : 1 }}>
-            {loading || isLoading
-              ? "Loading restaurants..."
-              : `${selectedIds.length} restaurant${selectedIds.length !== 1 ? "s" : ""} selected`}
-          </span>
-          <ChevronDown
-            size={18}
-            style={{
-              transition: "transform 0.15s",
-              transform: isDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-            }}
-          />
-        </button>
+      {/* Search */}
+      <div className="restaurant-search">
+        <Search size={16} className="search-icon" />
+        <input
+          type="text"
+          placeholder="Search restaurants..."
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          className="search-input"
+          disabled={disabled}
+        />
+      </div>
 
-        {/* Dropdown Menu */}
-        {isDropdownOpen && (
-          <div
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              right: 0,
-              backgroundColor: "white",
-              border: "1px solid #d1d5db",
-              borderTopWidth: 0,
-              borderRadius: "0 0 0.5rem 0.5rem",
-              zIndex: 40,
-              maxHeight: "300px",
-              overflowY: "auto",
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-            }}
-          >
-            {/* Search Input */}
-            <div style={{ padding: "0.75rem", borderBottom: "1px solid #e5e7eb" }}>
-              <input
-                type="text"
-                placeholder="Search restaurants..."
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "0.625rem 0.875rem",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "0.375rem",
-                  fontSize: "0.875rem",
-                }}
-              />
-            </div>
-
-            {/* Select All Button */}
-            <div style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                disabled={disabled}
-                style={{
-                  width: "100%",
-                  padding: "0.5rem 0.75rem",
-                  backgroundColor:
-                    selectedIds.length === restaurants.length
-                      ? "#fee2e2"
-                      : "#dbeafe",
-                  color:
-                    selectedIds.length === restaurants.length
-                      ? "#991b1b"
-                      : "#1e40af",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "0.375rem",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  cursor: disabled ? "not-allowed" : "pointer",
-                  transition: "all 0.15s",
-                }}
+      {/* Restaurant List */}
+      <div className="restaurant-list">
+        {filteredRestaurants.length > 0 ? (
+          filteredRestaurants.map((restaurant) => {
+            const isSelected = selectedIds.includes(restaurant.id);
+            return (
+              <label
+                key={restaurant.id}
+                className={`restaurant-item ${isSelected ? "selected" : ""} ${disabled ? "disabled" : ""}`}
               >
-                {selectedIds.length === restaurants.length
-                  ? "Deselect All"
-                  : "Select All"}
-              </button>
-            </div>
-
-            {/* Restaurant List */}
-            <div style={{ maxHeight: "250px", overflowY: "auto" }}>
-              {filteredRestaurants.length > 0 ? (
-                filteredRestaurants.map((restaurant) => (
-                  <label
-                    key={restaurant.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                      padding: "0.75rem",
-                      borderBottom: "1px solid #f3f4f6",
-                      cursor: disabled ? "not-allowed" : "pointer",
-                      backgroundColor: selectedIds.includes(restaurant.id)
-                        ? "#f0f9ff"
-                        : "transparent",
-                      transition: "background-color 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!disabled) {
-                        e.currentTarget.style.backgroundColor =
-                          selectedIds.includes(restaurant.id) ? "#e0f2fe" : "#f9fafb";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = selectedIds.includes(
-                        restaurant.id
-                      )
-                        ? "#f0f9ff"
-                        : "transparent";
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(restaurant.id)}
-                      onChange={() => handleRestaurantToggle(restaurant.id)}
-                      disabled={disabled}
-                      style={{ cursor: disabled ? "not-allowed" : "pointer" }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: "0.875rem",
-                          fontWeight: 500,
-                          color: "#111827",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {restaurant.restaurant_name}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "#6b7280",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {restaurant.id}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        padding: "0.25rem 0.5rem",
-                        backgroundColor: restaurant.isOpen ? "#dcfce7" : "#fee2e2",
-                        color: restaurant.isOpen ? "#166534" : "#991b1b",
-                        borderRadius: "0.25rem",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {restaurant.isOpen ? "Open" : "Closed"}
-                    </div>
-                  </label>
-                ))
-              ) : (
-                <div
-                  style={{
-                    padding: "1.5rem",
-                    textAlign: "center",
-                    color: "#6b7280",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  {loading ? "Loading..." : "No restaurants found"}
+                <div className={`checkbox ${isSelected ? "checked" : ""}`}>
+                  {isSelected && <Check size={12} />}
                 </div>
-              )}
-            </div>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleRestaurantToggle(restaurant.id)}
+                  disabled={disabled}
+                  className="sr-only"
+                />
+                <span className="restaurant-name">{restaurant.restaurant_name}</span>
+                <span className={`status-badge ${restaurant.isOpen ? "open" : "closed"}`}>
+                  {restaurant.isOpen ? "Open" : "Closed"}
+                </span>
+              </label>
+            );
+          })
+        ) : (
+          <div className="no-results">
+            {filterText ? "No restaurants match your search" : "No restaurants available"}
           </div>
         )}
       </div>
-
-      {/* Close dropdown when clicking outside */}
-      {isDropdownOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 30,
-          }}
-          onClick={() => setIsDropdownOpen(false)}
-        />
-      )}
     </div>
   );
 };

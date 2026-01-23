@@ -933,8 +933,8 @@ const CateringOrdersScreen = () => {
 
   const filteredOrders = allOrders.filter((order) => {
     // View mode filter
-    const activeStatuses = ["pending_review", "admin_reviewed", "restaurant_reviewed", "payment_link_sent", "paid"];
-    const completedStatuses = ["confirmed", "completed", "cancelled"];
+    const activeStatuses = ["pending_review", "admin_reviewed", "restaurant_reviewed", "payment_link_sent", "paid", "confirmed"];
+    const completedStatuses = ["completed", "cancelled"];
 
     let matchesViewMode = true;
     if (viewMode === "active") {
@@ -996,8 +996,8 @@ const CateringOrdersScreen = () => {
     );
   }
 
-  const activeCount = allOrders.filter(o => ["pending_review", "admin_reviewed", "restaurant_reviewed", "payment_link_sent", "paid"].includes(o.status)).length;
-  const completedCount = allOrders.filter(o => ["confirmed", "completed", "cancelled"].includes(o.status)).length;
+  const activeCount = allOrders.filter(o => ["pending_review", "admin_reviewed", "restaurant_reviewed", "payment_link_sent", "paid", "confirmed"].includes(o.status)).length;
+  const completedCount = allOrders.filter(o => ["completed", "cancelled"].includes(o.status)).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1086,11 +1086,11 @@ const CateringOrdersScreen = () => {
                   <option value="restaurant_reviewed">🍽️ Restaurant Reviewed</option>
                   <option value="payment_link_sent">📧 Payment Link Sent</option>
                   <option value="paid">💰 Paid</option>
+                  <option value="confirmed">✅ Confirmed</option>
                 </>
               )}
               {viewMode === "completed" && (
                 <>
-                  <option value="confirmed">✅ Confirmed</option>
                   <option value="completed">✔️ Completed</option>
                   <option value="cancelled">❌ Cancelled</option>
                 </>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHome,
@@ -22,6 +22,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 
+export type AdminMode = "swift" | "prismo";
+
 export type SidebarPage =
   | "home"
   | "orders"
@@ -44,12 +46,14 @@ interface NavItem {
   id: SidebarPage;
   label: string;
   icon: React.ReactNode;
+  mode?: AdminMode; // If specified, only show in this mode
 }
 
 interface NavSection {
   id: string;
   label: string;
   items: NavItem[];
+  mode?: AdminMode; // If specified, only show in this mode
 }
 
 interface SidebarProps {
@@ -72,6 +76,11 @@ const iconCommonStyle = {
   margin: "0 auto",
 };
 
+const prismoIconStyle = {
+  ...iconCommonStyle,
+  color: "#7c3aed",
+};
+
 const sectionIconStyle = {
   color: "#9ca3af",
   fontSize: 12,
@@ -92,6 +101,7 @@ const navSections: NavSection[] = [
   {
     id: "orders",
     label: "Orders",
+    mode: "swift",
     items: [
       {
         id: "orders",
@@ -111,8 +121,9 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    id: "management",
+    id: "swift-management",
     label: "Management",
+    mode: "swift",
     items: [
       {
         id: "restaurant",
@@ -125,21 +136,6 @@ const navSections: NavSection[] = [
         icon: <FontAwesomeIcon icon={faLayerGroup} style={iconCommonStyle} />,
       },
       {
-        id: "bundles",
-        label: "Catering Bundles",
-        icon: <FontAwesomeIcon icon={faBox} style={iconCommonStyle} />,
-      },
-      {
-        id: "event-categories",
-        label: "Event Categories",
-        icon: <FontAwesomeIcon icon={faCalendarAlt} style={iconCommonStyle} />,
-      },
-      {
-        id: "events",
-        label: "Events",
-        icon: <FontAwesomeIcon icon={faCalendarAlt} style={iconCommonStyle} />,
-      },
-      {
         id: "promotions",
         label: "Promotions",
         icon: <FontAwesomeIcon icon={faTags} style={iconCommonStyle} />,
@@ -147,8 +143,31 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    id: "prismo-management",
+    label: "Event Management",
+    mode: "prismo",
+    items: [
+      {
+        id: "event-categories",
+        label: "Event Categories",
+        icon: <FontAwesomeIcon icon={faCalendarAlt} style={prismoIconStyle} />,
+      },
+      {
+        id: "events",
+        label: "Events",
+        icon: <FontAwesomeIcon icon={faCalendarAlt} style={prismoIconStyle} />,
+      },
+      {
+        id: "bundles",
+        label: "Catering Bundles",
+        icon: <FontAwesomeIcon icon={faBox} style={prismoIconStyle} />,
+      },
+    ],
+  },
+  {
     id: "finance",
     label: "Finance",
+    mode: "swift",
     items: [
       {
         id: "payout",
@@ -165,6 +184,7 @@ const navSections: NavSection[] = [
   {
     id: "operations",
     label: "Operations",
+    mode: "swift",
     items: [
       {
         id: "driver-status",
@@ -176,6 +196,7 @@ const navSections: NavSection[] = [
   {
     id: "analytics",
     label: "Analytics",
+    mode: "swift",
     items: [
       {
         id: "statistics",
@@ -192,6 +213,7 @@ const navSections: NavSection[] = [
   {
     id: "settings",
     label: "Settings",
+    mode: "swift",
     items: [
       {
         id: "miscellaneous",
@@ -204,6 +226,14 @@ const navSections: NavSection[] = [
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, onExpandedChange }) => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [adminMode, setAdminMode] = useState<AdminMode>(() => {
+    const saved = localStorage.getItem("adminMode");
+    return (saved as AdminMode) || "swift";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("adminMode", adminMode);
+  }, [adminMode]);
 
   const toggleSection = (sectionId: string) => {
     setCollapsedSections((prev) => {
@@ -221,25 +251,35 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
     return section.items.some((item) => item.id === currentPage);
   };
 
+  // Filter sections based on current mode
+  const filteredSections = navSections.filter(
+    (section) => !section.mode || section.mode === adminMode
+  );
+
+  const isSwift = adminMode === "swift";
+
   return (
     <aside
       style={{
         ...sidebarStyle,
         width: expanded ? 250 : 70,
         transition: "width 0.2s",
+        borderRightColor: isSwift ? "#e5e7eb" : "#ddd6fe",
       }}
     >
+      {/* Header with brand */}
       <div style={headerStyle}>
         <span
           style={{
             ...brandStyle,
+            color: isSwift ? "#1d4ed8" : "#7c3aed",
             opacity: expanded ? 1 : 0,
             width: expanded ? "auto" : 0,
             overflow: "hidden",
             transition: "opacity 0.2s, width 0.2s",
           }}
         >
-          Swift Admin
+          {isSwift ? "Swift" : "Prismo"}
         </span>
         <button
           style={toggleBtnStyle}
@@ -249,7 +289,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
           <FontAwesomeIcon
             icon={expanded ? faChevronLeft : faChevronRight}
             style={{
-              color: "#040273",
+              color: isSwift ? "#040273" : "#7c3aed",
               fontSize: 20,
               verticalAlign: "middle",
               display: "flex",
@@ -259,10 +299,66 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
           />
         </button>
       </div>
+
+      {/* Mode Toggle */}
+      <div style={modeToggleContainerStyle}>
+        {expanded ? (
+          <div style={modeToggleStyle}>
+            <button
+              onClick={() => setAdminMode("swift")}
+              style={{
+                ...modeButtonStyle,
+                background: isSwift ? "#dbeafe" : "transparent",
+                color: isSwift ? "#1d4ed8" : "#6b7280",
+                fontWeight: isSwift ? 600 : 400,
+              }}
+            >
+              Swift
+            </button>
+            <button
+              onClick={() => setAdminMode("prismo")}
+              style={{
+                ...modeButtonStyle,
+                background: !isSwift ? "#ede9fe" : "transparent",
+                color: !isSwift ? "#7c3aed" : "#6b7280",
+                fontWeight: !isSwift ? 600 : 400,
+              }}
+            >
+              Prismo
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAdminMode(isSwift ? "prismo" : "swift")}
+            style={modeIconButtonStyle}
+            title={`Switch to ${isSwift ? "Prismo" : "Swift"}`}
+          >
+            <span
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: "50%",
+                background: isSwift ? "#dbeafe" : "#ede9fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                fontWeight: 700,
+                color: isSwift ? "#1d4ed8" : "#7c3aed",
+              }}
+            >
+              {isSwift ? "S" : "P"}
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Navigation */}
       <nav style={navStyle}>
-        {navSections.map((section) => {
+        {filteredSections.map((section) => {
           const isCollapsed = collapsedSections.has(section.id);
           const hasActiveItem = isSectionActive(section);
+          const isPrismoSection = section.mode === "prismo";
 
           return (
             <div key={section.id} style={sectionContainerStyle}>
@@ -272,7 +368,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                   onClick={() => toggleSection(section.id)}
                   style={{
                     ...sectionHeaderStyle,
-                    color: hasActiveItem ? "#1d4ed8" : "#6b7280",
+                    color: hasActiveItem
+                      ? isPrismoSection
+                        ? "#7c3aed"
+                        : "#1d4ed8"
+                      : "#6b7280",
                   }}
                 >
                   <span style={sectionLabelStyle}>{section.label}</span>
@@ -292,14 +392,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                 <div style={sectionItemsStyle}>
                   {section.items.map((item) => {
                     const isActive = currentPage === item.id;
+                    const itemIsPrismo = section.mode === "prismo";
                     return (
                       <button
                         key={item.id}
                         onClick={() => onNavigate(item.id)}
                         style={{
                           ...navBtnStyle,
-                          background: isActive ? "#dbeafe" : "transparent",
-                          color: isActive ? "#1d4ed8" : "#051661",
+                          background: isActive
+                            ? itemIsPrismo
+                              ? "#ede9fe"
+                              : "#dbeafe"
+                            : "transparent",
+                          color: isActive
+                            ? itemIsPrismo
+                              ? "#7c3aed"
+                              : "#1d4ed8"
+                            : "#051661",
                           fontWeight: isActive ? 700 : 500,
                           height: 44,
                           minHeight: 44,
@@ -407,9 +516,8 @@ const headerStyle: React.CSSProperties = {
 
 const brandStyle: React.CSSProperties = {
   fontWeight: 700,
-  fontSize: "1.125rem",
-  color: "#1d4ed8",
-  transition: "opacity 0.2s, width 0.2s",
+  fontSize: "1.25rem",
+  transition: "opacity 0.2s, width 0.2s, color 0.2s",
 };
 
 const toggleBtnStyle: React.CSSProperties = {
@@ -423,6 +531,40 @@ const toggleBtnStyle: React.CSSProperties = {
   color: "#000",
   display: "flex-start",
   alignItems: "center",
+};
+
+const modeToggleContainerStyle: React.CSSProperties = {
+  padding: "12px 12px 8px",
+  borderBottom: "1px solid #f3f4f6",
+};
+
+const modeToggleStyle: React.CSSProperties = {
+  display: "flex",
+  background: "#f3f4f6",
+  borderRadius: 8,
+  padding: 3,
+  gap: 2,
+};
+
+const modeButtonStyle: React.CSSProperties = {
+  flex: 1,
+  padding: "6px 12px",
+  borderRadius: 6,
+  border: "none",
+  cursor: "pointer",
+  fontSize: "0.8125rem",
+  transition: "all 0.2s",
+};
+
+const modeIconButtonStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  padding: 0,
+  background: "none",
+  border: "none",
+  cursor: "pointer",
 };
 
 const navStyle: React.CSSProperties = {

@@ -36,7 +36,7 @@ interface RestaurantResponse {
   restaurant_name: string;
   isOpen: boolean;
   restaurant_description?: string;
-  restaurantType: "restaurant" | "stall";
+  restaurantType: "restaurant" | "stall" | "coming_soon";
   featured: boolean;
   phoneNumber?: string;
   email?: string;

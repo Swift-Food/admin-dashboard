@@ -71,6 +71,7 @@ export interface Restaurant {
   maxDiscountPercentage: number;
   fsa: number;
   fsaLink: string | null;
+  restaurantType?: string;
 }
 
 export interface UpdateAvailabilityDto {
@@ -89,4 +90,5 @@ export interface UpdateRestaurantDto {
   restaurantNumber?: string;
   phoneNumber?: string;
   email?: string;
+  restaurantType?: "restaurant" | "stall" | "coming_soon";
 }

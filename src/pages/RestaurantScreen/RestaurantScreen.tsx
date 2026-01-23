@@ -87,7 +87,7 @@ const RestaurantAdminDashboard = () => {
       commission: restaurant.commission ?? 20,
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
-      restaurantType: restaurant.restaurantType || "restaurant",
+      restaurantType: restaurant.restaurantType ?? "restaurant",
     });
   };
 
@@ -399,9 +399,9 @@ const RestaurantAdminDashboard = () => {
                                     <div className="form-field">
                                       <label className="field-label">Restaurant Type</label>
                                       <select
-                                        value={editForm.restaurantType || "restaurant"}
+                                        value={editForm.restaurantType ?? "restaurant"}
                                         onChange={(e) =>
-                                          setEditForm({ ...editForm, restaurantType: e.target.value })
+                                          setEditForm({ ...editForm, restaurantType: e.target.value as "restaurant" | "stall" | "coming_soon" })
                                         }
                                         className="form-input"
                                       >

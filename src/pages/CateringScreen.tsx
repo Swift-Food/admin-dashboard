@@ -4,6 +4,7 @@ import type { CateringOrder, PricingOrderItem, CateringOrderItem } from "../type
 import cateringService, {
   type SendPaymentLinkDto,
 } from "../services/catering.service";
+import { Modal } from "../components/Modal";
 
 const OrderTimer = ({ createdAt }: { createdAt: string }) => {
   const [timeElapsed, setTimeElapsed] = useState("");
@@ -187,30 +188,45 @@ const CateringOrderDetailsModal = ({
       // If preview mode, show HTML preview instead of sending
       if (paymentLinkForm.preview) {
         setPreviewHtml(response.previewHtml || "");
+        setIsSendingPaymentLink(false);
         return;
       }
 
-      // Normal send flow
+      // Normal send flow - success
+      setIsSendingPaymentLink(false);
       onClose();
       if (onOrderUpdated) onOrderUpdated();
       alert("Payment link sent successfully!");
       setShowSendPaymentModal(false);
     } catch (err: any) {
       console.error("Error sending payment link:", err);
+
+      // Check if this is a network timeout - the operation likely succeeded
+      const isNetworkError = err?.code === "ERR_NETWORK" || err?.message === "Network Error";
+
+      if (isNetworkError) {
+        alert(
+          "Request timed out, but the invoice may have been sent successfully. " +
+          "Please check your email and refresh the page before trying again."
+        );
+        // Keep button disabled for 30s on network errors since operation likely succeeded
+        setTimeout(() => setIsSendingPaymentLink(false), 30000);
+        return;
+      }
+
       const serverMessage =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
         "Failed to send payment link. Please try again.";
       alert(`Failed to send payment link: ${serverMessage}`);
-    } finally {
       setIsSendingPaymentLink(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
+    <Modal open={true} onClose={onClose} overlayOpacity={50}>
+      <div className="bg-white rounded-lg w-full max-w-4xl min-w-[600px] max-h-[90vh] overflow-y-auto flex-shrink-0">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
@@ -523,9 +539,8 @@ const CateringOrderDetailsModal = ({
               </button>
             )}
 
-            {showSendPaymentModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-                <div className="bg-white rounded-lg p-6 max-w-2xl mx-4 w-full max-h-[90vh] overflow-y-auto">
+            <Modal open={showSendPaymentModal} onClose={() => setShowSendPaymentModal(false)} overlayOpacity={60} closeOnOverlayClick={false}>
+              <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 my-4 max-h-[90vh] overflow-y-auto">
                   <h3 className="text-lg font-bold mb-4 text-gray-900">
                     Send Payment Link
                   </h3>
@@ -662,13 +677,11 @@ const CateringOrderDetailsModal = ({
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              </Modal>
 
             {/* Preview Modal - shows when preview is generated */}
-            {previewHtml && (
-              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-                <div className="bg-white rounded-lg max-w-4xl mx-4 w-full max-h-[90vh] overflow-y-auto">
+            <Modal open={!!previewHtml} onClose={() => setPreviewHtml("")} overlayOpacity={60}>
+              <div className="bg-white rounded-lg w-full max-w-4xl mx-4 my-4 max-h-[90vh] overflow-y-auto">
                   <div className="flex justify-between items-center p-4 border-b border-gray-200">
                     <h3 className="text-lg font-bold text-gray-900">
                       Invoice Preview
@@ -711,19 +724,17 @@ const CateringOrderDetailsModal = ({
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              </Modal>
           </div>
         </div>
       </div>
 
       {/* Review Modal */}
-      {showReviewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
-            <h3 className="text-lg font-bold mb-4 text-gray-900">
-              Review Order
-            </h3>
+      <Modal open={showReviewModal} onClose={() => setShowReviewModal(false)} overlayOpacity={60}>
+        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 my-4 max-h-[90vh] overflow-y-auto">
+          <h3 className="text-lg font-bold mb-4 text-gray-900">
+            Review Order
+          </h3>
 
             <div className="space-y-4">
               {/* Pricing Breakdown - Read-only display */}
@@ -826,40 +837,37 @@ const CateringOrderDetailsModal = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </Modal>
 
       {/* Cancel Confirmation Dialog */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-bold mb-2 text-gray-900">
-              Cancel Catering Order?
-            </h3>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to cancel this catering order for{" "}
-              {order.customerName}? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                disabled={isCancelling}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
-              >
-                Keep Order
-              </button>
-              <button
-                onClick={handleConfirmCancel}
-                disabled={isCancelling}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
-              >
-                {isCancelling ? "Cancelling..." : "Yes, Cancel"}
-              </button>
-            </div>
+      <Modal open={showCancelConfirm} onClose={() => setShowCancelConfirm(false)} overlayOpacity={60}>
+        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 my-4">
+          <h3 className="text-lg font-bold mb-2 text-gray-900">
+            Cancel Catering Order?
+          </h3>
+          <p className="text-gray-700 mb-6">
+            Are you sure you want to cancel this catering order for{" "}
+            {order.customerName}? This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowCancelConfirm(false)}
+              disabled={isCancelling}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Keep Order
+            </button>
+            <button
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+            >
+              {isCancelling ? "Cancelling..." : "Yes, Cancel"}
+            </button>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+    </Modal>
   );
 };
 

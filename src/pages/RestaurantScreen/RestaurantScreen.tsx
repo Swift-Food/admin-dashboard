@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from "react";
 import {
   AlertCircle,
-  Eye,
-  EyeOff,
-  Copy,
-  CheckCircle,
-  ShoppingBag,
-  Clock,
   Plus,
+  Save,
+  Edit2,
+  X,
+  MapPin,
+  ExternalLink,
+  Trash2,
 } from "lucide-react";
 
 import {
   getAllRestaurantsAdminDashboard,
   toggleRestaurantStatus,
-  getRestaurantOrders,
+  updateRestaurant,
+  deleteRestaurant,
 } from "../../services/restaurant.service";
-import type { RestaurantResponse } from "../../services/restaurant.service";
+import type { RestaurantResponse, UpdateRestaurantDto } from "../../services/restaurant.service";
 
 import { AddRestaurantModal } from "../../components/AddRestaurantModal";
-import { SwiftHoursForm } from "../../components/SwiftHoursForm";
 import "./RestaurantScreen.css";
 
 const RestaurantAdminDashboard = () => {
@@ -27,15 +27,16 @@ const RestaurantAdminDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [restaurantOrders, setRestaurantOrders] = useState<
-    Record<string, any[]>
-  >({});
-  const [loadingOrders, setLoadingOrders] = useState<Record<string, boolean>>(
-    {}
-  );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<UpdateRestaurantDto>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Delete modal state
+  const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRestaurants();
@@ -70,71 +71,73 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
-  const togglePasswordVisibility = (id: string) => {
-    setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const copyToClipboard = (text: string | undefined, field: string) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const fetchRestaurantOrders = async (restaurantId: string) => {
-    if (restaurantOrders[restaurantId]) return;
-
-    try {
-      setLoadingOrders((prev) => ({ ...prev, [restaurantId]: true }));
-      const data = await getRestaurantOrders(restaurantId);
-
-      const orders: any[] = [];
-      Object.values(data).forEach((restaurantOrders) => {
-        Object.values(restaurantOrders).forEach((order) => {
-          orders.push(order);
-        });
-      });
-
-      setRestaurantOrders((prev) => ({ ...prev, [restaurantId]: orders }));
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-      setRestaurantOrders((prev) => ({ ...prev, [restaurantId]: [] }));
-    } finally {
-      setLoadingOrders((prev) => ({ ...prev, [restaurantId]: false }));
-    }
-  };
-
   const handleExpandRestaurant = (restaurantId: string) => {
-    const newExpandedId = expandedId === restaurantId ? null : restaurantId;
-    setExpandedId(newExpandedId);
-
-    if (newExpandedId && !restaurantOrders[restaurantId]) {
-      fetchRestaurantOrders(restaurantId);
-    }
+    setExpandedId(expandedId === restaurantId ? null : restaurantId);
   };
 
   const handleRestaurantCreated = () => {
     fetchRestaurants();
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      PENDING: "status-pending",
-      PREPARING: "status-preparing",
-      READY: "status-ready",
-      COMPLETED: "status-completed",
-      CANCELLED: "status-cancelled",
-    };
-    return colors[status] || "status-default";
+  const startEditing = (restaurant: RestaurantResponse) => {
+    setEditingId(restaurant.id);
+    setEditForm({
+      restaurant_name: restaurant.restaurant_name,
+      restaurant_description: restaurant.restaurant_description || "",
+      commission: restaurant.commission ?? 20,
+      fsa: restaurant.fsa ?? undefined,
+      fsaLink: restaurant.fsaLink || "",
+      restaurantType: restaurant.restaurantType ?? "restaurant",
+    });
   };
 
-  const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const saveChanges = async (restaurantId: string) => {
+    try {
+      setSavingId(restaurantId);
+      await updateRestaurant(restaurantId, editForm);
+
+      // Update local state
+      setRestaurants(
+        restaurants.map((r) =>
+          r.id === restaurantId
+            ? {
+                ...r,
+                ...editForm,
+              }
+            : r
+        )
+      );
+
+      setEditingId(null);
+      setEditForm({});
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : "Failed to update restaurant"}`);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleDeleteRestaurant = async () => {
+    if (!deleteModalRestaurant) return;
+
+    try {
+      setDeletingId(deleteModalRestaurant.id);
+      await deleteRestaurant(deleteModalRestaurant.id);
+      setRestaurants(restaurants.filter((r) => r.id !== deleteModalRestaurant.id));
+      setDeleteModalRestaurant(null);
+      if (expandedId === deleteModalRestaurant.id) {
+        setExpandedId(null);
+      }
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : "Failed to delete restaurant"}`);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) {
@@ -174,7 +177,7 @@ const RestaurantAdminDashboard = () => {
           <div>
             <h1 className="dashboard-title">Restaurant Management</h1>
             <p className="dashboard-subtitle">
-              Manage restaurant availability and view login credentials
+              Manage restaurant availability and settings
             </p>
           </div>
           <button
@@ -194,7 +197,6 @@ const RestaurantAdminDashboard = () => {
                 <tr>
                   <th>Restaurant</th>
                   <th>Type</th>
-                  <th>Market</th>
                   <th>Contact</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -218,9 +220,6 @@ const RestaurantAdminDashboard = () => {
                         <span className="type-badge">
                           {restaurant.restaurantType}
                         </span>
-                      </td>
-                      <td className="market-cell">
-                        {restaurant.market?.market_name || "N/A"}
                       </td>
                       <td className="contact-cell">
                         <div>{restaurant.phoneNumber || "N/A"}</div>
@@ -287,323 +286,200 @@ const RestaurantAdminDashboard = () => {
                     </tr>
                     {expandedId === restaurant.id && (
                       <tr>
-                        <td colSpan={6} className="expanded-cell">
+                        <td colSpan={5} className="expanded-cell">
                           <div className="expanded-content">
-                            <div className="credentials-section">
-                              <h3 className="section-title">
-                                Login Credentials
-                              </h3>
-                              <div className="credentials-grid">
-                                <div className="credential-field">
-                                  <label className="field-label">
-                                    Username
-                                  </label>
-                                  <div className="input-group">
-                                    <input
-                                      type="text"
-                                      value={
-                                        restaurant.owner?.username || "N/A"
-                                      }
-                                      readOnly
-                                      className="credential-input"
-                                    />
+                            {/* Restaurant Settings Section */}
+                            <div className="settings-section">
+                              <div className="section-header">
+                                <h3 className="section-title">Restaurant Settings</h3>
+                                {editingId === restaurant.id ? (
+                                  <div className="edit-actions">
                                     <button
-                                      onClick={() =>
-                                        copyToClipboard(
-                                          restaurant.owner?.username,
-                                          `username-${restaurant.id}`
-                                        )
-                                      }
-                                      className="icon-button"
-                                      title="Copy username"
+                                      onClick={cancelEditing}
+                                      className="btn btn-cancel-edit"
+                                      disabled={savingId === restaurant.id}
                                     >
-                                      {copiedField ===
-                                      `username-${restaurant.id}` ? (
-                                        <CheckCircle
-                                          size={18}
-                                          className="icon-success"
-                                        />
+                                      <X size={16} />
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => saveChanges(restaurant.id)}
+                                      className="btn btn-save"
+                                      disabled={savingId === restaurant.id}
+                                    >
+                                      {savingId === restaurant.id ? (
+                                        <>
+                                          <div className="btn-spinner"></div>
+                                          Saving...
+                                        </>
                                       ) : (
-                                        <Copy
-                                          size={18}
-                                          className="icon-default"
-                                        />
+                                        <>
+                                          <Save size={16} />
+                                          Save Changes
+                                        </>
                                       )}
                                     </button>
                                   </div>
-                                </div>
-                                <div className="credential-field">
-                                  <label className="field-label">
-                                    Password
-                                  </label>
-                                  <div className="input-group">
-                                    <input
-                                      type={
-                                        showPassword[restaurant.id]
-                                          ? "text"
-                                          : "password"
-                                      }
-                                      value={
-                                        restaurant.owner?.password || "N/A"
-                                      }
-                                      readOnly
-                                      className="credential-input"
-                                    />
-                                    <button
-                                      onClick={() =>
-                                        togglePasswordVisibility(restaurant.id)
-                                      }
-                                      className="icon-button"
-                                      title={
-                                        showPassword[restaurant.id]
-                                          ? "Hide password"
-                                          : "Show password"
-                                      }
-                                    >
-                                      {showPassword[restaurant.id] ? (
-                                        <EyeOff
-                                          size={18}
-                                          className="icon-default"
-                                        />
-                                      ) : (
-                                        <Eye
-                                          size={18}
-                                          className="icon-default"
-                                        />
-                                      )}
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        copyToClipboard(
-                                          restaurant.owner?.password,
-                                          `password-${restaurant.id}`
-                                        )
-                                      }
-                                      className="icon-button"
-                                      title="Copy password"
-                                    >
-                                      {copiedField ===
-                                      `password-${restaurant.id}` ? (
-                                        <CheckCircle
-                                          size={18}
-                                          className="icon-success"
-                                        />
-                                      ) : (
-                                        <Copy
-                                          size={18}
-                                          className="icon-default"
-                                        />
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="credential-field">
-                                  <label className="field-label">
-                                    Admin OTP
-                                  </label>
-                                  <div className="input-group">
-                                    <input
-                                      type={
-                                        showPassword[`otp-${restaurant.id}`]
-                                          ? "text"
-                                          : "password"
-                                      }
-                                      value={
-                                        restaurant.owner?.adminOtp || "N/A"
-                                      }
-                                      readOnly
-                                      className="credential-input"
-                                    />
-                                    <button
-                                      onClick={() =>
-                                        togglePasswordVisibility(
-                                          `otp-${restaurant.id}`
-                                        )
-                                      }
-                                      className="icon-button"
-                                      title={
-                                        showPassword[`otp-${restaurant.id}`]
-                                          ? "Hide OTP"
-                                          : "Show OTP"
-                                      }
-                                    >
-                                      {showPassword[`otp-${restaurant.id}`] ? (
-                                        <EyeOff
-                                          size={18}
-                                          className="icon-default"
-                                        />
-                                      ) : (
-                                        <Eye
-                                          size={18}
-                                          className="icon-default"
-                                        />
-                                      )}
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        copyToClipboard(
-                                          restaurant.owner?.adminOtp,
-                                          `otp-${restaurant.id}`
-                                        )
-                                      }
-                                      className="icon-button"
-                                      title="Copy OTP"
-                                    >
-                                      {copiedField ===
-                                      `otp-${restaurant.id}` ? (
-                                        <CheckCircle
-                                          size={18}
-                                          className="icon-success"
-                                        />
-                                      ) : (
-                                        <Copy
-                                          size={18}
-                                          className="icon-default"
-                                        />
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="info-grid">
-                                <div className="info-item">
-                                  <span className="info-label">Rating:</span>
-                                  <span className="info-value">
-                                    {restaurant.averageRating}/5
-                                  </span>
-                                </div>
-                                <div className="info-item">
-                                  <span className="info-label">
-                                    Commission:
-                                  </span>
-                                  <span className="info-value">
-                                    {restaurant.commission}%
-                                  </span>
-                                </div>
-                                <div className="info-item">
-                                  <span className="info-label">
-                                    Restaurant #:
-                                  </span>
-                                  <span className="info-value">
-                                    {restaurant.restaurantNumber || "N/A"}
-                                  </span>
-                                </div>
-                                <div className="info-item">
-                                  <span className="info-label">FSA:</span>
-                                  <span className="info-value">
-                                    {restaurant.fsa || "N/A"}
-                                  </span>
-                                </div>
-                              </div>
-                              <SwiftHoursForm restaurantId={restaurant.id} />
-                            </div>
-
-                            <div className="orders-section">
-                              <div className="orders-header">
-                                <div className="orders-title-group">
-                                  <ShoppingBag size={20} />
-                                  <h3 className="section-title">
-                                    Ongoing Orders
-                                  </h3>
-                                </div>
-                                {loadingOrders[restaurant.id] && (
-                                  <div className="orders-loading">
-                                    <div className="orders-spinner"></div>
-                                    Loading...
-                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => startEditing(restaurant)}
+                                    className="btn btn-edit"
+                                  >
+                                    <Edit2 size={16} />
+                                    Edit Settings
+                                  </button>
                                 )}
                               </div>
 
-                              {restaurantOrders[restaurant.id]?.length > 0 ? (
-                                <div className="orders-list">
-                                  {restaurantOrders[restaurant.id].map(
-                                    (order) => (
-                                      <div
-                                        key={order.orderId}
-                                        className="order-card"
+                              {editingId === restaurant.id ? (
+                                <div className="edit-form">
+                                  <div className="edit-form-grid">
+                                    <div className="form-field">
+                                      <label className="field-label">Restaurant Name</label>
+                                      <input
+                                        type="text"
+                                        value={editForm.restaurant_name || ""}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, restaurant_name: e.target.value })
+                                        }
+                                        className="form-input"
+                                      />
+                                    </div>
+
+                                    <div className="form-field">
+                                      <label className="field-label">
+                                        Commission Rate (%)
+                                        <span className="field-hint">Platform fee percentage</span>
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="0.5"
+                                        value={editForm.commission ?? 20}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, commission: parseFloat(e.target.value) || 0 })
+                                        }
+                                        className="form-input"
+                                      />
+                                    </div>
+
+                                    <div className="form-field">
+                                      <label className="field-label">FSA Rating</label>
+                                      <select
+                                        value={editForm.fsa ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, fsa: e.target.value ? parseInt(e.target.value) : undefined })
+                                        }
+                                        className="form-input"
                                       >
-                                        <div className="order-header">
-                                          <div>
-                                            <div className="order-id">
-                                              Order #{order.orderId.slice(0, 8)}
-                                            </div>
-                                            <div className="order-time">
-                                              <Clock size={14} />
-                                              <span>
-                                                {formatDate(order.timestamp)}
-                                              </span>
-                                            </div>
-                                          </div>
-                                          <span
-                                            className={`order-status ${getStatusColor(
-                                              order.status
-                                            )}`}
-                                          >
-                                            {order.status}
-                                          </span>
-                                        </div>
+                                        <option value="">Not Set</option>
+                                        <option value="5">5 - Very Good</option>
+                                        <option value="4">4 - Good</option>
+                                        <option value="3">3 - Generally Satisfactory</option>
+                                        <option value="2">2 - Improvement Necessary</option>
+                                        <option value="1">1 - Major Improvement Necessary</option>
+                                        <option value="0">0 - Urgent Improvement Necessary</option>
+                                      </select>
+                                    </div>
 
-                                        <div className="order-items">
-                                          {order.items.map((item: any, idx : number) => (
-                                            <div
-                                              key={idx}
-                                              className="order-item"
-                                            >
-                                              <span className="item-name">
-                                                {item.quantity}x {item.menuItemName}
-                                              </span>
-                                              <span className="item-price">
-                                                $
-                                                {(
-                                                  item.price * item.quantity
-                                                ).toFixed(2)}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
+                                    <div className="form-field">
+                                      <label className="field-label">FSA Link</label>
+                                      <input
+                                        type="url"
+                                        value={editForm.fsaLink || ""}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, fsaLink: e.target.value })
+                                        }
+                                        className="form-input"
+                                        placeholder="https://ratings.food.gov.uk/..."
+                                      />
+                                    </div>
 
-                                        {order.specialInstructions && (
-                                          <div className="special-instructions">
-                                            <p>
-                                              <span className="instructions-label">
-                                                Special Instructions:
-                                              </span>{" "}
-                                              {order.specialInstructions}
-                                            </p>
-                                          </div>
-                                        )}
+                                    <div className="form-field">
+                                      <label className="field-label">Restaurant Type</label>
+                                      <select
+                                        value={editForm.restaurantType ?? "restaurant"}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, restaurantType: e.target.value as "restaurant" | "stall" | "coming_soon" })
+                                        }
+                                        className="form-input"
+                                      >
+                                        <option value="restaurant">Restaurant</option>
+                                        <option value="stall">Stall</option>
+                                        <option value="coming_soon">Coming Soon</option>
+                                      </select>
+                                    </div>
 
-                                        <div className="order-footer">
-                                          <div className="prep-time">
-                                            {order.prepTimeMinutes && (
-                                              <span>
-                                                Prep Time:{" "}
-                                                {order.prepTimeMinutes} min
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="order-total">
-                                            <div className="total-line">
-                                              Total:{" "}
-                                              <span className="total-value">
-                                                ${order.totalPrice.toFixed(2)}
-                                              </span>
-                                            </div>
-                                            <div className="cost-line">
-                                              Restaurant Cost: $
-                                              {order.restaurantCost.toFixed(2)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )
-                                  )}
+                                    <div className="form-field full-width">
+                                      <label className="field-label">Description</label>
+                                      <textarea
+                                        value={editForm.restaurant_description || ""}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, restaurant_description: e.target.value })
+                                        }
+                                        className="form-textarea"
+                                        rows={3}
+                                        placeholder="Restaurant description..."
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                               ) : (
-                                <div className="orders-empty">
-                                  {loadingOrders[restaurant.id]
-                                    ? "Loading orders..."
-                                    : "No ongoing orders"}
+                                <div className="settings-display">
+                                  <div className="settings-grid">
+                                    <div className="setting-item highlight">
+                                      <span className="setting-label">Commission</span>
+                                      <span className="setting-value commission-value">
+                                        {restaurant.commission ?? 20}%
+                                      </span>
+                                    </div>
+                                    <div className="setting-item">
+                                      <span className="setting-label">FSA Rating</span>
+                                      <span className="setting-value">
+                                        {restaurant.fsa !== undefined && restaurant.fsa !== null
+                                          ? `${restaurant.fsa}/5`
+                                          : "N/A"}
+                                        {restaurant.fsaLink && (
+                                          <a
+                                            href={restaurant.fsaLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="fsa-link"
+                                          >
+                                            <ExternalLink size={12} />
+                                          </a>
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {restaurant.restaurant_description && (
+                                    <div className="description-display">
+                                      <span className="setting-label">Description</span>
+                                      <p className="description-text">{restaurant.restaurant_description}</p>
+                                    </div>
+                                  )}
+
+                                  {restaurant.address && (
+                                    <div className="address-display">
+                                      <MapPin size={14} />
+                                      <span>
+                                        {restaurant.address.addressLine1}
+                                        {restaurant.address.addressLine2 && `, ${restaurant.address.addressLine2}`}
+                                        {restaurant.address.city && `, ${restaurant.address.city}`}
+                                        {restaurant.address.zipcode && ` ${restaurant.address.zipcode}`}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <button
+                                    onClick={() => setDeleteModalRestaurant(restaurant)}
+                                    className="btn btn-delete-restaurant"
+                                  >
+                                    <Trash2 size={16} />
+                                    Delete Restaurant
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -630,6 +506,56 @@ const RestaurantAdminDashboard = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={handleRestaurantCreated}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalRestaurant && (
+        <div className="modal-overlay" onClick={() => setDeleteModalRestaurant(null)}>
+          <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Delete Restaurant</h2>
+              <button
+                className="modal-close"
+                onClick={() => setDeleteModalRestaurant(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="delete-warning">
+              <AlertCircle size={48} color="#ef4444" />
+              <p>Are you sure you want to delete this restaurant?</p>
+              <p className="restaurant-delete-name">{deleteModalRestaurant.restaurant_name}</p>
+              <p className="delete-note">
+                This action cannot be undone. All associated data including orders and menu items will be permanently deleted.
+              </p>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteModalRestaurant(null)}
+                disabled={deletingId === deleteModalRestaurant.id}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteRestaurant}
+                disabled={deletingId === deleteModalRestaurant.id}
+              >
+                {deletingId === deleteModalRestaurant.id ? (
+                  <>
+                    <div className="btn-spinner"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Restaurant"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

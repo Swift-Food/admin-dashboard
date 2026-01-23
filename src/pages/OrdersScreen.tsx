@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import orderService from "../services/order.service";
 import { Clock, X } from "lucide-react";
 import type { DriverOrder, OrderItem } from "../types/order.types";
+import { Modal } from "../components/Modal";
 
 const OrderTimer = ({ placedAt }: { placedAt: string }) => {
   const [timeElapsed, setTimeElapsed] = useState("");
@@ -66,7 +67,7 @@ const OrderDetailsModal = ({
   // Add error boundary check
   if (!order.id) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <Modal open={true} onClose={onClose} overlayOpacity={50}>
         <div className="bg-white rounded-lg p-6">
           <p className="text-red-500">Error: Invalid order data</p>
           <button
@@ -76,7 +77,7 @@ const OrderDetailsModal = ({
             Close
           </button>
         </div>
-      </div>
+      </Modal>
     );
   }
 
@@ -143,7 +144,7 @@ const OrderDetailsModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <Modal open={true} onClose={onClose} overlayOpacity={50}>
       <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
         <div className="flex justify-between items-center p-6 border-b">
           <div>
@@ -424,34 +425,32 @@ const OrderDetailsModal = ({
       </div>
 
       {/* Cancel Confirmation Dialog */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-bold mb-2">Cancel Order?</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to cancel order #{safeOrderId.slice(-8)}?
-              This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                disabled={isCancelling}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
-              >
-                No, Keep Order
-              </button>
-              <button
-                onClick={handleConfirmCancel}
-                disabled={isCancelling}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
-              >
-                {isCancelling ? "Cancelling..." : "Yes, Cancel"}
-              </button>
-            </div>
+      <Modal open={showCancelConfirm} onClose={() => setShowCancelConfirm(false)} overlayOpacity={60}>
+        <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+          <h3 className="text-lg font-bold mb-2">Cancel Order?</h3>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to cancel order #{safeOrderId.slice(-8)}?
+            This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowCancelConfirm(false)}
+              disabled={isCancelling}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+            >
+              No, Keep Order
+            </button>
+            <button
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-red-300"
+            >
+              {isCancelling ? "Cancelling..." : "Yes, Cancel"}
+            </button>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+    </Modal>
   );
 };
 

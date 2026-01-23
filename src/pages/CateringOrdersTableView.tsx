@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { CateringOrder } from "../types/catering.types";
 import cateringService, { type SendPaymentLinkDto } from "../services/catering.service";
+import { Modal } from "../components/Modal";
 
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
   const [isCompleting, setIsCompleting] = useState(false);
@@ -190,19 +191,34 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
       await cateringService.sendPaymentLink(payload);
 
+      // Success
+      setIsSendingPaymentLink(false);
       onClose();
       if (onOrderUpdated) onOrderUpdated();
       alert("Payment link sent successfully!");
       setShowSendPaymentModal(false);
     } catch (err: any) {
       console.error("Error sending payment link:", err);
+
+      // Check if this is a network timeout - the operation likely succeeded
+      const isNetworkError = err?.code === "ERR_NETWORK" || err?.message === "Network Error";
+
+      if (isNetworkError) {
+        alert(
+          "Request timed out, but the invoice may have been sent successfully. " +
+          "Please check your email and refresh the page before trying again."
+        );
+        // Keep button disabled for 30s on network errors since operation likely succeeded
+        setTimeout(() => setIsSendingPaymentLink(false), 30000);
+        return;
+      }
+
       const serverMessage =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
         "Failed to send payment link. Please try again.";
       alert(`Failed to send payment link: ${serverMessage}`);
-    } finally {
       setIsSendingPaymentLink(false);
     }
   };
@@ -212,8 +228,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     order.status === "payment_link_sent";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <Modal open={true} onClose={onClose} overlayOpacity={50}>
+      <div className="bg-white rounded-xl w-[70vw] max-w-[1000px] max-h-[90vh] overflow-y-auto shadow-2xl flex-shrink-0">
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-xl">
           <div className="flex justify-between items-start">
             <div>
@@ -746,9 +762,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
         </div>
 
         {/* Send Payment Link Modal */}
-        {showSendPaymentModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-lg p-6 max-w-2xl mx-4 w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <Modal open={showSendPaymentModal} onClose={() => setShowSendPaymentModal(false)} overlayOpacity={60} closeOnOverlayClick={false}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 my-4 max-h-[90vh] overflow-y-auto">
               <h3 className="text-lg font-bold mb-4 text-gray-900">
                 Send Payment Link
               </h3>
@@ -856,10 +871,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          </Modal>
       </div>
-    </div>
+    </Modal>
   );
 };
 

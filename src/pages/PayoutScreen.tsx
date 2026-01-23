@@ -1,6 +1,7 @@
 import { Clock, X, User, CreditCard, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { withdrawalService } from "../services/withdrawal.service";
+import { Modal } from "../components/Modal";
 
 // Types
 const WithdrawalStatus = {
@@ -146,7 +147,7 @@ const WithdrawalDetailsModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <Modal open={true} onClose={onClose} overlayOpacity={50}>
       <div className="bg-white rounded-lg max-w-3xl max-h-[90vh] overflow-y-auto w-full">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
@@ -303,9 +304,8 @@ const WithdrawalDetailsModal = ({
       </div>
 
       {/* Approve Confirmation */}
-      {showApproveConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
+      <Modal open={showApproveConfirm} onClose={() => setShowApproveConfirm(false)} overlayOpacity={60}>
+        <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
             <h3 className="text-lg font-bold mb-4 text-gray-900">Approve Withdrawal</h3>
             
             <p className="text-gray-700 mb-6">
@@ -332,13 +332,11 @@ const WithdrawalDetailsModal = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </Modal>
 
       {/* Reject Modal */}
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
+      <Modal open={showRejectModal} onClose={() => setShowRejectModal(false)} overlayOpacity={60}>
+        <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
             <h3 className="text-lg font-bold mb-4 text-gray-900">Reject Withdrawal</h3>
             
             <div className="mb-6">
@@ -372,9 +370,8 @@ const WithdrawalDetailsModal = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        </Modal>
+    </Modal>
   );
 };
 

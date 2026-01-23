@@ -4,6 +4,7 @@ import type {
   AdminCorporateOrderDetails,
 } from "../types/admin-corporate.types";
 import corporateService from "../services/corporate.service";
+import { Modal } from "../components/Modal";
 
 const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: AdminCorporateOrderDetails | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -81,8 +82,8 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
   const availableActions = getAvailableActions();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <Modal open={true} onClose={onClose} overlayOpacity={50}>
+      <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-xl">
           <div className="flex justify-between items-start">
             <div>
@@ -251,7 +252,7 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

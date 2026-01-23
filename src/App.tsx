@@ -17,12 +17,14 @@ import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import MiscellaneousScreen from "./pages/MiscellaneousScreen";
 import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
+import EventsScreen from "./pages/EventsScreen/EventsScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
   const [currentPage, setCurrentPage] = useState<SidebarPage>("home");
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
 
 
@@ -60,6 +62,8 @@ function App() {
         return <MiscellaneousScreen />
       case "event-categories":
         return <EventCategoriesScreen />
+      case "events":
+        return <EventsScreen />
 
       default:
         return <RestaurantAdminDashboard />;
@@ -67,9 +71,19 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f5f7fa]">
-      <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-      <main className="flex-1 overflow-x-auto min-w-0">{renderPage()}</main>
+    <div className="min-h-screen bg-[#f5f7fa]">
+      <Sidebar
+        currentPage={currentPage}
+        onNavigate={setCurrentPage}
+        expanded={sidebarExpanded}
+        onExpandedChange={setSidebarExpanded}
+      />
+      <main
+        className="flex-1 overflow-x-auto min-w-0"
+        style={{ marginLeft: sidebarExpanded ? 250 : 70 }}
+      >
+        {renderPage()}
+      </main>
     </div>
   );
 }

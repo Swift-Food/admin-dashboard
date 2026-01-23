@@ -2,6 +2,7 @@ import http from "./http";
 import type {
   Restaurant,
   UpdateAvailabilityDto,
+  UpdateRestaurantDto,
 } from "../types/restaurant.types";
 
 import type { Market } from "../types/market.types";
@@ -35,7 +36,7 @@ interface RestaurantResponse {
   restaurant_name: string;
   isOpen: boolean;
   restaurant_description?: string;
-  restaurantType: "restaurant" | "stall";
+  restaurantType: "restaurant" | "stall" | "coming_soon";
   featured: boolean;
   phoneNumber?: string;
   email?: string;
@@ -186,6 +187,18 @@ const toggleRestaurantStatus = async (
     isOpen,
     deviceToken: null,
   });
+};
+
+const updateRestaurant = async (
+  id: string,
+  updateDto: UpdateRestaurantDto
+): Promise<RestaurantResponse> => {
+  const res = await http.patch<RestaurantResponse>(`/restaurant/${id}`, updateDto);
+  return res.data;
+};
+
+const deleteRestaurant = async (id: string): Promise<void> => {
+  await http.delete(`/restaurant/${id}`);
 };
 
 // ============================================
@@ -368,6 +381,9 @@ export {
   // Update operations
   updateRestaurantAvailability,
   toggleRestaurantStatus,
+  updateRestaurant,
+  // Delete operations
+  deleteRestaurant,
   // Create operations
   createRestaurantUser,
   createAddress,
@@ -388,6 +404,7 @@ export type {
   RestaurantOrdersResponse,
   // Request DTOs
   UpdateAvailabilityDto,
+  UpdateRestaurantDto,
   CreateRestaurantUserDto,
   CreateAddressDto,
   CreateRestaurantDto,

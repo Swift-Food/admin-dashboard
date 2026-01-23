@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHome,
@@ -61,6 +62,7 @@ interface SidebarProps {
   onNavigate: (page: SidebarPage) => void;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  adminMode: AdminMode;
 }
 
 const handleLogout = () => {
@@ -224,16 +226,14 @@ const navSections: NavSection[] = [
   },
 ];
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, onExpandedChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, onExpandedChange, adminMode }) => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [adminMode, setAdminMode] = useState<AdminMode>(() => {
-    const saved = localStorage.getItem("adminMode");
-    return (saved as AdminMode) || "swift";
-  });
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    localStorage.setItem("adminMode", adminMode);
-  }, [adminMode]);
+  const handleModeChange = (newMode: AdminMode) => {
+    localStorage.setItem("adminMode", newMode);
+    navigate(`/${newMode}/home`);
+  };
 
   const toggleSection = (sectionId: string) => {
     setCollapsedSections((prev) => {
@@ -305,7 +305,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
         {expanded ? (
           <div style={modeToggleStyle}>
             <button
-              onClick={() => setAdminMode("swift")}
+              onClick={() => handleModeChange("swift")}
               style={{
                 ...modeButtonStyle,
                 background: isSwift ? "#dbeafe" : "transparent",
@@ -316,7 +316,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
               Swift
             </button>
             <button
-              onClick={() => setAdminMode("prismo")}
+              onClick={() => handleModeChange("prismo")}
               style={{
                 ...modeButtonStyle,
                 background: !isSwift ? "#ede9fe" : "transparent",
@@ -329,7 +329,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
           </div>
         ) : (
           <button
-            onClick={() => setAdminMode(isSwift ? "prismo" : "swift")}
+            onClick={() => handleModeChange(isSwift ? "prismo" : "swift")}
             style={modeIconButtonStyle}
             title={`Switch to ${isSwift ? "Prismo" : "Swift"}`}
           >

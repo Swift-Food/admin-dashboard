@@ -256,6 +256,9 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
   );
 };
 
+type SortColumn = "orderId" | "organization" | "restaurant" | "deliveryDate" | "employees" | "total" | "status" | "payment" | "createdAt";
+type SortDirection = "asc" | "desc";
+
 const CorporateOrdersScreen = () => {
   const [allOrders, setAllOrders] = useState<AdminCorporateOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,6 +267,35 @@ const CorporateOrdersScreen = () => {
   const [selectedOrder, setSelectedOrder] = useState<AdminCorporateOrderDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"active" | "completed" | "all">("active");
+  const [sortColumn, setSortColumn] = useState<SortColumn>("status");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortHeader = ({ column, label }: { column: SortColumn; label: string }) => (
+    <th
+      className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition-colors select-none"
+      onClick={() => handleSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <span className={sortColumn === column ? "text-blue-600" : "text-gray-400"}>
+          {sortColumn === column ? (
+            sortDirection === "asc" ? "▲" : "▼"
+          ) : (
+            "⇅"
+          )}
+        </span>
+      </div>
+    </th>
+  );
 
   const fetchAllOrders = useCallback(async () => {
     try {
@@ -354,14 +386,44 @@ const CorporateOrdersScreen = () => {
   };
 
   const sortedOrders = [...filteredOrders].sort((a, b) => {
-    const aPriority = statusPriority[a.status] || 999;
-    const bPriority = statusPriority[b.status] || 999;
+    let comparison = 0;
 
-    if (aPriority !== bPriority) {
-      return aPriority - bPriority;
+    switch (sortColumn) {
+      case "orderId":
+        comparison = a.id.localeCompare(b.id);
+        break;
+      case "organization":
+        comparison = a.organizationName.localeCompare(b.organizationName);
+        break;
+      case "restaurant": {
+        const aRestaurant = (a.restaurantNames || [])[0] || "";
+        const bRestaurant = (b.restaurantNames || [])[0] || "";
+        comparison = aRestaurant.localeCompare(bRestaurant);
+        break;
+      }
+      case "deliveryDate":
+        comparison = new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime();
+        break;
+      case "employees":
+        comparison = (a.totalEmployees || 0) - (b.totalEmployees || 0);
+        break;
+      case "total":
+        comparison = (a.customerFinalTotal || 0) - (b.customerFinalTotal || 0);
+        break;
+      case "status":
+        comparison = (statusPriority[a.status] || 999) - (statusPriority[b.status] || 999);
+        break;
+      case "payment":
+        comparison = (a.paid ? 1 : 0) - (b.paid ? 1 : 0);
+        break;
+      case "createdAt":
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        break;
+      default:
+        comparison = 0;
     }
 
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return sortDirection === "asc" ? comparison : -comparison;
   });
 
   const statusCounts: Record<string, number> = {};
@@ -515,14 +577,14 @@ const CorporateOrdersScreen = () => {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Order ID</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Organization</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Restaurants</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Delivery Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Employees</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Payment</th>
+                  <SortHeader column="orderId" label="Order ID" />
+                  <SortHeader column="organization" label="Organization" />
+                  <SortHeader column="restaurant" label="Restaurants" />
+                  <SortHeader column="deliveryDate" label="Delivery Date" />
+                  <SortHeader column="employees" label="Employees" />
+                  <SortHeader column="total" label="Total" />
+                  <SortHeader column="status" label="Status" />
+                  <SortHeader column="payment" label="Payment" />
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>

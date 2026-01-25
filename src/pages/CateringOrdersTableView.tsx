@@ -4,6 +4,7 @@ import cateringService, { type SendPaymentLinkDto } from "../services/catering.s
 import { Modal } from "../components/Modal";
 
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
+  console.log("order is", JSON.stringify(order))
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
@@ -1127,6 +1128,7 @@ const CateringOrdersScreen = () => {
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Restaurants</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Event Date</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Guests</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Special Instructions</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Payment</th>
@@ -1166,6 +1168,15 @@ const CateringOrdersScreen = () => {
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{order.guestCount || "N/A"}</div>
                       {order.eventType && <div className="text-xs text-gray-500 mt-1">{order.eventType}</div>}
+                    </td>
+                    <td className="px-6 py-5">
+                      {order.specialRequirements ? (
+                        <div className="text-sm text-gray-700 max-w-xs truncate" title={order.specialRequirements}>
+                          {order.specialRequirements}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-base font-bold text-gray-900">

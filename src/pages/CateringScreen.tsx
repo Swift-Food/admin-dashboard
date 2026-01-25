@@ -230,7 +230,7 @@ const CateringOrderDetailsModal = ({
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              Catering Order Details
+              Catering Order Details 
             </h2>
             <p className="text-gray-600">Order ID: {order.id}</p>
           </div>

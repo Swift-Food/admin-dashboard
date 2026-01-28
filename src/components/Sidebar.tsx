@@ -37,6 +37,7 @@ export type SidebarPage =
   | "statistics"
   | "map"
   | "catering"
+  | "catering-sessions"
   | "bundles"
   | "payout"
   | "corporate"
@@ -114,6 +115,11 @@ const navSections: NavSection[] = [
         id: "catering",
         label: "Catering Orders",
         icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,
+      },
+      {
+        id: "catering-sessions",
+        label: "Catering Sessions",
+        icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
       },
       {
         id: "corporate",

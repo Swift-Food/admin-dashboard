@@ -25,8 +25,9 @@ const reviewOrder = async (reviewDto: {
   };
   adminNotes?: string;
   reviewedBy: string;
-}): Promise<CateringOrder> => {
-  console.log("Reviewing order:", reviewDto);
+}): Promise<CateringOrder>  => {
+
+  console.log("Reviewing order:", JSON.stringify(reviewDto));
   const res = await http.patch<CateringOrder>(
     `catering-orders/${reviewDto.orderId}/review`,
     reviewDto

@@ -4,7 +4,7 @@ import cateringService, { type SendPaymentLinkDto } from "../services/catering.s
 import { Modal } from "../components/Modal";
 
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
-  console.log("order is", JSON.stringify(order))
+  
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);

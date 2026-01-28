@@ -26,6 +26,7 @@ import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import MiscellaneousScreen from "./pages/MiscellaneousScreen";
 import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
 import EventsScreen from "./pages/EventsScreen/EventsScreen";
+import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -34,6 +35,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   home: "home",
   orders: "orders",
   "catering-orders": "catering",
+  "catering-sessions": "catering-sessions",
   "corporate-orders": "corporate",
   restaurants: "restaurant",
   categories: "categories",
@@ -54,6 +56,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   home: "home",
   orders: "orders",
   catering: "catering-orders",
+  "catering-sessions": "catering-sessions",
   corporate: "corporate-orders",
   restaurant: "restaurants",
   categories: "categories",
@@ -74,6 +77,7 @@ const swiftPages: SidebarPage[] = [
   "home",
   "orders",
   "catering",
+  "catering-sessions",
   "corporate",
   "restaurant",
   "categories",
@@ -128,6 +132,8 @@ function PageRenderer() {
         return <PromotionsScreen />;
       case "catering":
         return <CateringOrdersScreen />;
+      case "catering-sessions":
+        return <CateringSessionsScreen />;
       case "bundles":
         return <BundlesScreen />;
       case "payout":

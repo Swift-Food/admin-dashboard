@@ -118,7 +118,7 @@ const navSections: NavSection[] = [
       },
       {
         id: "catering-sessions",
-        label: "Catering Sessions",
+        label: "Drivers",
         icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
       },
       {

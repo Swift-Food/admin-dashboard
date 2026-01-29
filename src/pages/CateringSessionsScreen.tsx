@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import type {
   CateringMealSession,
   MealSessionDeliveryStatus,
-  CateringSessionTrackingDetails,
-  CollectionRoute,
 } from "../types/catering-session.types";
 import cateringSessionService from "../services/catering-session.service";
 import { Modal } from "../components/Modal";
@@ -85,35 +83,6 @@ const SessionDetailModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const [trackingDetails, setTrackingDetails] =
-    useState<CateringSessionTrackingDetails | null>(null);
-  const [route, setRoute] = useState<CollectionRoute | null>(null);
-  const [loadingTracking, setLoadingTracking] = useState(false);
-  const [loadingRoute, setLoadingRoute] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "tracking" | "route">(
-    "details"
-  );
-
-  useEffect(() => {
-    if (session && isOpen) {
-      // Fetch tracking details
-      setLoadingTracking(true);
-      cateringSessionService
-        .getTrackingDetails(session.id)
-        .then(setTrackingDetails)
-        .catch(console.error)
-        .finally(() => setLoadingTracking(false));
-
-      // Fetch route
-      setLoadingRoute(true);
-      cateringSessionService
-        .getCollectionRoute(session.id)
-        .then(setRoute)
-        .catch(console.error)
-        .finally(() => setLoadingRoute(false));
-    }
-  }, [session, isOpen]);
-
   if (!isOpen || !session) return null;
 
   const statusConfig = STATUS_CONFIG[session.deliveryStatus];
@@ -122,16 +91,6 @@ const SessionDetailModal = ({
     if (!dateStr) return "N/A";
     const date = new Date(dateStr);
     return date.toLocaleString();
-  };
-
-  const formatTime = (timeStr?: string) => {
-    if (!timeStr) return "N/A";
-    // Handle both ISO date strings and time strings like "19:00"
-    if (timeStr.includes("T")) {
-      const date = new Date(timeStr);
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
-    return timeStr;
   };
 
   // Get customer info from nested cateringOrder
@@ -180,29 +139,8 @@ const SessionDetailModal = ({
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 bg-gray-50">
-          <div className="flex gap-1 p-2">
-            {(["details", "tracking", "route"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === tab
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="p-6">
-          {/* Details Tab */}
-          {activeTab === "details" && (
-            <div className="space-y-6">
+          <div className="space-y-6">
               {/* Session Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
@@ -494,201 +432,7 @@ const SessionDetailModal = ({
                 </div>
               )}
             </div>
-          )}
-
-          {/* Tracking Tab */}
-          {activeTab === "tracking" && (
-            <div className="space-y-6">
-              {loadingTracking ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">Loading tracking details...</p>
-                </div>
-              ) : trackingDetails ? (
-                <>
-                  {/* Estimated Arrival */}
-                  {trackingDetails.estimatedArrival && (
-                    <div className="bg-purple-50 p-5 rounded-xl border-2 border-purple-200">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
-                        Estimated Arrival
-                      </h3>
-                      <p className="text-2xl font-bold text-purple-700">
-                        {formatDateTime(trackingDetails.estimatedArrival)}
-                      </p>
-                      {trackingDetails.distanceRemaining && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          {(trackingDetails.distanceRemaining / 1000).toFixed(1)}{" "}
-                          km remaining
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Delay Warning */}
-                  {session.isDelayed && (
-                    <div className="bg-red-50 p-5 rounded-xl border-2 border-red-200">
-                      <h3 className="text-lg font-bold text-red-900 mb-2">
-                        Delivery Delayed
-                      </h3>
-                      {session.delayMinutes && (
-                        <p className="text-red-700">
-                          Delayed by {session.delayMinutes} minutes
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Driver Notes */}
-                  {session.driverNotes && (
-                    <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
-                        Driver Notes
-                      </h3>
-                      <p className="text-gray-700">{session.driverNotes}</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No tracking details available</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Route Tab */}
-          {activeTab === "route" && (
-            <div className="space-y-6">
-              {loadingRoute ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">Loading route...</p>
-                </div>
-              ) : route ? (
-                <>
-                  {/* Route Summary */}
-                  <div className="bg-indigo-50 p-5 rounded-xl border-2 border-indigo-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Route Summary
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-600">Total Stops</p>
-                        <p className="text-2xl font-bold text-indigo-700">
-                          {route.stops.length}
-                        </p>
-                      </div>
-                      {route.totalDistance && (
-                        <div>
-                          <p className="text-gray-600">Total Distance</p>
-                          <p className="text-2xl font-bold text-indigo-700">
-                            {(route.totalDistance / 1000).toFixed(1)} km
-                          </p>
-                        </div>
-                      )}
-                      {route.totalDuration && (
-                        <div>
-                          <p className="text-gray-600">Est. Duration</p>
-                          <p className="text-2xl font-bold text-indigo-700">
-                            {Math.round(route.totalDuration / 60)} min
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Route Stops */}
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      Route Stops
-                    </h3>
-                    <div className="space-y-3">
-                      {route.stops.map((stop, idx) => (
-                        <div
-                          key={idx}
-                          className={`p-4 rounded-xl border-2 ${
-                            stop.status === "COMPLETED"
-                              ? "bg-green-50 border-green-200"
-                              : stop.status === "IN_PROGRESS"
-                              ? "bg-blue-50 border-blue-200"
-                              : stop.status === "SKIPPED"
-                              ? "bg-gray-50 border-gray-200"
-                              : "bg-white border-gray-200"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                                  stop.type === "PICKUP"
-                                    ? "bg-orange-500"
-                                    : "bg-green-500"
-                                }`}
-                              >
-                                {stop.order}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`px-2 py-0.5 text-xs font-semibold rounded ${
-                                      stop.type === "PICKUP"
-                                        ? "bg-orange-100 text-orange-800"
-                                        : "bg-green-100 text-green-800"
-                                    }`}
-                                  >
-                                    {stop.type}
-                                  </span>
-                                  {stop.restaurantName && (
-                                    <span className="font-semibold text-gray-900">
-                                      {stop.restaurantName}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-600 mt-1">
-                                  {stop.address}
-                                </p>
-                                {stop.scheduledTime && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Scheduled: {formatTime(stop.scheduledTime)}
-                                  </p>
-                                )}
-                                {stop.estimatedArrival && (
-                                  <p className="text-xs text-blue-600 mt-1">
-                                    ETA: {formatTime(stop.estimatedArrival)}
-                                  </p>
-                                )}
-                                {stop.actualArrival && (
-                                  <p className="text-xs text-green-600 mt-1">
-                                    Arrived: {formatTime(stop.actualArrival)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <span
-                              className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                stop.status === "COMPLETED"
-                                  ? "bg-green-100 text-green-800"
-                                  : stop.status === "IN_PROGRESS"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : stop.status === "SKIPPED"
-                                  ? "bg-gray-100 text-gray-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {stop.status.replace("_", " ")}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No route data available</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">

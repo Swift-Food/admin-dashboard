@@ -24,6 +24,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       });
       onLogin();
     } catch (err: any) {
+      console.log("err is", JSON.stringify(err))
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);

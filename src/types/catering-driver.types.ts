@@ -72,14 +72,14 @@ export interface DriverMealSessionDto {
   eventTime?: string;
   totalPortions: number;
 
-  // Multi-driver support
-  driverIds: string[];
+  // Single driver org account per session
+  driverOrgId: string | null;
   driverNames: string[];
 
   // Per-restaurant pickup tracking
   restaurantPickupStatus: Record<string, RestaurantPickupStatusEntry>;
 
-  // Per-driver delivery confirmations
+  // Delivery confirmations (keyed by driverName)
   driverDeliveryConfirmations: Record<string, DriverDeliveryConfirmation>;
 
   // Optimistic locking
@@ -102,20 +102,24 @@ export interface DeliveryAnalyticsDto {
 
 // DTOs for API requests
 export interface AcceptMealSessionDto {
-  driverName: string;
+  driverOrgId?: string;
+  driverNames: string[];
 }
 
 export interface UpdateDriverNameDto {
-  driverName: string;
+  driverOrgId?: string;
+  driverNames: string[];
 }
 
 export interface CollectRestaurantDto {
   restaurantId: string;
   pickupProofImageUrl: string;
+  collectedBy: string;
   notes?: string;
 }
 
 export interface ConfirmDriverDeliveryDto {
   deliveryProofImageUrl: string;
+  driverName: string;
   notes?: string;
 }

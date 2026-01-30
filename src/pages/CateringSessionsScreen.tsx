@@ -242,11 +242,11 @@ const SessionDetailModal = ({
                   </h3>
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xl">
-                      {session.driverName?.charAt(0).toUpperCase() || "D"}
+                      {session.driverNames?.[0]?.charAt(0).toUpperCase() || "D"}
                     </div>
                     <div>
                       <p className="text-lg font-semibold text-gray-900">
-                        {session.driverName || "Unknown Driver"}
+                        {session.driverNames?.join(", ") || "Unknown Driver"}
                       </p>
                       {session.deliveryMethod && (
                         <p className="text-sm text-gray-500">
@@ -489,8 +489,8 @@ const CateringSessionsScreen = () => {
   const uniqueDrivers = Array.from(
     new Map(
       allSessions
-        .filter((s) => s.driverId && s.driverName)
-        .map((s) => [s.driverId!, { id: s.driverId!, name: s.driverName! }])
+        .filter((s) => s.driverId && s.driverNames?.length)
+        .map((s) => [s.driverId!, { id: s.driverId!, name: s.driverNames!.join(", ") }])
     ).values()
   );
 
@@ -520,7 +520,7 @@ const CateringSessionsScreen = () => {
         session.id.toLowerCase().includes(search) ||
         session.cateringOrder?.customerName?.toLowerCase().includes(search) ||
         session.cateringOrderId?.toLowerCase().includes(search) ||
-        session.driverName?.toLowerCase().includes(search) ||
+        session.driverNames?.some(name => name.toLowerCase().includes(search)) ||
         session.orderItems.some((item) =>
           item.restaurantName.toLowerCase().includes(search)
         );
@@ -800,14 +800,14 @@ const CateringSessionsScreen = () => {
 
                       {/* Driver */}
                       <td className="px-6 py-5 whitespace-nowrap">
-                        {session.driverName ? (
+                        {session.driverNames ? (
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
-                              {session.driverName.charAt(0).toUpperCase()}
+                              {session.driverNames[0].charAt(0).toUpperCase()}
                             </div>
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {session.driverName}
+                                {session.driverNames.join(", ")}
                               </div>
                             </div>
                           </div>

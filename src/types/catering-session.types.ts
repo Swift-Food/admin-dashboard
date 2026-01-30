@@ -79,7 +79,7 @@ export interface CateringMealSession {
 
   // Driver Info (flat fields)
   driverId?: string;
-  driverName?: string;
+  driverNames?: string[];
   deliveryMethod?: string;
   driverAssignedAt?: string;
 

@@ -107,9 +107,25 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   };
 
   const handleReviewOrder = async () => {
+    // Validate collection times are before event times
+    if (order.mealSessions && order.mealSessions.length > 0) {
+      for (const session of order.mealSessions) {
+        const collectionTime = reviewForm.sessionCollectionTimes[session.id];
+        if (collectionTime && session.eventTime && collectionTime >= session.eventTime) {
+          alert(`Collection time (${collectionTime}) must be before event time (${session.eventTime}) for "${session.sessionName}"`);
+          return;
+        }
+      }
+    } else if (reviewForm.sessionCollectionTimes["default"] && order.eventTime) {
+      if (reviewForm.sessionCollectionTimes["default"] >= order.eventTime) {
+        alert(`Collection time (${reviewForm.sessionCollectionTimes["default"]}) must be before event time (${order.eventTime})`);
+        return;
+      }
+    }
+
     setIsReviewing(true);
     try {
-      const finalTotal = reviewForm.finalTotal 
+      const finalTotal = reviewForm.finalTotal
         ? parseFloat(reviewForm.finalTotal)
         : (order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0);
   

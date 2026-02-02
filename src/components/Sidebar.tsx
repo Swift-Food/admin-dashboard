@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -22,6 +22,7 @@ import {
   faCalendarAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
+import cateringService from "../services/catering.service";
 
 export type AdminMode = "swift" | "prismo";
 
@@ -234,7 +235,24 @@ const navSections: NavSection[] = [
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, onExpandedChange, adminMode }) => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [pendingCateringCount, setPendingCateringCount] = useState(0);
   const navigate = useNavigate();
+
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const orders = await cateringService.getOrders();
+      const count = orders.filter((o) => o.status === "pending_review").length;
+      setPendingCateringCount(count);
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchPendingCount]);
 
   const handleModeChange = (newMode: AdminMode) => {
     localStorage.setItem("adminMode", newMode);
@@ -422,6 +440,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                           boxSizing: "border-box",
                           justifyContent: expanded ? "flex-start" : "center",
                           paddingLeft: expanded ? 24 : 16,
+                          position: "relative",
                         }}
                         title={expanded ? undefined : item.label}
                       >
@@ -441,6 +460,30 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                         >
                           {item.label}
                         </span>
+                        {item.id === "catering" && pendingCateringCount > 0 && (
+                          <span
+                            style={{
+                              background: "#dc2626",
+                              color: "#fff",
+                              fontSize: "0.7rem",
+                              fontWeight: 700,
+                              borderRadius: "9999px",
+                              minWidth: 20,
+                              height: 20,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "0 6px",
+                              marginLeft: expanded ? "auto" : 0,
+                              position: expanded ? "relative" : "absolute",
+                              top: expanded ? undefined : -4,
+                              right: expanded ? undefined : -4,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {pendingCateringCount}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

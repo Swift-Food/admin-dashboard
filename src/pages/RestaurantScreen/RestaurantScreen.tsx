@@ -158,7 +158,7 @@ const RestaurantAdminDashboard = () => {
       const { images: imageStr, ...restForm } = editForm;
       const payload = {
         ...restForm,
-        images: imageStr ? [imageStr] : undefined,
+        images: imageStr ? [imageStr] : [],  // Empty array to clear images
       };
       await updateRestaurant(restaurantId, payload as any);
 
@@ -170,7 +170,7 @@ const RestaurantAdminDashboard = () => {
                 ...r,
                 ...restForm,
                 // Convert images string back to array for local state
-                images: imageStr ? [imageStr] : r.images,
+                images: imageStr ? [imageStr] : [],
               }
             : r
         )

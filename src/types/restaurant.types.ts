@@ -51,7 +51,7 @@ export interface Restaurant {
   featured: boolean;
   openingHours: OpeningHours[];
   images: string[];
-  eventImages?: string;
+  eventImages?: string[];
   isCatering?: boolean;
   averageRating: number;
   isOpen: boolean;

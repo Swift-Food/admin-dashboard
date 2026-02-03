@@ -96,7 +96,7 @@ const RestaurantAdminDashboard = () => {
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
       restaurantType: restaurant.restaurantType ?? "restaurant",
-      eventImages: restaurant.eventImages?.split(",")[0] || "",
+      eventImages: restaurant.eventImages?.[0] || "",
     });
   };
 
@@ -162,6 +162,8 @@ const RestaurantAdminDashboard = () => {
             ? {
                 ...r,
                 ...editForm,
+                // Convert eventImages string back to array for local state
+                eventImages: editForm.eventImages ? [editForm.eventImages] : r.eventImages,
               }
             : r
         )
@@ -578,11 +580,11 @@ const RestaurantAdminDashboard = () => {
                                     )}
                                   </div>
 
-                                  {restaurant.isCatering && restaurant.eventImages && (
+                                  {restaurant.isCatering && restaurant.eventImages?.[0] && (
                                     <div className="catering-image-display">
                                       <span className="setting-label">Catering Image</span>
                                       <img
-                                        src={restaurant.eventImages.split(",")[0]}
+                                        src={restaurant.eventImages[0]}
                                         alt="Catering"
                                         className="catering-display-img"
                                       />

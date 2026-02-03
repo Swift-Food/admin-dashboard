@@ -277,7 +277,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               </h3>
               <p className="text-lg font-semibold text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</p>
               <p className="text-sm text-gray-600 mt-1">{order.eventTime}</p>
-              <p className="text-sm text-gray-600 mt-2">{order.guestCount} guests</p>
+              <p className="text-sm text-gray-600 mt-2">{(order.restaurants || order.orderItems || []).reduce((total, item) => total + (item.menuItems || []).reduce((sum, mi) => sum + (mi?.quantity || 0), 0), 0)} portions</p>
               {order.eventType && <p className="text-sm text-gray-600">{order.eventType}</p>}
             </div>
           </div>

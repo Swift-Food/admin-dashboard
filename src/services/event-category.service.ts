@@ -7,6 +7,7 @@ import type {
   CreateSubcategoryDto,
   UpdateSubcategoryDto,
   DeleteResponse,
+  DeletePreviewResponse,
 } from "../types/event-category.types";
 
 // Categories
@@ -38,9 +39,16 @@ export const updateCategory = async (
   return res.data;
 };
 
-export const deleteCategory = async (id: string): Promise<DeleteResponse> => {
+export const deleteCategoryPreview = async (id: string): Promise<DeletePreviewResponse> => {
+  const res = await http.get<DeletePreviewResponse>(
+    `/events/admin/categories/${id}/delete-preview`
+  );
+  return res.data;
+};
+
+export const deleteCategory = async (id: string, force?: boolean): Promise<DeleteResponse> => {
   const res = await http.delete<DeleteResponse>(
-    `/events/admin/categories/${id}`
+    `/events/admin/categories/${id}${force ? '?force=true' : ''}`
   );
   return res.data;
 };
@@ -90,6 +98,7 @@ export default {
   getCategory,
   createCategory,
   updateCategory,
+  deleteCategoryPreview,
   deleteCategory,
   createSubcategory,
   updateSubcategory,

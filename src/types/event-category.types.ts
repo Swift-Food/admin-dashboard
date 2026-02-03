@@ -49,4 +49,11 @@ export interface UpdateSubcategoryDto {
 export interface DeleteResponse {
   success: boolean;
   message: string;
+  deletedEvents?: string[];
+}
+
+export interface DeletePreviewResponse {
+  categoryName: string;
+  eventsToDelete: Array<{ id: string; name: string }>;
+  eventsToUpdate: Array<{ id: string; name: string }>;
 }

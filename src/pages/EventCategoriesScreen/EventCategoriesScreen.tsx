@@ -18,6 +18,7 @@ import type {
   UpdateCategoryDto,
   CreateSubcategoryDto,
   UpdateSubcategoryDto,
+  DeletePreviewResponse,
 } from "../../types/event-category.types";
 import LucideIconPicker, {
   renderLucideIcon,
@@ -35,6 +36,9 @@ const EventCategoriesScreen: React.FC = () => {
   const [showEditCategory, setShowEditCategory] = useState(false);
   const [showAddSubcategory, setShowAddSubcategory] = useState(false);
   const [showEditSubcategory, setShowEditSubcategory] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePreview, setDeletePreview] = useState<DeletePreviewResponse | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<EventCategory | null>(null);
 
   // Selected items
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | null>(null);
@@ -132,17 +136,52 @@ const EventCategoriesScreen: React.FC = () => {
     }
   };
 
-  // Category Delete
+  // Category Delete - first get preview, then confirm
   const handleDeleteCategory = async (category: EventCategory, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`Are you sure you want to delete "${category.name}"? This will also delete all its subcategories.`)) return;
+    setDeletingCategory(category);
 
     try {
-      await eventCategoryService.deleteCategory(category.id);
-      setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      // Get preview of what will be affected
+      const preview = await eventCategoryService.deleteCategoryPreview(category.id);
+      setDeletePreview(preview);
+      setShowDeleteConfirm(true);
+    } catch (err) {
+      // If preview fails (no events), just show simple confirm
+      if (confirm(`Are you sure you want to delete "${category.name}"? This will also delete all its subcategories.`)) {
+        try {
+          await eventCategoryService.deleteCategory(category.id, true);
+          setCategories((prev) => prev.filter((c) => c.id !== category.id));
+        } catch (delErr) {
+          alert(delErr instanceof Error ? delErr.message : "Failed to delete category");
+        }
+      }
+      setDeletingCategory(null);
+    }
+  };
+
+  // Confirm delete after seeing preview
+  const confirmDeleteCategory = async () => {
+    if (!deletingCategory) return;
+
+    try {
+      setSubmitting(true);
+      await eventCategoryService.deleteCategory(deletingCategory.id, true);
+      setCategories((prev) => prev.filter((c) => c.id !== deletingCategory.id));
+      setShowDeleteConfirm(false);
+      setDeletePreview(null);
+      setDeletingCategory(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete category");
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const cancelDeleteCategory = () => {
+    setShowDeleteConfirm(false);
+    setDeletePreview(null);
+    setDeletingCategory(null);
   };
 
   const resetCategoryForm = () => {
@@ -670,6 +709,59 @@ const EventCategoriesScreen: React.FC = () => {
                 disabled={submitting || !subcategoryName.trim()}
               >
                 {submitting ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && deletePreview && deletingCategory && (
+        <div className="modal-overlay" onClick={cancelDeleteCategory}>
+          <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
+            <h2>Delete Category: {formatCategoryName(deletePreview.categoryName)}</h2>
+
+            {deletePreview.eventsToDelete.length === 0 && deletePreview.eventsToUpdate.length === 0 ? (
+              <p>This category has no associated events. It will be deleted along with its subcategories.</p>
+            ) : (
+              <>
+                {deletePreview.eventsToUpdate.length > 0 && (
+                  <div className="delete-preview-section">
+                    <h4>Events that will have this category removed ({deletePreview.eventsToUpdate.length}):</h4>
+                    <ul className="delete-preview-list">
+                      {deletePreview.eventsToUpdate.map((event) => (
+                        <li key={event.id}>{event.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {deletePreview.eventsToDelete.length > 0 && (
+                  <div className="delete-preview-section delete-warning">
+                    <h4>The following events will be DELETED ({deletePreview.eventsToDelete.length}):</h4>
+                    <p className="warning-text">These events only have this category. Deleting the category will also delete these events permanently.</p>
+                    <ul className="delete-preview-list">
+                      {deletePreview.eventsToDelete.map((event) => (
+                        <li key={event.id}>{event.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={cancelDeleteCategory}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={confirmDeleteCategory}
+                disabled={submitting}
+              >
+                {submitting ? "Deleting..." : deletePreview.eventsToDelete.length > 0
+                  ? `Delete Category & ${deletePreview.eventsToDelete.length} Event(s)`
+                  : "Delete Category"}
               </button>
             </div>
           </div>

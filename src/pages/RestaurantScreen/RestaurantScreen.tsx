@@ -8,6 +8,8 @@ import {
   MapPin,
   ExternalLink,
   Trash2,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import {
@@ -15,10 +17,12 @@ import {
   toggleRestaurantStatus,
   updateRestaurant,
   deleteRestaurant,
+  uploadRestaurantImage,
 } from "../../services/restaurant.service";
 import type { RestaurantResponse, UpdateRestaurantDto } from "../../services/restaurant.service";
 
 import { AddRestaurantModal } from "../../components/AddRestaurantModal";
+import ImageCropper from "../../components/ImageCropper/ImageCropper";
 import "./RestaurantScreen.css";
 
 const RestaurantAdminDashboard = () => {
@@ -37,6 +41,10 @@ const RestaurantAdminDashboard = () => {
   // Delete modal state
   const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Image upload state
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchRestaurants();
@@ -88,7 +96,53 @@ const RestaurantAdminDashboard = () => {
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
       restaurantType: restaurant.restaurantType ?? "restaurant",
+      eventImages: restaurant.eventImages || "",
     });
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Please select a valid image file (JPEG, PNG, WebP, or GIF)");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image file size must be less than 10MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    try {
+      setUploadingImage(true);
+      setImageToCrop(null);
+
+      const file = new File([croppedBlob], "catering-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      const imageUrl = await uploadRestaurantImage(file);
+      setEditForm({ ...editForm, eventImages: imageUrl });
+    } catch (err) {
+      alert(`Failed to upload image: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setImageToCrop(null);
   };
 
   const cancelEditing = () => {
@@ -423,6 +477,70 @@ const RestaurantAdminDashboard = () => {
                                         placeholder="Restaurant description..."
                                       />
                                     </div>
+
+                                    {restaurant.isCatering && (
+                                      <div className="form-field full-width">
+                                        <label className="field-label">
+                                          Catering Image
+                                          <span className="field-hint">Image shown on catering menu</span>
+                                        </label>
+                                        <div className="catering-image-upload">
+                                          {editForm.eventImages ? (
+                                            <div className="catering-image-preview">
+                                              <img
+                                                src={editForm.eventImages}
+                                                alt="Catering"
+                                                className="catering-preview-img"
+                                              />
+                                              <div className="catering-image-actions">
+                                                <label className="btn btn-secondary btn-sm">
+                                                  <Upload size={14} />
+                                                  Change
+                                                  <input
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,image/webp,image/gif"
+                                                    onChange={handleImageSelect}
+                                                    style={{ display: "none" }}
+                                                    disabled={uploadingImage}
+                                                  />
+                                                </label>
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-danger btn-sm"
+                                                  onClick={() => setEditForm({ ...editForm, eventImages: "" })}
+                                                  disabled={uploadingImage}
+                                                >
+                                                  <X size={14} />
+                                                  Remove
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <label className="catering-image-dropzone">
+                                              {uploadingImage ? (
+                                                <>
+                                                  <div className="btn-spinner"></div>
+                                                  <span>Uploading...</span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <ImageIcon size={32} />
+                                                  <span>Click to upload catering image</span>
+                                                  <span className="dropzone-hint">JPEG, PNG, WebP or GIF (max 10MB)</span>
+                                                </>
+                                              )}
+                                              <input
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                                onChange={handleImageSelect}
+                                                style={{ display: "none" }}
+                                                disabled={uploadingImage}
+                                              />
+                                            </label>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               ) : (
@@ -452,7 +570,24 @@ const RestaurantAdminDashboard = () => {
                                         )}
                                       </span>
                                     </div>
+                                    {restaurant.isCatering && (
+                                      <div className="setting-item">
+                                        <span className="setting-label">Catering</span>
+                                        <span className="setting-value badge-yes">Enabled</span>
+                                      </div>
+                                    )}
                                   </div>
+
+                                  {restaurant.isCatering && restaurant.eventImages && (
+                                    <div className="catering-image-display">
+                                      <span className="setting-label">Catering Image</span>
+                                      <img
+                                        src={restaurant.eventImages}
+                                        alt="Catering"
+                                        className="catering-display-img"
+                                      />
+                                    </div>
+                                  )}
 
                                   {restaurant.restaurant_description && (
                                     <div className="description-display">
@@ -555,6 +690,15 @@ const RestaurantAdminDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={16 / 9}
+        />
       )}
     </div>
   );

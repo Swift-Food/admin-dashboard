@@ -53,6 +53,8 @@ interface RestaurantResponse {
   marketId?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  eventImages?: string;
+  isCatering?: boolean;
 }
 
 // CreateRestaurantDto
@@ -160,6 +162,22 @@ const getRestaurantOrders = async (
   const res = await http.get<RestaurantOrdersResponse>(
     `/restaurant/getOrders/${restaurantId}`
   );
+  return res.data;
+};
+
+// ============================================
+// IMAGE UPLOAD
+// ============================================
+
+const uploadRestaurantImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("upload", file);
+
+  const res = await http.post<string>("/image-upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return res.data;
 };
 
@@ -389,6 +407,8 @@ export {
   createAddress,
   createRestaurant,
   createCompleteRestaurant,
+  // Image upload
+  uploadRestaurantImage,
 };
 
 export type {

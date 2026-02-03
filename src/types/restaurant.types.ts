@@ -51,6 +51,8 @@ export interface Restaurant {
   featured: boolean;
   openingHours: OpeningHours[];
   images: string[];
+  eventImages?: string;
+  isCatering?: boolean;
   averageRating: number;
   isOpen: boolean;
   owner?: RestaurantUser;
@@ -91,4 +93,5 @@ export interface UpdateRestaurantDto {
   phoneNumber?: string;
   email?: string;
   restaurantType?: "restaurant" | "stall" | "coming_soon";
+  eventImages?: string;
 }

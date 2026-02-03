@@ -96,7 +96,7 @@ const RestaurantAdminDashboard = () => {
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
       restaurantType: restaurant.restaurantType ?? "restaurant",
-      eventImages: restaurant.eventImages || "",
+      eventImages: restaurant.eventImages?.split(",")[0] || "",
     });
   };
 
@@ -582,7 +582,7 @@ const RestaurantAdminDashboard = () => {
                                     <div className="catering-image-display">
                                       <span className="setting-label">Catering Image</span>
                                       <img
-                                        src={restaurant.eventImages}
+                                        src={restaurant.eventImages.split(",")[0]}
                                         alt="Catering"
                                         className="catering-display-img"
                                       />

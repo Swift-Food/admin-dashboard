@@ -1,0 +1,29 @@
+.delete-modal {
+  max-width: 420px;
+}
+
+.delete-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 0;
+  gap: 12px;
+}
+
+.delete-warning p {
+  margin: 0;
+  color: #374151;
+}
+
+.delete-item-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #1a1a2e !important;
+}
+
+.delete-note {
+  font-size: 0.875rem;
+  color: #6b7280 !important;
+  max-width: 320px;
+}

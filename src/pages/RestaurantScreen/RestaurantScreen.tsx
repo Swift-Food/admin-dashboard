@@ -8,8 +8,6 @@ import {
   MapPin,
   ExternalLink,
   Trash2,
-  Upload,
-  Image as ImageIcon,
 } from "lucide-react";
 
 import {
@@ -23,6 +21,8 @@ import type { RestaurantResponse, UpdateRestaurantDto } from "../../services/res
 
 import { AddRestaurantModal } from "../../components/AddRestaurantModal";
 import ImageCropper from "../../components/ImageCropper/ImageCropper";
+import DeleteConfirmModal from "../../components/DeleteConfirmModal";
+import CateringImageUpload from "../../components/CateringImageUpload";
 import "./RestaurantScreen.css";
 
 const RestaurantAdminDashboard = () => {
@@ -493,61 +493,12 @@ const RestaurantAdminDashboard = () => {
                                           Catering Image
                                           <span className="field-hint">Image shown on catering menu</span>
                                         </label>
-                                        <div className="catering-image-upload">
-                                          {editForm.images ? (
-                                            <div className="catering-image-preview">
-                                              <img
-                                                src={editForm.images}
-                                                alt="Catering"
-                                                className="catering-preview-img"
-                                              />
-                                              <div className="catering-image-actions">
-                                                <label className="btn btn-secondary btn-sm">
-                                                  <Upload size={14} />
-                                                  Change
-                                                  <input
-                                                    type="file"
-                                                    accept="image/jpeg,image/png,image/webp,image/gif"
-                                                    onChange={handleImageSelect}
-                                                    style={{ display: "none" }}
-                                                    disabled={uploadingImage}
-                                                  />
-                                                </label>
-                                                <button
-                                                  type="button"
-                                                  className="btn btn-danger btn-sm"
-                                                  onClick={() => setEditForm({ ...editForm, images: "" })}
-                                                  disabled={uploadingImage}
-                                                >
-                                                  <X size={14} />
-                                                  Remove
-                                                </button>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <label className="catering-image-dropzone">
-                                              {uploadingImage ? (
-                                                <>
-                                                  <div className="btn-spinner"></div>
-                                                  <span>Uploading...</span>
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <ImageIcon size={32} />
-                                                  <span>Click to upload catering image</span>
-                                                  <span className="dropzone-hint">JPEG, PNG, WebP or GIF (max 10MB)</span>
-                                                </>
-                                              )}
-                                              <input
-                                                type="file"
-                                                accept="image/jpeg,image/png,image/webp,image/gif"
-                                                onChange={handleImageSelect}
-                                                style={{ display: "none" }}
-                                                disabled={uploadingImage}
-                                              />
-                                            </label>
-                                          )}
-                                        </div>
+                                        <CateringImageUpload
+                                          imageUrl={editForm.images}
+                                          isUploading={uploadingImage}
+                                          onImageSelect={handleImageSelect}
+                                          onImageRemove={() => setEditForm({ ...editForm, images: "" })}
+                                        />
                                       </div>
                                     )}
                                   </div>
@@ -651,55 +602,15 @@ const RestaurantAdminDashboard = () => {
         onSuccess={handleRestaurantCreated}
       />
 
-      {/* Delete Confirmation Modal */}
-      {deleteModalRestaurant && (
-        <div className="modal-overlay" onClick={() => setDeleteModalRestaurant(null)}>
-          <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Delete Restaurant</h2>
-              <button
-                className="modal-close"
-                onClick={() => setDeleteModalRestaurant(null)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="delete-warning">
-              <AlertCircle size={48} color="#ef4444" />
-              <p>Are you sure you want to delete this restaurant?</p>
-              <p className="restaurant-delete-name">{deleteModalRestaurant.restaurant_name}</p>
-              <p className="delete-note">
-                This action cannot be undone. All associated data including orders and menu items will be permanently deleted.
-              </p>
-            </div>
-
-            <div className="modal-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setDeleteModalRestaurant(null)}
-                disabled={deletingId === deleteModalRestaurant.id}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={handleDeleteRestaurant}
-                disabled={deletingId === deleteModalRestaurant.id}
-              >
-                {deletingId === deleteModalRestaurant.id ? (
-                  <>
-                    <div className="btn-spinner"></div>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete Restaurant"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmModal
+        isOpen={!!deleteModalRestaurant}
+        title="Delete Restaurant"
+        itemName={deleteModalRestaurant?.restaurant_name || ""}
+        description="This action cannot be undone. All associated data including orders and menu items will be permanently deleted."
+        isDeleting={!!deletingId}
+        onConfirm={handleDeleteRestaurant}
+        onCancel={() => setDeleteModalRestaurant(null)}
+      />
 
       {imageToCrop && (
         <ImageCropper

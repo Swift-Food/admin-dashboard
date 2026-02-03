@@ -96,7 +96,7 @@ const RestaurantAdminDashboard = () => {
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
       restaurantType: restaurant.restaurantType ?? "restaurant",
-      eventImages: restaurant.eventImages?.[0] || "",
+      images: restaurant.images?.[0] || "",
     });
   };
 
@@ -133,7 +133,7 @@ const RestaurantAdminDashboard = () => {
       });
 
       const imageUrl = await uploadRestaurantImage(file);
-      setEditForm({ ...editForm, eventImages: imageUrl });
+      setEditForm({ ...editForm, images: imageUrl });
     } catch (err) {
       alert(`Failed to upload image: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
@@ -153,7 +153,14 @@ const RestaurantAdminDashboard = () => {
   const saveChanges = async (restaurantId: string) => {
     try {
       setSavingId(restaurantId);
-      await updateRestaurant(restaurantId, editForm);
+
+      // Prepare payload - convert images string to array for API
+      const { images: imageStr, ...restForm } = editForm;
+      const payload = {
+        ...restForm,
+        images: imageStr ? [imageStr] : undefined,
+      };
+      await updateRestaurant(restaurantId, payload as any);
 
       // Update local state
       setRestaurants(
@@ -161,9 +168,9 @@ const RestaurantAdminDashboard = () => {
           r.id === restaurantId
             ? {
                 ...r,
-                ...editForm,
-                // Convert eventImages string back to array for local state
-                eventImages: editForm.eventImages ? [editForm.eventImages] : r.eventImages,
+                ...restForm,
+                // Convert images string back to array for local state
+                images: imageStr ? [imageStr] : r.images,
               }
             : r
         )
@@ -487,10 +494,10 @@ const RestaurantAdminDashboard = () => {
                                           <span className="field-hint">Image shown on catering menu</span>
                                         </label>
                                         <div className="catering-image-upload">
-                                          {editForm.eventImages ? (
+                                          {editForm.images ? (
                                             <div className="catering-image-preview">
                                               <img
-                                                src={editForm.eventImages}
+                                                src={editForm.images}
                                                 alt="Catering"
                                                 className="catering-preview-img"
                                               />
@@ -509,7 +516,7 @@ const RestaurantAdminDashboard = () => {
                                                 <button
                                                   type="button"
                                                   className="btn btn-danger btn-sm"
-                                                  onClick={() => setEditForm({ ...editForm, eventImages: "" })}
+                                                  onClick={() => setEditForm({ ...editForm, images: "" })}
                                                   disabled={uploadingImage}
                                                 >
                                                   <X size={14} />
@@ -580,11 +587,11 @@ const RestaurantAdminDashboard = () => {
                                     )}
                                   </div>
 
-                                  {restaurant.isCatering && restaurant.eventImages?.[0] && (
+                                  {restaurant.isCatering && restaurant.images?.[0] && (
                                     <div className="catering-image-display">
                                       <span className="setting-label">Catering Image</span>
                                       <img
-                                        src={restaurant.eventImages[0]}
+                                        src={restaurant.images[0]}
                                         alt="Catering"
                                         className="catering-display-img"
                                       />

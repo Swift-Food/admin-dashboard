@@ -93,5 +93,5 @@ export interface UpdateRestaurantDto {
   phoneNumber?: string;
   email?: string;
   restaurantType?: "restaurant" | "stall" | "coming_soon";
-  eventImages?: string;
+  images?: string;
 }

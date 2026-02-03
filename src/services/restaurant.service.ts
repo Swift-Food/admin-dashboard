@@ -53,7 +53,7 @@ interface RestaurantResponse {
   marketId?: string;
   createdAt?: Date;
   updatedAt?: Date;
-  eventImages?: string[];
+  images?: string[];
   isCatering?: boolean;
 }
 

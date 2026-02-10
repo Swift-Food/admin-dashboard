@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import type {
   CateringMealSession,
   MealSessionDeliveryStatus,
+  AdminCateringUpdate,
 } from "../types/catering-session.types";
 import cateringSessionService from "../services/catering-session.service";
+import useSocket from "../hooks/useSocket";
 import { Modal } from "../components/Modal";
 
 // Status configuration
@@ -478,12 +480,64 @@ const CateringSessionsScreen = () => {
     }
   }, [startDate, endDate]);
 
-  // Initial fetch and polling
+  // Initial fetch
   useEffect(() => {
     fetchSessions();
-    // const interval = setInterval(fetchSessions, 30000); // Poll every 30 seconds
-    // return () => clearInterval(interval);
   }, [fetchSessions]);
+
+  // Real-time updates via WebSocket
+  const { data: socketUpdate } = useSocket<AdminCateringUpdate>("admin_update", {
+    namespace: "/catering",
+    query: { role: "admin" },
+  });
+
+  useEffect(() => {
+    if (!socketUpdate || !socketUpdate.sessionId) return;
+
+    setAllSessions((prev) =>
+      prev.map((session) => {
+        if (session.id !== socketUpdate.sessionId) return session;
+
+        switch (socketUpdate.type) {
+          case "driver_joined":
+            return {
+              ...session,
+              driverNames: socketUpdate.data.driverNames,
+              deliveryStatus: "driver_assigned" as MealSessionDeliveryStatus,
+            };
+          case "driver_left":
+            return {
+              ...session,
+              driverNames: [],
+              driverId: undefined,
+              deliveryStatus: "finding_driver" as MealSessionDeliveryStatus,
+            };
+          case "status_changed":
+            return {
+              ...session,
+              deliveryStatus: socketUpdate.data.deliveryStatus,
+              pickupStartedAt: socketUpdate.data.pickupStartedAt ?? session.pickupStartedAt,
+              outForDeliveryAt: socketUpdate.data.outForDeliveryAt ?? session.outForDeliveryAt,
+              arrivedAtDestinationAt: socketUpdate.data.arrivedAtDestinationAt ?? session.arrivedAtDestinationAt,
+              deliveredAt: socketUpdate.data.deliveredAt ?? session.deliveredAt,
+            };
+          case "restaurant_collected":
+            return {
+              ...session,
+              deliveryStatus: socketUpdate.data.deliveryStatus ?? session.deliveryStatus,
+            };
+          case "delivery_confirmed":
+            return {
+              ...session,
+              deliveryStatus: socketUpdate.data.deliveryStatus,
+              deliveredAt: socketUpdate.data.deliveredAt ?? session.deliveredAt,
+            };
+          default:
+            return session;
+        }
+      })
+    );
+  }, [socketUpdate]);
 
   // Get unique drivers for filter dropdown
   const uniqueDrivers = Array.from(

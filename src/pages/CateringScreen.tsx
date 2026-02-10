@@ -1,9 +1,11 @@
 import { Clock, X, Calendar, Users } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import type { CateringOrder, PricingOrderItem, CateringOrderItem } from "../types/catering.types";
+import type { AdminCateringUpdate } from "../types/catering-session.types";
 import cateringService, {
   type SendPaymentLinkDto,
 } from "../services/catering.service";
+import useSocket from "../hooks/useSocket";
 import { Modal } from "../components/Modal";
 
 const OrderTimer = ({ createdAt }: { createdAt: string }) => {
@@ -1041,6 +1043,26 @@ const CateringOrdersScreen = () => {
     const interval = setInterval(fetchAllOrders, 30000);
     return () => clearInterval(interval);
   }, [fetchAllOrders]);
+
+  // Real-time order completion via WebSocket
+  const { data: socketUpdate } = useSocket<AdminCateringUpdate>("admin_update", {
+    namespace: "/catering",
+    query: { role: "admin" },
+  });
+
+  useEffect(() => {
+    if (!socketUpdate) return;
+
+    if (socketUpdate.type === "order_completed" && socketUpdate.orderId) {
+      setAllOrders((prev) =>
+        prev.map((order) =>
+          order.id === socketUpdate.orderId
+            ? { ...order, status: "completed" }
+            : order
+        )
+      );
+    }
+  }, [socketUpdate]);
 
   const buckets: Record<string, CateringOrder[]> = {
     PENDING_REVIEW: [],

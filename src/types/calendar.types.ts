@@ -10,7 +10,7 @@ export interface AdminCalendar {
   calendarColor: string;
   isPublic: boolean;
   subscriberCount: number;
-  eventCount: number;
+  upcomingEventCount: number;
   ownerName: string;
   ownerEmail: string;
   ownerEventUserId: string;

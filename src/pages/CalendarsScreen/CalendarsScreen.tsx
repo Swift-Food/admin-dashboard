@@ -314,7 +314,7 @@ const CalendarsScreen: React.FC = () => {
                     <td>
                       <div className="count-cell">
                         <CalendarDays size={16} />
-                        <span>{calendar.eventCount}</span>
+                        <span>{calendar.upcomingEventCount}</span>
                       </div>
                     </td>
                     <td>
@@ -441,7 +441,7 @@ const CalendarsScreen: React.FC = () => {
                 <strong>Created:</strong> {formatDate(selectedCalendar.createdAt)}
               </p>
               <p>
-                <strong>Events:</strong> {selectedCalendar.eventCount} | <strong>Subscribers:</strong> {selectedCalendar.subscriberCount}
+                <strong>Events:</strong> {selectedCalendar.upcomingEventCount} | <strong>Subscribers:</strong> {selectedCalendar.subscriberCount}
               </p>
             </div>
 
@@ -482,9 +482,9 @@ const CalendarsScreen: React.FC = () => {
               <AlertCircle size={48} color="#ef4444" />
               <p>Are you sure you want to delete this calendar?</p>
               <p className="calendar-delete-name">{selectedCalendar.name}</p>
-              {selectedCalendar.eventCount > 0 && (
+              {selectedCalendar.upcomingEventCount > 0 && (
                 <p className="delete-note">
-                  This calendar has {selectedCalendar.eventCount} event(s) linked.
+                  This calendar has {selectedCalendar.upcomingEventCount} upcoming event(s) linked.
                   Event associations will be removed.
                 </p>
               )}

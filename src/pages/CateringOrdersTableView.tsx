@@ -1252,8 +1252,6 @@ const CateringOrdersScreen = () => {
                   <SortHeader column="customer" label="Customer" />
                   <SortHeader column="restaurant" label="Restaurants" />
                   <SortHeader column="eventDate" label="Event Date" />
-                  <SortHeader column="guests" label="Guests" />
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Special Instructions</th>
                   <SortHeader column="total" label="Total" />
                   <SortHeader column="status" label="Status" />
                   <SortHeader column="payment" label="Payment" />
@@ -1289,19 +1287,6 @@ const CateringOrdersScreen = () => {
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</div>
                       <div className="text-xs text-gray-500 mt-1">{order.eventTime}</div>
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{order.guestCount || "N/A"}</div>
-                      {order.eventType && <div className="text-xs text-gray-500 mt-1">{order.eventType}</div>}
-                    </td>
-                    <td className="px-6 py-5">
-                      {order.specialRequirements ? (
-                        <div className="text-sm text-gray-700 max-w-xs truncate" title={order.specialRequirements}>
-                          {order.specialRequirements}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">-</span>
-                      )}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-base font-bold text-gray-900">

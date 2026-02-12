@@ -46,6 +46,9 @@ export interface MealSession {
   promoDiscount: number;
   promotionDiscount: number;
   sessionTotal: number;
+  totalDeliveryPortions?: number;
+  requiresCustomQuote?: boolean;
+  deliveryFeeOverride?: number | null;
 
   // Applied promotions for this session
   appliedPromotions?: {

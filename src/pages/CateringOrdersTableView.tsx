@@ -569,12 +569,14 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                                   }`}
                                 />
                               </div>
-                              <div>
-                                <p className="text-xs text-gray-500">Discount</p>
-                                <p className="font-semibold text-gray-900">
-                                  {formatCurrency(Number(session.promoDiscount || 0) + Number(session.promotionDiscount || 0))}
-                                </p>
-                              </div>
+                              {(Number(session.promoDiscount || 0) + Number(session.promotionDiscount || 0)) > 0 && (
+                                <div>
+                                  <p className="text-xs text-gray-500">Discount</p>
+                                  <p className="font-semibold text-gray-900">
+                                    {formatCurrency(Number(session.promoDiscount || 0) + Number(session.promotionDiscount || 0))}
+                                  </p>
+                                </div>
+                              )}
                             </div>
 
                             {/* Collection Time for this session */}

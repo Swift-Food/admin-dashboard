@@ -34,9 +34,8 @@ interface MenuItem {
 interface RestaurantResponse {
   id: string;
   restaurant_name: string;
-  isOpen: boolean;
+  status: "active" | "inactive" | "coming_soon";
   restaurant_description?: string;
-  restaurantType: "restaurant" | "stall" | "coming_soon";
   featured: boolean;
   phoneNumber?: string;
   email?: string;
@@ -60,9 +59,8 @@ interface RestaurantResponse {
 // CreateRestaurantDto
 interface CreateRestaurantDto {
   restaurant_name: string;
-  isOpen?: boolean;
+  status?: string;
   restaurant_description?: string;
-  restaurantType: string;
   featured?: boolean;
   addressId: string;
   phoneNumber?: string;
@@ -119,7 +117,6 @@ interface CreateCompleteRestaurantDto {
   // Restaurant details
   restaurant_name: string;
   restaurant_description: string;
-  restaurantType: "restaurant" | "stall";
   featured: boolean;
   openingHours: Array<{ day: string; open: string; close: string }>;
   images: string[];
@@ -197,12 +194,12 @@ const updateRestaurantAvailability = async (
   return res.data;
 };
 
-const toggleRestaurantStatus = async (
+const updateRestaurantStatus = async (
   id: string,
-  isOpen: boolean
+  status: string
 ): Promise<RestaurantResponse> => {
   return updateRestaurantAvailability(id, {
-    isOpen,
+    status,
     deviceToken: null,
   });
 };
@@ -339,9 +336,8 @@ const createCompleteRestaurant = async (
     // Step 3: Create Restaurant
     const restaurant = await createRestaurant({
       restaurant_name: data.restaurant_name,
-      isOpen: true,
+      status: 'inactive',
       restaurant_description: data.restaurant_description,
-      restaurantType: data.restaurantType,
       featured: data.featured,
       addressId: addressResult.id,
       phoneNumber: data.phoneNumber,
@@ -398,7 +394,7 @@ export {
   getRestaurantOrders,
   // Update operations
   updateRestaurantAvailability,
-  toggleRestaurantStatus,
+  updateRestaurantStatus,
   updateRestaurant,
   // Delete operations
   deleteRestaurant,

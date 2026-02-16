@@ -12,7 +12,7 @@ import {
 
 import {
   getAllRestaurantsAdminDashboard,
-  toggleRestaurantStatus,
+  updateRestaurantStatus,
   updateRestaurant,
   deleteRestaurant,
   uploadRestaurantImage,
@@ -63,12 +63,12 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
-  const updateAvailability = async (id: string, isOpen: boolean) => {
+  const handleStatusChange = async (id: string, status: string) => {
     try {
       setUpdatingId(id);
-      await toggleRestaurantStatus(id, isOpen);
+      await updateRestaurantStatus(id, status);
       setRestaurants(
-        restaurants.map((r) => (r.id === id ? { ...r, isOpen } : r))
+        restaurants.map((r) => (r.id === id ? { ...r, status: status as any } : r))
       );
     } catch (err) {
       alert(
@@ -95,7 +95,7 @@ const RestaurantAdminDashboard = () => {
       commission: restaurant.commission ?? 20,
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
-      restaurantType: restaurant.restaurantType ?? "restaurant",
+      status: restaurant.status ?? "inactive",
       images: restaurant.images?.[0] || "",
     });
   };
@@ -259,9 +259,8 @@ const RestaurantAdminDashboard = () => {
               <thead>
                 <tr>
                   <th>Restaurant</th>
-                  <th>Type</th>
-                  <th>Contact</th>
                   <th>Status</th>
+                  <th>Contact</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -280,8 +279,8 @@ const RestaurantAdminDashboard = () => {
                         </div>
                       </td>
                       <td>
-                        <span className="type-badge">
-                          {restaurant.restaurantType}
+                        <span className={`type-badge status-badge-${restaurant.status}`}>
+                          {restaurant.status === 'active' ? 'Active' : restaurant.status === 'inactive' ? 'Inactive' : 'Coming Soon'}
                         </span>
                       </td>
                       <td className="contact-cell">
@@ -291,50 +290,22 @@ const RestaurantAdminDashboard = () => {
                         </div>
                       </td>
                       <td>
-                        <div className="status-indicator">
-                          <div
-                            className={`status-dot ${
-                              restaurant.isOpen
-                                ? "status-dot-open"
-                                : "status-dot-closed"
-                            }`}
-                          ></div>
-                          <span
-                            className={`status-text ${
-                              restaurant.isOpen
-                                ? "status-text-open"
-                                : "status-text-closed"
-                            }`}
-                          >
-                            {restaurant.isOpen ? "Open" : "Closed"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
                         <div className="action-buttons">
-                          <button
-                            onClick={() =>
-                              updateAvailability(
-                                restaurant.id,
-                                !restaurant.isOpen
-                              )
+                          <select
+                            value={restaurant.status}
+                            onChange={(e) =>
+                              handleStatusChange(restaurant.id, e.target.value)
                             }
                             disabled={updatingId === restaurant.id}
-                            className={`btn ${
-                              restaurant.isOpen ? "btn-close" : "btn-open"
-                            }`}
+                            className={`status-select status-select-${restaurant.status}`}
                           >
-                            {updatingId === restaurant.id ? (
-                              <span className="btn-loading">
-                                <div className="btn-spinner"></div>
-                                Updating...
-                              </span>
-                            ) : restaurant.isOpen ? (
-                              "Close"
-                            ) : (
-                              "Open"
-                            )}
-                          </button>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="coming_soon">Coming Soon</option>
+                          </select>
+                          {updatingId === restaurant.id && (
+                            <div className="btn-spinner"></div>
+                          )}
                           <button
                             onClick={() =>
                               handleExpandRestaurant(restaurant.id)
@@ -349,7 +320,7 @@ const RestaurantAdminDashboard = () => {
                     </tr>
                     {expandedId === restaurant.id && (
                       <tr>
-                        <td colSpan={5} className="expanded-cell">
+                        <td colSpan={4} className="expanded-cell">
                           <div className="expanded-content">
                             {/* Restaurant Settings Section */}
                             <div className="settings-section">
@@ -460,16 +431,16 @@ const RestaurantAdminDashboard = () => {
                                     </div>
 
                                     <div className="form-field">
-                                      <label className="field-label">Restaurant Type</label>
+                                      <label className="field-label">Status</label>
                                       <select
-                                        value={editForm.restaurantType ?? "restaurant"}
+                                        value={editForm.status ?? "inactive"}
                                         onChange={(e) =>
-                                          setEditForm({ ...editForm, restaurantType: e.target.value as "restaurant" | "stall" | "coming_soon" })
+                                          setEditForm({ ...editForm, status: e.target.value as "active" | "inactive" | "coming_soon" })
                                         }
                                         className="form-input"
                                       >
-                                        <option value="restaurant">Restaurant</option>
-                                        <option value="stall">Stall</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
                                         <option value="coming_soon">Coming Soon</option>
                                       </select>
                                     </div>

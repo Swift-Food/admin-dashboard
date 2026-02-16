@@ -279,17 +279,6 @@ const RestaurantAdminDashboard = () => {
                         </div>
                       </td>
                       <td>
-                        <span className={`type-badge status-badge-${restaurant.status}`}>
-                          {restaurant.status === 'active' ? 'Active' : restaurant.status === 'inactive' ? 'Inactive' : 'Coming Soon'}
-                        </span>
-                      </td>
-                      <td className="contact-cell">
-                        <div>{restaurant.phoneNumber || "N/A"}</div>
-                        <div className="contact-email">
-                          {restaurant.email || "N/A"}
-                        </div>
-                      </td>
-                      <td>
                         <div className="action-buttons">
                           <select
                             value={restaurant.status}
@@ -306,16 +295,24 @@ const RestaurantAdminDashboard = () => {
                           {updatingId === restaurant.id && (
                             <div className="btn-spinner"></div>
                           )}
-                          <button
-                            onClick={() =>
-                              handleExpandRestaurant(restaurant.id)
-                            }
-                            className="btn btn-details"
-                          >
-                            {expandedId === restaurant.id ? "Hide" : "Show"}{" "}
-                            Details
-                          </button>
                         </div>
+                      </td>
+                      <td className="contact-cell">
+                        <div>{restaurant.phoneNumber || "N/A"}</div>
+                        <div className="contact-email">
+                          {restaurant.email || "N/A"}
+                        </div>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() =>
+                            handleExpandRestaurant(restaurant.id)
+                          }
+                          className="btn btn-details"
+                        >
+                          {expandedId === restaurant.id ? "Hide" : "Show"}{" "}
+                          Details
+                        </button>
                       </td>
                     </tr>
                     {expandedId === restaurant.id && (

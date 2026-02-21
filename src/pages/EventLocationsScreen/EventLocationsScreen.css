@@ -1,0 +1,380 @@
+.el-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.el-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.el-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 6px 0;
+}
+
+.el-header-icon {
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+
+.el-header p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Loading / Error */
+.el-loading,
+.el-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+  color: #6b7280;
+}
+
+.el-error {
+  color: #dc2626;
+}
+
+/* Spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty state */
+.el-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  background: #fff;
+  border-radius: 16px;
+  gap: 8px;
+  color: #9ca3af;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.el-empty-icon {
+  color: #d1d5db;
+  margin-bottom: 8px;
+}
+
+.el-empty p {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0;
+}
+
+.el-empty span {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+/* Table */
+.el-table-wrap {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.el-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.el-table thead tr {
+  background: linear-gradient(to right, #f5f3ff, #ede9fe);
+  border-bottom: 2px solid #ddd6fe;
+}
+
+.el-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.el-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s;
+}
+
+.el-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.el-table tbody tr:hover {
+  background: #faf5ff;
+}
+
+.el-table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Name cell */
+.el-loc-name {
+  display: block;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.el-loc-id {
+  display: block;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-family: monospace;
+  margin-top: 2px;
+}
+
+/* Thumbnail */
+.el-thumb {
+  width: 48px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  display: block;
+}
+
+.el-no-image {
+  width: 48px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border-radius: 6px;
+  color: #9ca3af;
+}
+
+/* Bounds */
+.el-bounds {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.el-bounds-sep {
+  color: #9ca3af;
+  font-size: 0.7rem;
+}
+
+/* Event badge */
+.el-event-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.el-event-badge--active {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.el-event-badge--zero {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* Date */
+.el-date {
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+/* Actions */
+.el-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Shared button styles (also used by modals) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.btn-primary {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #6d28d9;
+}
+
+.btn-primary:disabled {
+  background: #c4b5fd;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.btn-danger:hover {
+  background: #fee2e2;
+}
+
+.btn-danger-disabled {
+  background: #f9fafb;
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+/* Modal styles (shared via cascade) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-lg {
+  max-width: 560px;
+}
+
+.modal-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 6px 0;
+}
+
+.modal-subtitle {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0 0 20px 0;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: #1a1a2e;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.form-group input[type="number"]::-webkit-inner-spin-button,
+.form-group input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}

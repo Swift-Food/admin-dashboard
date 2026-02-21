@@ -26,6 +26,7 @@ import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import MiscellaneousScreen from "./pages/MiscellaneousScreen";
 import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
 import EventsScreen from "./pages/EventsScreen/EventsScreen";
+import EventLocationsScreen from "./pages/EventLocationsScreen/EventLocationsScreen";
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
@@ -48,6 +49,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   miscellaneous: "miscellaneous",
   "event-categories": "event-categories",
   events: "events",
+  "event-locations": "event-locations",
   bundles: "bundles",
 };
 
@@ -69,6 +71,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   miscellaneous: "miscellaneous",
   "event-categories": "event-categories",
   events: "events",
+  "event-locations": "event-locations",
   bundles: "bundles",
 };
 
@@ -94,6 +97,7 @@ const prismoPages: SidebarPage[] = [
   "home",
   "event-categories",
   "events",
+  "event-locations",
   "bundles",
 ];
 
@@ -158,6 +162,8 @@ function PageRenderer() {
         return <EventCategoriesScreen />;
       case "events":
         return <EventsScreen />;
+      case "event-locations":
+        return <EventLocationsScreen />;
       default:
         return <RestaurantAdminDashboard />;
     }

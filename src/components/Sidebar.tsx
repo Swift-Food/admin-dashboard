@@ -34,6 +34,7 @@ export type SidebarPage =
   | "categories"
   | "event-categories"
   | "events"
+  | "event-locations"
   | "driver-status"
   | "statistics"
   | "map"
@@ -165,6 +166,11 @@ const navSections: NavSection[] = [
         id: "events",
         label: "Events",
         icon: <FontAwesomeIcon icon={faCalendarAlt} style={prismoIconStyle} />,
+      },
+      {
+        id: "event-locations",
+        label: "Locations",
+        icon: <FontAwesomeIcon icon={faMap} style={prismoIconStyle} />,
       },
       {
         id: "bundles",

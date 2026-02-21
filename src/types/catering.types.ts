@@ -1,3 +1,19 @@
+// Bundle Selection Types
+export interface BundleSelection {
+  bundleId: string;
+  quantity: number;
+}
+
+export interface BundleSelectionDetails {
+  bundleId: string;
+  bundleName: string;
+  quantity: number;
+  pricePerPerson: number;
+  baseGuestCount: number;
+  guestsServed: number;
+  bundleTotal: number;
+}
+
 // Updated to match backend PricingOrderItemDto structure
 export interface PricingAddon {
   addonId: string;
@@ -20,6 +36,9 @@ export interface MealSession {
   // Order items for this session
   orderItems: PricingOrderItem[];
 
+  // Bundle selections for this session
+  bundleSelections?: BundleSelectionDetails[];
+
   // Session pricing
   subtotal: number;
   deliveryFee: number;
@@ -27,6 +46,9 @@ export interface MealSession {
   promoDiscount: number;
   promotionDiscount: number;
   sessionTotal: number;
+  totalDeliveryPortions?: number;
+  requiresCustomQuote?: boolean;
+  deliveryFeeOverride?: number | null;
 
   // Applied promotions for this session
   appliedPromotions?: {
@@ -149,7 +171,11 @@ export interface CateringOrder {
   // Updated to use new PricingOrderItem structure (backend returns this as 'restaurants')
   restaurants?: PricingOrderItem[];
 
-  // Legacy field - kept for backward compatibility with old data
+  /**
+   * @deprecated Use mealSessions[].orderItems or restaurants instead.
+   * This field is no longer written to by the backend.
+   * See: backend/docs/plans/2026-02-10-deprecate-order-orderItems.md
+   */
   orderItems?: CateringOrderItem[];
 
   // ============================================================

@@ -26,6 +26,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     sessionCollectionTimes: {
       [sessionId: string]: string;
     };
+    sessionDeliveryFeeOverrides: {
+      [sessionId: string]: string;
+    };
     depositAmount: string;
     adminNotes: string;
     reviewedBy: string;
@@ -33,6 +36,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     finalTotal: "",
     collectionTime: "",
     sessionCollectionTimes: {},
+    sessionDeliveryFeeOverrides: {},
     depositAmount: "",
     adminNotes: "",
     reviewedBy: "admin",
@@ -41,6 +45,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   useEffect(() => {
     if (order && showConfirmReview) {
       const sessionTimes: { [sessionId: string]: string } = {};
+      const deliveryFeeOverrides: { [sessionId: string]: string } = {};
 
       if (order.mealSessions && order.mealSessions.length > 0) {
         order.mealSessions.forEach((session) => {
@@ -48,6 +53,11 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             session.collectionTime ||
             order.collectionTime ||
             "";
+          deliveryFeeOverrides[session.id] = (
+            session.deliveryFeeOverride != null
+              ? session.deliveryFeeOverride
+              : session.deliveryFee
+          )?.toString() || "0";
         });
       } else {
         sessionTimes["default"] = order.collectionTime || "";
@@ -56,13 +66,32 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
       setReviewForm((prev) => ({
         ...prev,
         sessionCollectionTimes: sessionTimes,
+        sessionDeliveryFeeOverrides: deliveryFeeOverrides,
       }));
     }
   }, [order, showConfirmReview]);
 
   if (!isOpen || !order) return null;
 
- 
+  // Compute auto-updating total from delivery fee overrides
+  const computedTotal = (() => {
+    if (!order.mealSessions || order.mealSessions.length === 0) {
+      return order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0;
+    }
+    // Sum session totals, replacing delivery fees with overrides where provided
+    let total = 0;
+    for (const session of order.mealSessions) {
+      const overrideStr = reviewForm.sessionDeliveryFeeOverrides[session.id];
+      const overrideFee = overrideStr !== undefined && overrideStr !== "" ? parseFloat(overrideStr) : null;
+      const deliveryFee = overrideFee !== null && !isNaN(overrideFee) ? overrideFee : Number(session.deliveryFee || 0);
+      const sessionTotal = Number(session.subtotal || 0) + deliveryFee
+        + Number(session.serviceCharge || 0)
+        - Number(session.promoDiscount || 0)
+        - Number(session.promotionDiscount || 0);
+      total += sessionTotal;
+    }
+    return total;
+  })();
 
   const formatCurrency = (amount?: number | string) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -127,7 +156,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     try {
       const finalTotal = reviewForm.finalTotal
         ? parseFloat(reviewForm.finalTotal)
-        : (order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0);
+        : computedTotal;
   
       // Convert single session time to per-restaurant format for the backend
       const sessionRestaurantCollectionTimes: { [sessionId: string]: { [restaurantId: string]: string } } = {};
@@ -147,11 +176,29 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
         }
       });
 
+      // Build delivery fee overrides — only include sessions where admin changed the fee
+      const sessionDeliveryFeeOverrides: { [sessionId: string]: number } = {};
+      if (order.mealSessions && order.mealSessions.length > 0) {
+        for (const session of order.mealSessions) {
+          const overrideStr = reviewForm.sessionDeliveryFeeOverrides[session.id];
+          if (overrideStr !== undefined && overrideStr !== "") {
+            const overrideVal = parseFloat(overrideStr);
+            const originalFee = Number(session.deliveryFeeOverride ?? session.deliveryFee ?? 0);
+            if (!isNaN(overrideVal) && Math.abs(overrideVal - originalFee) > 0.001) {
+              sessionDeliveryFeeOverrides[session.id] = overrideVal;
+            }
+          }
+        }
+      }
+
       await cateringService.reviewOrder({
         orderId: order.id,
         finalTotal: typeof finalTotal === 'string' ? parseFloat(finalTotal) : finalTotal,
         collectionTime: reviewForm.collectionTime || undefined,
         sessionRestaurantCollectionTimes,
+        sessionDeliveryFeeOverrides: Object.keys(sessionDeliveryFeeOverrides).length > 0
+          ? sessionDeliveryFeeOverrides
+          : undefined,
         depositAmount: reviewForm.depositAmount ? parseFloat(reviewForm.depositAmount) : undefined,
         adminNotes: reviewForm.adminNotes || undefined,
         reviewedBy: reviewForm.reviewedBy,
@@ -436,55 +483,105 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
           {/* Confirmation dialogs */}
-          {showConfirmReview && (
-            <div className="mb-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
-              <p className="text-blue-900 font-semibold mb-3">Review Order Details</p>
-              
-              <div className="space-y-4 mb-4">
-                {/* Final Total */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Final Total (£)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={
-                      reviewForm.finalTotal ||
-                      (order.customerFinalTotal || order.finalTotal || order.estimatedTotal)?.toString() ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      setReviewForm({ ...reviewForm, finalTotal: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+          {/* Review Modal */}
+          <Modal open={showConfirmReview} onClose={() => setShowConfirmReview(false)} overlayOpacity={60} closeOnOverlayClick={false}>
+            <div className="bg-white rounded-xl w-[65vw] max-w-[900px] max-h-[90vh] overflow-y-auto shadow-2xl">
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-xl">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold">Review & Approve Order</h2>
+                    <p className="text-purple-200 mt-1">#{order.id.slice(0, 8).toUpperCase()} — {order.customerName}</p>
+                  </div>
+                  <button onClick={() => setShowConfirmReview(false)} className="text-white hover:text-purple-200 transition-colors">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
+              </div>
 
-          
+              <div className="p-6 space-y-6">
+                {/* Per-Session Pricing Breakdown */}
+                {order.mealSessions && order.mealSessions.length > 0 ? (
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-3">Session Pricing & Delivery</h3>
+                    <div className="space-y-3">
+                      {order.mealSessions.map((session) => {
+                        const overrideStr = reviewForm.sessionDeliveryFeeOverrides[session.id];
+                        const currentFee = overrideStr !== undefined && overrideStr !== "" ? parseFloat(overrideStr) : Number(session.deliveryFee || 0);
+                        const sessionTotal = Number(session.subtotal || 0) + (isNaN(currentFee) ? 0 : currentFee)
+                          + Number(session.serviceCharge || 0)
+                          - Number(session.promoDiscount || 0)
+                          - Number(session.promotionDiscount || 0);
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Collection Times
-                  </label>
-                  
-                  {/* Multi-meal order: Show sessions */}
-                  {order.mealSessions && order.mealSessions.length > 0 ? (
-                    <div className="space-y-4">
-                      {order.mealSessions.map((session) => (
-                        <div key={session.id} className="bg-white p-4 rounded-lg border-2 border-gray-300">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1">
-                              <h4 className="font-bold text-gray-900 text-base">
-                                {session.sessionName}
-                              </h4>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {new Date(session.sessionDate).toLocaleDateString()} at {session.eventTime}
-                                {" — "}
-                                {session.orderItems.length} restaurant{session.orderItems.length !== 1 ? "s" : ""}
-                              </p>
+                        return (
+                          <div key={session.id} className={`p-4 rounded-xl border-2 ${session.requiresCustomQuote ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h4 className="font-bold text-gray-900">{session.sessionName}</h4>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {new Date(session.sessionDate).toLocaleDateString()} at {session.eventTime}
+                                  {" — "}
+                                  {session.orderItems.length} restaurant{session.orderItems.length !== 1 ? "s" : ""}
+                                  {session.totalDeliveryPortions ? ` — ${session.totalDeliveryPortions} delivery portions` : ""}
+                                </p>
+                                {session.requiresCustomQuote && (
+                                  <span className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-900">
+                                    Custom quote needed (&gt;5 miles)
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500 uppercase font-semibold">Session Total</p>
+                                <p className="text-lg font-bold text-gray-900">{formatCurrency(sessionTotal)}</p>
+                              </div>
                             </div>
-                            <div className="w-32">
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                              <div>
+                                <p className="text-xs text-gray-500">Subtotal</p>
+                                <p className="font-semibold text-gray-900">{formatCurrency(session.subtotal)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">
+                                  Delivery Fee
+                                  {session.deliveryFeeOverride != null && (
+                                    <span className="ml-1 text-purple-600">(overridden)</span>
+                                  )}
+                                </p>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={reviewForm.sessionDeliveryFeeOverrides[session.id] ?? ""}
+                                  onChange={(e) =>
+                                    setReviewForm({
+                                      ...reviewForm,
+                                      sessionDeliveryFeeOverrides: {
+                                        ...reviewForm.sessionDeliveryFeeOverrides,
+                                        [session.id]: e.target.value,
+                                      },
+                                    })
+                                  }
+                                  className={`w-full px-2 py-1 text-sm border rounded-lg text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                                    session.requiresCustomQuote ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white'
+                                  }`}
+                                />
+                              </div>
+                              {(Number(session.promoDiscount || 0) + Number(session.promotionDiscount || 0)) > 0 && (
+                                <div>
+                                  <p className="text-xs text-gray-500">Discount</p>
+                                  <p className="font-semibold text-gray-900">
+                                    {formatCurrency(Number(session.promoDiscount || 0) + Number(session.promotionDiscount || 0))}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Collection Time for this session */}
+                            <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-3">
+                              <label className="text-xs font-medium text-gray-600 whitespace-nowrap">Collection Time:</label>
                               <input
                                 type="time"
                                 value={reviewForm.sessionCollectionTimes[session.id] || ""}
@@ -497,75 +594,96 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                                     },
                                   })
                                 }
-                                className="w-full px-2 py-1.5 text-sm border text-gray-900 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="HH:MM"
+                                className="px-2 py-1 text-sm border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                               />
+                              <span className="text-xs text-gray-400">Event at {session.eventTime}</span>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
-                  ) : (
-                    <div className="bg-white p-3 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            Collection Time
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Applies to all {order.restaurants?.length || 0} restaurant{(order.restaurants?.length || 0) !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                        <div className="w-32">
-                          <input
-                            type="time"
-                            value={reviewForm.sessionCollectionTimes["default"] || ""}
-                            onChange={(e) =>
-                              setReviewForm({
-                                ...reviewForm,
-                                sessionCollectionTimes: {
-                                  ...reviewForm.sessionCollectionTimes,
-                                  default: e.target.value,
-                                },
-                              })
-                            }
-                            className="w-full px-2 py-1.5 text-sm border text-gray-900 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="HH:MM"
-                          />
-                        </div>
-                      </div>
+                  </div>
+                ) : (
+                  /* Single-session order: simple collection time */
+                  <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">Collection Time</h3>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="time"
+                        value={reviewForm.sessionCollectionTimes["default"] || ""}
+                        onChange={(e) =>
+                          setReviewForm({
+                            ...reviewForm,
+                            sessionCollectionTimes: {
+                              ...reviewForm.sessionCollectionTimes,
+                              default: e.target.value,
+                            },
+                          })
+                        }
+                        className="px-3 py-2 text-sm border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <span className="text-xs text-gray-500">
+                        Applies to all {order.restaurants?.length || 0} restaurant{(order.restaurants?.length || 0) !== 1 ? "s" : ""}
+                        {order.eventTime && ` — Event at ${order.eventTime}`}
+                      </span>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  <p className="text-xs text-gray-500 mt-2">
-                    Collection time applies to all restaurants in the session
-                  </p>
+                {/* Grand Total */}
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-5 rounded-xl border-2 border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-green-800 uppercase">Calculated Total</h3>
+                      <p className="text-xs text-green-600 mt-0.5">Auto-updates when delivery fees change</p>
+                    </div>
+                    <p className="text-3xl font-bold text-green-900">{formatCurrency(computedTotal)}</p>
+                  </div>
                 </div>
 
-                {/* Deposit Amount */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Deposit Amount (£) - Optional
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={reviewForm.depositAmount}
-                    onChange={(e) =>
-                      setReviewForm({
-                        ...reviewForm,
-                        depositAmount: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                  />
+                {/* Final Total Override + Deposit */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                      Final Total Override (£)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={reviewForm.finalTotal}
+                      onChange={(e) =>
+                        setReviewForm({ ...reviewForm, finalTotal: e.target.value })
+                      }
+                      placeholder={computedTotal.toFixed(2)}
+                      className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Leave blank to use calculated total</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                      Deposit Amount (£)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={reviewForm.depositAmount}
+                      onChange={(e) =>
+                        setReviewForm({
+                          ...reviewForm,
+                          depositAmount: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Optional deposit requirement</p>
+                  </div>
                 </div>
 
                 {/* Admin Notes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Admin Notes - Optional
+                <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                    Admin Notes
                   </label>
                   <textarea
                     value={reviewForm.adminNotes}
@@ -575,30 +693,31 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                         adminNotes: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     rows={3}
                     placeholder="Internal notes about this order..."
                   />
                 </div>
               </div>
-              
-              <div className="flex gap-3">
+
+              {/* Footer Actions */}
+              <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-5 rounded-b-xl flex gap-3">
                 <button
                   onClick={handleReviewOrder}
                   disabled={isReviewing}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-blue-300"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-colors disabled:bg-purple-300 text-lg shadow-lg"
                 >
-                  {isReviewing ? "Reviewing..." : "Yes, Approve"}
+                  {isReviewing ? "Approving..." : "Approve Order"}
                 </button>
                 <button
                   onClick={() => setShowConfirmReview(false)}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-xl transition-colors text-lg"
                 >
                   Cancel
                 </button>
               </div>
             </div>
-          )}
+          </Modal>
 
           {showConfirmComplete && (
             <div className="mb-4 bg-green-50 border-2 border-green-300 rounded-xl p-4">
@@ -1133,8 +1252,6 @@ const CateringOrdersScreen = () => {
                   <SortHeader column="customer" label="Customer" />
                   <SortHeader column="restaurant" label="Restaurants" />
                   <SortHeader column="eventDate" label="Event Date" />
-                  <SortHeader column="guests" label="Guests" />
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Special Instructions</th>
                   <SortHeader column="total" label="Total" />
                   <SortHeader column="status" label="Status" />
                   <SortHeader column="payment" label="Payment" />
@@ -1170,19 +1287,6 @@ const CateringOrdersScreen = () => {
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</div>
                       <div className="text-xs text-gray-500 mt-1">{order.eventTime}</div>
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{order.guestCount || "N/A"}</div>
-                      {order.eventType && <div className="text-xs text-gray-500 mt-1">{order.eventType}</div>}
-                    </td>
-                    <td className="px-6 py-5">
-                      {order.specialRequirements ? (
-                        <div className="text-sm text-gray-700 max-w-xs truncate" title={order.specialRequirements}>
-                          {order.specialRequirements}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">-</span>
-                      )}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-base font-bold text-gray-900">

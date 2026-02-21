@@ -176,8 +176,8 @@ const RestaurantMultiSelect: React.FC<RestaurantMultiSelectProps> = ({
                   className="sr-only"
                 />
                 <span className="restaurant-name">{restaurant.restaurant_name}</span>
-                <span className={`status-badge ${restaurant.isOpen ? "open" : "closed"}`}>
-                  {restaurant.isOpen ? "Open" : "Closed"}
+                <span className={`status-badge ${restaurant.status === 'active' ? "open" : restaurant.status === 'coming_soon' ? "coming-soon" : "closed"}`}>
+                  {restaurant.status === 'active' ? "Active" : restaurant.status === 'coming_soon' ? "Coming Soon" : "Inactive"}
                 </span>
               </label>
             );

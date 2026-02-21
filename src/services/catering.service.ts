@@ -20,8 +20,11 @@ const reviewOrder = async (reviewDto: {
   finalTotal?: number; // Keep for backward compatibility
   depositAmount?: number;
   collectionTime?: string;
-  sessionRestaurantCollectionTimes?: { // ✅ UPDATED to session-based
+  sessionRestaurantCollectionTimes?: {
     [sessionId: string]: { [restaurantId: string]: string };
+  };
+  sessionDeliveryFeeOverrides?: {
+    [sessionId: string]: number;
   };
   adminNotes?: string;
   reviewedBy: string;

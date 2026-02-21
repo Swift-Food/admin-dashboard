@@ -54,7 +54,7 @@ export interface Restaurant {
   eventImages?: string[];
   isCatering?: boolean;
   averageRating: number;
-  isOpen: boolean;
+  status: 'active' | 'inactive' | 'coming_soon';
   owner?: RestaurantUser;
   menuItems?: MenuItem[];
   menuGroupSettings: MenuGroupSettings | null;
@@ -73,11 +73,10 @@ export interface Restaurant {
   maxDiscountPercentage: number;
   fsa: number;
   fsaLink: string | null;
-  restaurantType?: string;
 }
 
 export interface UpdateAvailabilityDto {
-  isOpen: boolean;
+  status: string;
   deviceToken: string | null;
 }
 
@@ -92,6 +91,6 @@ export interface UpdateRestaurantDto {
   restaurantNumber?: string;
   phoneNumber?: string;
   email?: string;
-  restaurantType?: "restaurant" | "stall" | "coming_soon";
+  status?: "active" | "inactive" | "coming_soon";
   images?: string;
 }

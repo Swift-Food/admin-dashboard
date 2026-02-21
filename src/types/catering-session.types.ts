@@ -150,3 +150,18 @@ export interface GetAllSessionsParams {
   startDate?: string;
   endDate?: string;
 }
+
+// WebSocket admin update types
+export interface AdminCateringUpdate {
+  type:
+    | 'driver_joined'
+    | 'driver_left'
+    | 'restaurant_collected'
+    | 'status_changed'
+    | 'delivery_confirmed'
+    | 'order_completed';
+  sessionId?: string;
+  orderId?: string;
+  data: any;
+  timestamp: string;
+}

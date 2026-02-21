@@ -26,7 +26,11 @@ import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import MiscellaneousScreen from "./pages/MiscellaneousScreen";
 import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
 import EventsScreen from "./pages/EventsScreen/EventsScreen";
+<<<<<<< HEAD
 import EventLocationsScreen from "./pages/EventLocationsScreen/EventLocationsScreen";
+=======
+import CalendarsScreen from "./pages/CalendarsScreen/CalendarsScreen";
+>>>>>>> 47f7ff654f905126a1875e75fa63dc96b558e669
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
@@ -49,7 +53,11 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   miscellaneous: "miscellaneous",
   "event-categories": "event-categories",
   events: "events",
+<<<<<<< HEAD
   "event-locations": "event-locations",
+=======
+  calendars: "calendars",
+>>>>>>> 47f7ff654f905126a1875e75fa63dc96b558e669
   bundles: "bundles",
 };
 
@@ -71,7 +79,11 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   miscellaneous: "miscellaneous",
   "event-categories": "event-categories",
   events: "events",
+<<<<<<< HEAD
   "event-locations": "event-locations",
+=======
+  calendars: "calendars",
+>>>>>>> 47f7ff654f905126a1875e75fa63dc96b558e669
   bundles: "bundles",
 };
 
@@ -97,7 +109,11 @@ const prismoPages: SidebarPage[] = [
   "home",
   "event-categories",
   "events",
+<<<<<<< HEAD
   "event-locations",
+=======
+  "calendars",
+>>>>>>> 47f7ff654f905126a1875e75fa63dc96b558e669
   "bundles",
 ];
 
@@ -162,8 +178,13 @@ function PageRenderer() {
         return <EventCategoriesScreen />;
       case "events":
         return <EventsScreen />;
+<<<<<<< HEAD
       case "event-locations":
         return <EventLocationsScreen />;
+=======
+      case "calendars":
+        return <CalendarsScreen />;
+>>>>>>> 47f7ff654f905126a1875e75fa63dc96b558e669
       default:
         return <RestaurantAdminDashboard />;
     }

@@ -70,7 +70,6 @@ const AddRestaurantModal = ({
     // Restaurant details
     restaurant_name: "",
     restaurant_description: "",
-    restaurantType: "restaurant",
     featured: false,
     openingHours: DAYS.map((day) => ({ day, open: "09:00", close: "21:00" })),
     images: [""],
@@ -265,9 +264,8 @@ const AddRestaurantModal = ({
     try {
       const restaurant = await createRestaurant({
         restaurant_name: formData.restaurant_name,
-        isOpen: true,
+        status: 'inactive',
         restaurant_description: formData.restaurant_description,
-        restaurantType: formData.restaurantType,
         featured: formData.featured,
         addressId: createdAddressId,
         phoneNumber: formData.phoneNumber,
@@ -321,7 +319,6 @@ const AddRestaurantModal = ({
       longitude: "",
       restaurant_name: "",
       restaurant_description: "",
-      restaurantType: "restaurant",
       featured: false,
       openingHours: DAYS.map((day) => ({ day, open: "09:00", close: "21:00" })),
       images: [""],
@@ -674,22 +671,6 @@ const AddRestaurantModal = ({
               </div>
 
               <div className="form-grid-2">
-                <div className="form-field">
-                  <label className="form-label">
-                    Type <span className="form-label-required">*</span>
-                  </label>
-                  <select
-                    value={formData.restaurantType}
-                    onChange={(e) =>
-                      handleInputChange("restaurantType", e.target.value)
-                    }
-                    className="form-select"
-                  >
-                    <option value="restaurant">Restaurant</option>
-                    <option value="stall">Stall</option>
-                  </select>
-                </div>
-
                 <div className="form-field">
                   <label className="form-label">
                     Market <span className="form-label-required">*</span>

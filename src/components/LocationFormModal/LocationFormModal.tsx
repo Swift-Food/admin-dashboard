@@ -32,6 +32,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
 }) => {
   const [name, setName] = useState("");
   const [image, setImage] = useState("");
+  const [bannerImage, setBannerImage] = useState("");
   const [minLat, setMinLat] = useState("");
   const [maxLat, setMaxLat] = useState("");
   const [minLng, setMinLng] = useState("");
@@ -39,14 +40,17 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
 
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<"image" | "banner">("image");
   const [uploading, setUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen && initialData) {
       setName(initialData.name);
       setImage(initialData.image ?? "");
+      setBannerImage(initialData.bannerImage ?? "");
       setMinLat(String(initialData.minLat));
       setMaxLat(String(initialData.maxLat));
       setMinLng(String(initialData.minLng));
@@ -54,6 +58,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
     } else if (isOpen && !initialData) {
       setName("");
       setImage("");
+      setBannerImage("");
       setMinLat("");
       setMaxLat("");
       setMinLng("");
@@ -61,10 +66,11 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
     }
     setErrors({});
     setImageToCrop(null);
+    setCropTarget("image");
     setUploading(false);
   }, [isOpen, initialData]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (target: "image" | "banner") => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -78,20 +84,27 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
       return;
     }
 
+    setCropTarget(target);
     const reader = new FileReader();
     reader.onload = () => setImageToCrop(reader.result as string);
     reader.readAsDataURL(file);
 
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    const ref = target === "image" ? fileInputRef : bannerFileInputRef;
+    if (ref.current) ref.current.value = "";
   };
 
   const handleCropComplete = async (croppedBlob: Blob) => {
     try {
       setUploading(true);
       setImageToCrop(null);
-      const file = new File([croppedBlob], "location-image.jpg", { type: "image/jpeg" });
+      const filename = cropTarget === "banner" ? "location-banner.jpg" : "location-image.jpg";
+      const file = new File([croppedBlob], filename, { type: "image/jpeg" });
       const url = await uploadImage(file);
-      setImage(url);
+      if (cropTarget === "banner") {
+        setBannerImage(url);
+      } else {
+        setImage(url);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to upload image");
     } finally {
@@ -156,6 +169,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
     onSubmit({
       name: name.trim(),
       image: image || undefined,
+      bannerImage: bannerImage || undefined,
       minLat: parseFloat(minLat),
       maxLat: parseFloat(maxLat),
       minLng: parseFloat(minLng),
@@ -203,7 +217,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
               ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleFileChange}
+              onChange={handleFileChange("image")}
               style={{ display: "none" }}
             />
             {image ? (
@@ -235,7 +249,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={busy}
               >
-                {uploading ? (
+                {uploading && cropTarget === "image" ? (
                   <>
                     <div className="upload-spinner" />
                     Uploading…
@@ -244,6 +258,61 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                   <>
                     <ImageOff size={20} className="img-upload-icon" />
                     <span>Click to upload an image</span>
+                    <span className="img-upload-hint">JPEG, PNG, WebP or GIF · max 10 MB</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Banner image upload */}
+          <div className="form-group">
+            <label>Banner Image</label>
+            <input
+              ref={bannerFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleFileChange("banner")}
+              style={{ display: "none" }}
+            />
+            {bannerImage ? (
+              <div className="img-preview-wrap">
+                <img src={bannerImage} alt="Banner preview" className="img-preview img-preview-banner" />
+                <div className="img-preview-actions">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => bannerFileInputRef.current?.click()}
+                    disabled={busy}
+                  >
+                    <Upload size={14} /> Replace
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-danger"
+                    onClick={() => setBannerImage("")}
+                    disabled={busy}
+                  >
+                    <X size={14} /> Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="img-upload-btn"
+                onClick={() => bannerFileInputRef.current?.click()}
+                disabled={busy}
+              >
+                {uploading && cropTarget === "banner" ? (
+                  <>
+                    <div className="upload-spinner" />
+                    Uploading…
+                  </>
+                ) : (
+                  <>
+                    <ImageOff size={20} className="img-upload-icon" />
+                    <span>Click to upload a banner image</span>
                     <span className="img-upload-hint">JPEG, PNG, WebP or GIF · max 10 MB</span>
                   </>
                 )}
@@ -341,7 +410,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
           imageSrc={imageToCrop}
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
-          aspectRatio={16 / 9}
+          aspectRatio={cropTarget === "banner" ? 2 / 1 : 1}
         />
       )}
     </>

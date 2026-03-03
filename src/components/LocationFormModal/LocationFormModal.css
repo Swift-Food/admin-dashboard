@@ -93,12 +93,17 @@
 }
 
 .img-preview {
-  width: 100px;
+  width: 64px;
   height: 64px;
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
   flex-shrink: 0;
+}
+
+.img-preview-banner {
+  width: 128px;
+  height: 64px;
 }
 
 .img-preview-actions {

@@ -2,6 +2,7 @@ export interface EventLocation {
   id: string;
   name: string;
   image: string | null;
+  bannerImage: string | null;
   minLat: number;
   maxLat: number;
   minLng: number;
@@ -14,6 +15,7 @@ export interface EventLocation {
 export interface CreateEventLocationDto {
   name: string;
   image?: string;
+  bannerImage?: string;
   minLat: number;
   maxLat: number;
   minLng: number;
@@ -23,6 +25,7 @@ export interface CreateEventLocationDto {
 export interface UpdateEventLocationDto {
   name?: string;
   image?: string;
+  bannerImage?: string;
   minLat?: number;
   maxLat?: number;
   minLng?: number;

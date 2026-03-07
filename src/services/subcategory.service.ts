@@ -7,6 +7,7 @@ import http from "./http";
 export interface Category {
   id: string;
   name: string;
+  icon?: string | null;
   images?: string;
   selectedImage?: string;
   clicks: number;
@@ -68,8 +69,20 @@ export const reorderCategories = async (categoryIds: string[]): Promise<Category
   return res.data;
 };
 
-export const createCategory = async (data: { name: string; displayOrder?: number }): Promise<Category> => {
+export const createCategory = async (data: {
+  name: string;
+  icon?: string;
+  displayOrder?: number;
+}): Promise<Category> => {
   const res = await http.post<Category>("/categories", data);
+  return res.data;
+};
+
+export const updateCategory = async (
+  id: string,
+  data: { name?: string; icon?: string; displayOrder?: number }
+): Promise<Category> => {
+  const res = await http.patch<Category>(`/categories/${id}`, data);
   return res.data;
 };
 

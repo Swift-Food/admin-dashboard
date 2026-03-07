@@ -11,6 +11,7 @@ import {
   MoveRight,
   ArrowUp,
   ArrowDown,
+  Edit2,
 } from "lucide-react";
 import {
   getAllCategories,
@@ -25,6 +26,7 @@ import {
   reorderCategories,
   reorderSubcategories,
   createCategory,
+  updateCategory,
   deleteCategory,
   type Category,
   type Subcategory,
@@ -50,13 +52,17 @@ const CategoriesScreen: React.FC = () => {
   const [showAddByGroupTitle, setShowAddByGroupTitle] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showEditCategory, setShowEditCategory] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
 
   // Form states
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryIcon, setEditCategoryIcon] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
   const [targetSubcategoryId, setTargetSubcategoryId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -274,6 +280,39 @@ const CategoriesScreen: React.FC = () => {
     }
   };
 
+  const openEditCategoryModal = (category: Category) => {
+    setSelectedCategory(category);
+    setEditCategoryName(category.name);
+    setEditCategoryIcon(category.icon ?? "");
+    setShowEditCategory(true);
+  };
+
+  const handleEditCategory = async () => {
+    if (!selectedCategory || !editCategoryName.trim()) return;
+
+    try {
+      setSubmitting(true);
+      const updatedCategory = await updateCategory(selectedCategory.id, {
+        name: editCategoryName.trim(),
+        icon: editCategoryIcon.trim(),
+      });
+
+      setCategories((prev) =>
+        prev.map((category) =>
+          category.id === updatedCategory.id ? { ...category, ...updatedCategory } : category
+        )
+      );
+      setShowEditCategory(false);
+      setSelectedCategory(null);
+      setEditCategoryName("");
+      setEditCategoryIcon("");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update category");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleDeleteCategory = async (categoryId: string) => {
     if (!confirm("Are you sure you want to delete this category? All subcategories will be deleted.")) return;
 
@@ -447,13 +486,26 @@ const CategoriesScreen: React.FC = () => {
                 ) : (
                   <ChevronRight size={20} />
                 )}
-                <FolderOpen size={20} className="category-icon" />
+                {category.icon ? (
+                  <span className="category-emoji" aria-hidden="true">{category.icon}</span>
+                ) : (
+                  <FolderOpen size={20} className="category-icon" />
+                )}
                 <span className="category-name">{category.name}</span>
                 <span className="category-clicks">
                   {subcategories[category.id]?.length ?? category.subcategories?.length ?? 0} subcategories
                 </span>
               </div>
               <div className="category-actions">
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditCategoryModal(category);
+                  }}
+                >
+                  <Edit2 size={16} /> Edit Details
+                </button>
                 <button
                   className="btn btn-sm btn-secondary"
                   onClick={(e) => {
@@ -770,6 +822,62 @@ const CategoriesScreen: React.FC = () => {
                 disabled={submitting || !newCategoryName.trim()}
               >
                 {submitting ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditCategory && selectedCategory && (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setShowEditCategory(false);
+            setSelectedCategory(null);
+          }}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit Category Details</h2>
+            <p className="modal-subtitle">
+              Update the category name and emoji shown in Swift.
+            </p>
+            <div className="form-group">
+              <label>Category Name</label>
+              <input
+                type="text"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                placeholder="e.g., Beverages, Main Courses"
+                autoFocus
+              />
+            </div>
+            <div className="form-group">
+              <label>Emoji</label>
+              <input
+                type="text"
+                value={editCategoryIcon}
+                onChange={(e) => setEditCategoryIcon(e.target.value)}
+                placeholder="e.g., 🍕"
+                maxLength={8}
+              />
+              <small>Leave blank to use the default folder icon.</small>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowEditCategory(false);
+                  setSelectedCategory(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleEditCategory}
+                disabled={submitting || !editCategoryName.trim()}
+              >
+                {submitting ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>

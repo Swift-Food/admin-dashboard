@@ -298,6 +298,31 @@
   margin-top: 4px;
 }
 
+.emoji-field {
+  position: relative;
+}
+
+.emoji-field-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.emoji-field-input-row input {
+  flex: 1;
+}
+
+.emoji-picker-trigger,
+.emoji-picker-reset {
+  white-space: nowrap;
+}
+
+.emoji-picker-popover {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

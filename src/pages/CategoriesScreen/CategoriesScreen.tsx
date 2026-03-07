@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
+import { createPortal } from "react-dom";
 import {
   AlertCircle,
   Plus,
@@ -35,6 +37,119 @@ import {
 } from "../../services/subcategory.service";
 import "./CategoriesScreen.css";
 
+interface CategoryEmojiFieldProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const CategoryEmojiField: React.FC<CategoryEmojiFieldProps> = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLDivElement | null>(null);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+  const pickerHeight = 520;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+
+      const rect = triggerRef.current.getBoundingClientRect();
+      const pickerWidth = Math.min(352, window.innerWidth - 24);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUpward = spaceBelow < pickerHeight + 16;
+
+      const left = Math.max(12, Math.min(rect.right - pickerWidth, window.innerWidth - pickerWidth - 12));
+      const top = openUpward
+        ? Math.max(12, rect.top - pickerHeight - 8)
+        : Math.min(window.innerHeight - pickerHeight - 12, rect.bottom + 8);
+
+      setPopoverStyle({
+        position: "fixed",
+        top,
+        left,
+        width: pickerWidth,
+        zIndex: 10000,
+      });
+    };
+
+    updatePosition();
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedInsidePicker = pickerRef.current?.contains(target);
+      const clickedInsideTrigger = triggerRef.current?.contains(target);
+
+      if (!clickedInsidePicker && !clickedInsideTrigger) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    onChange(emojiData.emoji);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="emoji-field" ref={triggerRef}>
+      <div className="emoji-field-input-row">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="e.g., 🍕"
+          maxLength={8}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary emoji-picker-trigger"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
+          {value || "😀"} Pick
+        </button>
+        {value && (
+          <button
+            type="button"
+            className="btn btn-secondary emoji-picker-reset"
+            onClick={() => onChange("")}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {isOpen && createPortal(
+        <div
+          className="emoji-picker-popover"
+          ref={pickerRef}
+          style={popoverStyle}
+        >
+          <EmojiPicker
+            onEmojiClick={handleEmojiClick}
+            width="100%"
+            height={pickerHeight}
+            lazyLoadEmojis
+            searchPlaceholder="Search all emojis"
+            skinTonesDisabled
+          />
+        </div>
+      , document.body)}
+    </div>
+  );
+};
+
 const CategoriesScreen: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +176,7 @@ const CategoriesScreen: React.FC = () => {
   // Form states
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("");
   const [editCategoryName, setEditCategoryName] = useState("");
   const [editCategoryIcon, setEditCategoryIcon] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
@@ -268,11 +384,13 @@ const CategoriesScreen: React.FC = () => {
       setSubmitting(true);
       const newCat = await createCategory({
         name: newCategoryName.trim(),
+        icon: newCategoryIcon.trim() || undefined,
         displayOrder: categories.length,
       });
       setCategories([...categories, newCat]);
       setShowAddCategory(false);
       setNewCategoryName("");
+      setNewCategoryIcon("");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to create category");
     } finally {
@@ -809,10 +927,18 @@ const CategoriesScreen: React.FC = () => {
                 autoFocus
               />
             </div>
+            <div className="form-group">
+              <label>Emoji</label>
+              <CategoryEmojiField value={newCategoryIcon} onChange={setNewCategoryIcon} />
+              <small>Leave blank to use the default folder icon.</small>
+            </div>
             <div className="modal-actions">
               <button
                 className="btn btn-secondary"
-                onClick={() => setShowAddCategory(false)}
+                onClick={() => {
+                  setShowAddCategory(false);
+                  setNewCategoryIcon("");
+                }}
               >
                 Cancel
               </button>
@@ -853,13 +979,7 @@ const CategoriesScreen: React.FC = () => {
             </div>
             <div className="form-group">
               <label>Emoji</label>
-              <input
-                type="text"
-                value={editCategoryIcon}
-                onChange={(e) => setEditCategoryIcon(e.target.value)}
-                placeholder="e.g., 🍕"
-                maxLength={8}
-              />
+              <CategoryEmojiField value={editCategoryIcon} onChange={setEditCategoryIcon} />
               <small>Leave blank to use the default folder icon.</small>
             </div>
             <div className="modal-actions">

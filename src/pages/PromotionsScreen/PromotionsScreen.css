@@ -168,6 +168,25 @@
   color: #3730a3;
 }
 
+/* Target Badge */
+.target-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.target-badge-food {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.target-badge-venue {
+  background-color: #fae8ff;
+  color: #86198f;
+}
+
 /* Restaurants Badge */
 .restaurants-badge {
   display: inline-block;

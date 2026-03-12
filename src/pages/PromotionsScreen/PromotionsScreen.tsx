@@ -184,6 +184,7 @@ export default function PromotionsScreen() {
                     <th>Code</th>
                     <th>Name</th>
                     <th>Discount</th>
+                    <th>Target</th>
                     <th>Restaurants</th>
                     <th>Applies To</th>
                     <th>Status</th>
@@ -214,6 +215,19 @@ export default function PromotionsScreen() {
                           {p.discountType === "PERCENT"
                             ? `${p.discountAmount}%`
                             : `£${p.discountAmount}`}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`target-badge ${
+                            p.discountTarget === "VENUE_HIRE_FEE"
+                              ? "target-badge-venue"
+                              : "target-badge-food"
+                          }`}
+                        >
+                          {p.discountTarget === "VENUE_HIRE_FEE"
+                            ? "Venue Hire"
+                            : "Food"}
                         </span>
                       </td>
                       <td>

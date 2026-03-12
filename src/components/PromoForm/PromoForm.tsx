@@ -32,6 +32,7 @@ export default function PromoForm({
       : "",
     appliesTo: initialData?.appliesTo ?? "BOTH",
     discountTarget: initialData?.discountTarget ?? "FOOD_SUBTOTAL",
+    coworkingVenueIds: initialData?.coworkingVenueIds?.join(", ") ?? "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -70,6 +71,13 @@ export default function PromoForm({
           : undefined,
         appliesTo: form.appliesTo,
         discountTarget: form.discountTarget,
+        coworkingVenueIds:
+          form.discountTarget === "VENUE_HIRE_FEE" && form.coworkingVenueIds
+            ? form.coworkingVenueIds
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : undefined,
       };
       await onSubmit(dto);
     } finally {
@@ -132,6 +140,7 @@ export default function PromoForm({
                 type="number"
                 step="0.01"
                 min="0"
+                max={form.discountType === "PERCENT" ? 100 : undefined}
                 value={form.discountAmount}
                 onChange={(e) => handleChange("discountAmount", e.target.value)}
                 className="field-input"
@@ -142,7 +151,13 @@ export default function PromoForm({
               <label className="field-label">Type</label>
               <select
                 value={form.discountType}
-                onChange={(e) => handleChange("discountType", e.target.value)}
+                onChange={(e) => {
+                  setForm((s: any) => ({
+                    ...s,
+                    discountType: e.target.value,
+                    discountAmount: 0,
+                  }));
+                }}
                 className="field-select"
               >
                 <option value="PERCENT">Percentage (%)</option>
@@ -173,6 +188,22 @@ export default function PromoForm({
               </select>
             </div>
           </div>
+
+          {form.discountTarget === "VENUE_HIRE_FEE" && (
+            <div className="form-field" style={{ marginTop: "0.5rem" }}>
+              <label className="field-label">
+                Coworking Venue IDs (comma-separated, optional)
+              </label>
+              <input
+                value={form.coworkingVenueIds}
+                onChange={(e) =>
+                  handleChange("coworkingVenueIds", e.target.value)
+                }
+                className="field-input"
+                placeholder="e.g., venue_abc123, venue_def456"
+              />
+            </div>
+          )}
 
           <div className="form-row form-row-3">
             <div className="form-field">

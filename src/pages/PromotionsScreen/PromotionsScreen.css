@@ -522,14 +522,14 @@
 .modal-content {
   background: white;
   border-radius: 0.75rem;
-  max-width: 640px;
+  max-width: 820px;
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.2);
   animation: slideUp 0.2s ease-out;
-  overflow: hidden;
+  overflow: visible;
 }
 
 @keyframes slideUp {
@@ -541,8 +541,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
 
@@ -554,13 +554,14 @@
 }
 
 .close-button {
+  all: unset;
+  box-sizing: border-box;
   width: 2rem;
   height: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: none;
-  border: none;
+  background: transparent;
   border-radius: 0.375rem;
   cursor: pointer;
   color: #94a3b8;

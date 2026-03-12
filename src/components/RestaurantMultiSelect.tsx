@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Check, Search } from "lucide-react";
+import { X, Check, Search, ChevronDown, Store } from "lucide-react";
 import type { RestaurantResponse } from "../services/restaurant.service";
 import { getAllRestaurants } from "../services/restaurant.service";
 
@@ -18,176 +18,188 @@ const RestaurantMultiSelect: React.FC<RestaurantMultiSelectProps> = ({
   const [filterText, setFilterText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchRestaurants = async () => {
-      try {
-        setLoading(true);
-        const data = await getAllRestaurants();
-        console.log("Fetched restaurants:", data);
+    getAllRestaurants()
+      .then((data) => {
         setRestaurants(data || []);
         setError(null);
-      } catch (err) {
-        setError("Failed to load restaurants");
-        console.error("Failed to fetch restaurants:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRestaurants();
+      })
+      .catch(() => setError("Failed to load restaurants"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleRestaurantToggle = (restaurantId: string) => {
-    if (disabled) return;
-    if (selectedIds.includes(restaurantId)) {
-      onChange(selectedIds.filter((id) => id !== restaurantId));
-    } else {
-      onChange([...selectedIds, restaurantId]);
-    }
-  };
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
-  const handleSelectAll = () => {
-    if (disabled) return;
-    if (selectedIds.length === restaurants.length) {
-      onChange([]);
-    } else {
-      onChange(restaurants.map((r) => r.id));
-    }
-  };
+  // Focus search when opened
+  useEffect(() => {
+    if (open && searchRef.current) searchRef.current.focus();
+  }, [open]);
 
-  const handleClearAll = () => {
+  const toggle = (id: string) => {
     if (disabled) return;
-    onChange([]);
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((x) => x !== id)
+        : [...selectedIds, id]
+    );
   };
-
-  const filteredRestaurants = restaurants.filter(
-    (r) =>
-      r.restaurant_name?.toLowerCase().includes(filterText.toLowerCase()) ||
-      r.id?.toLowerCase().includes(filterText.toLowerCase())
-  );
 
   const selectedRestaurants = restaurants.filter((r) =>
     selectedIds.includes(r.id)
   );
 
+  const filtered = restaurants.filter(
+    (r) =>
+      r.restaurant_name?.toLowerCase().includes(filterText.toLowerCase()) ||
+      r.id?.toLowerCase().includes(filterText.toLowerCase())
+  );
+
   if (loading) {
     return (
-      <div className="restaurant-select-container">
-        <label className="restaurant-select-label">
-          Restaurants <span className="label-hint">(Leave empty for all)</span>
-        </label>
-        <div className="restaurant-select-loading">
-          <div className="spinner-small"></div>
-          <span>Loading restaurants...</span>
-        </div>
+      <div className="rms-trigger rms-trigger-disabled">
+        <span className="rms-trigger-text rms-placeholder">Loading restaurants...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="restaurant-select-container">
-        <label className="restaurant-select-label">Restaurants</label>
-        <div className="restaurant-select-error">{error}</div>
+      <div className="rms-trigger rms-trigger-error">
+        <span className="rms-trigger-text">{error}</span>
       </div>
     );
   }
 
   return (
-    <div className="restaurant-select-container" ref={containerRef}>
-      <div className="restaurant-select-header">
-        <label className="restaurant-select-label">
-          Restaurants <span className="label-hint">(Leave empty for all)</span>
-        </label>
-        <div className="restaurant-select-actions">
-          <button
-            type="button"
-            onClick={handleSelectAll}
-            disabled={disabled}
-            className="btn-link"
-          >
-            {selectedIds.length === restaurants.length ? "Deselect All" : "Select All"}
-          </button>
-          {selectedIds.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearAll}
-              disabled={disabled}
-              className="btn-link btn-link-danger"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="rms" ref={containerRef}>
+      {/* Trigger */}
+      <button
+        type="button"
+        className={`rms-trigger ${open ? "rms-trigger-open" : ""} ${disabled ? "rms-trigger-disabled" : ""}`}
+        onClick={() => !disabled && setOpen(!open)}
+      >
+        <Store size={16} className="rms-trigger-icon" />
+        {selectedIds.length === 0 ? (
+          <span className="rms-trigger-text rms-placeholder">
+            All restaurants (no restriction)
+          </span>
+        ) : (
+          <span className="rms-trigger-text">
+            {selectedIds.length} restaurant{selectedIds.length !== 1 ? "s" : ""} selected
+          </span>
+        )}
+        <ChevronDown
+          size={16}
+          className={`rms-chevron ${open ? "rms-chevron-open" : ""}`}
+        />
+      </button>
 
-      {/* Selected Tags */}
+      {/* Selected tags */}
       {selectedRestaurants.length > 0 && (
-        <div className="selected-tags">
-          {selectedRestaurants.map((restaurant) => (
-            <span key={restaurant.id} className="selected-tag">
-              {restaurant.restaurant_name}
+        <div className="rms-tags">
+          {selectedRestaurants.map((r) => (
+            <span key={r.id} className="rms-tag">
+              {r.restaurant_name}
               <button
                 type="button"
-                onClick={() => handleRestaurantToggle(restaurant.id)}
-                disabled={disabled}
-                className="tag-remove"
+                className="rms-tag-remove"
+                onClick={() => toggle(r.id)}
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             </span>
           ))}
+          <button
+            type="button"
+            className="rms-clear-all"
+            onClick={() => onChange([])}
+          >
+            Clear all
+          </button>
         </div>
       )}
 
-      {/* Search */}
-      <div className="restaurant-search">
-        <Search size={16} className="search-icon" />
-        <input
-          type="text"
-          placeholder="Search restaurants..."
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-          className="search-input"
-          disabled={disabled}
-        />
-      </div>
-
-      {/* Restaurant List */}
-      <div className="restaurant-list">
-        {filteredRestaurants.length > 0 ? (
-          filteredRestaurants.map((restaurant) => {
-            const isSelected = selectedIds.includes(restaurant.id);
-            return (
-              <label
-                key={restaurant.id}
-                className={`restaurant-item ${isSelected ? "selected" : ""} ${disabled ? "disabled" : ""}`}
-              >
-                <div className={`checkbox ${isSelected ? "checked" : ""}`}>
-                  {isSelected && <Check size={12} />}
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => handleRestaurantToggle(restaurant.id)}
-                  disabled={disabled}
-                  className="sr-only"
-                />
-                <span className="restaurant-name">{restaurant.restaurant_name}</span>
-                <span className={`status-badge ${restaurant.status === 'active' ? "open" : restaurant.status === 'coming_soon' ? "coming-soon" : "closed"}`}>
-                  {restaurant.status === 'active' ? "Active" : restaurant.status === 'coming_soon' ? "Coming Soon" : "Inactive"}
-                </span>
-              </label>
-            );
-          })
-        ) : (
-          <div className="no-results">
-            {filterText ? "No restaurants match your search" : "No restaurants available"}
+      {/* Dropdown */}
+      {open && (
+        <div className="rms-dropdown">
+          <div className="rms-search-wrap">
+            <Search size={14} className="rms-search-icon" />
+            <input
+              ref={searchRef}
+              type="text"
+              className="rms-search"
+              placeholder="Search restaurants..."
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+            />
           </div>
-        )}
-      </div>
+
+          <div className="rms-actions-bar">
+            <button
+              type="button"
+              className="rms-action-btn"
+              onClick={() =>
+                onChange(
+                  selectedIds.length === restaurants.length
+                    ? []
+                    : restaurants.map((r) => r.id)
+                )
+              }
+            >
+              {selectedIds.length === restaurants.length
+                ? "Deselect all"
+                : "Select all"}
+            </button>
+          </div>
+
+          <div className="rms-list">
+            {filtered.length === 0 ? (
+              <div className="rms-empty">
+                {filterText ? "No results" : "No restaurants"}
+              </div>
+            ) : (
+              filtered.map((r) => {
+                const sel = selectedIds.includes(r.id);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={`rms-item ${sel ? "rms-item-selected" : ""}`}
+                    onClick={() => toggle(r.id)}
+                  >
+                    <span className={`rms-check ${sel ? "rms-check-on" : ""}`}>
+                      {sel && <Check size={12} strokeWidth={3} />}
+                    </span>
+                    <span className="rms-item-name">{r.restaurant_name}</span>
+                    <span
+                      className={`rms-item-status ${
+                        r.status === "active"
+                          ? "rms-status-active"
+                          : "rms-status-inactive"
+                      }`}
+                    >
+                      {r.status === "active" ? "Active" : "Inactive"}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

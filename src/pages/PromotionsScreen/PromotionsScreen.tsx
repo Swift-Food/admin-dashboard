@@ -1,9 +1,12 @@
-import  { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import promotionsService from "../../services/promo-code.service";
 import type { PromoCodeDto } from "../../services/promo-code.service";
 import { getAllRestaurants } from "../../services/restaurant.service";
 import PromoForm from "../../components/PromoForm";
 import "./PromotionsScreen.css";
+
+type FilterStatus = "all" | "active" | "inactive" | "expired";
+type FilterTarget = "all" | "FOOD_SUBTOTAL" | "VENUE_HIRE_FEE";
 
 export default function PromotionsScreen() {
   const [promos, setPromos] = useState<any[]>([]);
@@ -11,7 +14,22 @@ export default function PromotionsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [restaurantMap, setRestaurantMap] = useState<Record<string, string>>({});
+  const [restaurantMap, setRestaurantMap] = useState<Record<string, string>>(
+    {}
+  );
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [filterTarget, setFilterTarget] = useState<FilterTarget>("all");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchAll = async () => {
     try {
@@ -39,25 +57,61 @@ export default function PromotionsScreen() {
     fetchAll();
   }, []);
 
-  const handleCreate = () => {
-    setEditing(null);
-    setShowForm(true);
+  const getPromoStatus = (p: any): "active" | "inactive" | "expired" | "limit-reached" => {
+    if (!p.isActive) return "inactive";
+    if (p.expiresAt && new Date(p.expiresAt) < new Date()) return "expired";
+    if (p.maxUses && (p.usesCount ?? 0) >= p.maxUses) return "limit-reached";
+    return "active";
   };
 
-  const handleEdit = (p: any) => {
-    setEditing(p);
-    setShowForm(true);
-  };
+  const filtered = useMemo(() => {
+    return promos.filter((p) => {
+      if (search) {
+        const q = search.toLowerCase();
+        const matchCode = p.code?.toLowerCase().includes(q);
+        const matchName = p.name?.toLowerCase().includes(q);
+        if (!matchCode && !matchName) return false;
+      }
+      if (filterTarget !== "all" && p.discountTarget !== filterTarget)
+        return false;
+      if (filterStatus !== "all") {
+        const status = getPromoStatus(p);
+        if (filterStatus === "active" && status !== "active") return false;
+        if (filterStatus === "inactive" && status !== "inactive") return false;
+        if (
+          filterStatus === "expired" &&
+          status !== "expired" &&
+          status !== "limit-reached"
+        )
+          return false;
+      }
+      return true;
+    });
+  }, [promos, search, filterStatus, filterTarget]);
+
+  const stats = useMemo(() => {
+    const active = promos.filter((p) => getPromoStatus(p) === "active").length;
+    const food = promos.filter(
+      (p) => p.discountTarget !== "VENUE_HIRE_FEE"
+    ).length;
+    const venue = promos.filter(
+      (p) => p.discountTarget === "VENUE_HIRE_FEE"
+    ).length;
+    return { total: promos.length, active, food, venue };
+  }, [promos]);
 
   const handleDelete = async (code: string) => {
-    if (!confirm(`Delete promo ${code}? This cannot be undone.`)) return;
     try {
       await promotionsService.deletePromoCode(code);
-      alert("Deleted successfully");
+      showToast(`Promo code "${code}" deleted`, "success");
+      setDeleteConfirm(null);
       fetchAll();
     } catch (e: any) {
-      console.error("Delete failed:", e);
-      alert("Failed to delete: " + (e?.message || ""));
+      showToast(
+        "Failed to delete: " + (e?.message || "Unknown error"),
+        "error"
+      );
+      setDeleteConfirm(null);
     }
   };
 
@@ -65,281 +119,352 @@ export default function PromotionsScreen() {
     try {
       if (editing) {
         await promotionsService.updatePromoCode(editing.code, dto);
-        alert("Updated successfully");
+        showToast(`Promo code "${editing.code}" updated`, "success");
       } else {
         await promotionsService.createPromoCode(dto);
-        alert("Created successfully");
+        showToast(`Promo code "${dto.code}" created`, "success");
       }
       setShowForm(false);
       fetchAll();
     } catch (e: any) {
-      console.error("Save failed:", e);
-      alert(
-        "Failed to save: " + (e?.response?.data?.message || e?.message || "")
+      showToast(
+        "Failed to save: " +
+          (e?.response?.data?.message || e?.message || "Unknown error"),
+        "error"
       );
     }
   };
 
-  const getAppliesBadgeClass = (appliesTo: string) => {
-    if (appliesTo === "CATERING") return "applies-badge applies-badge-catering";
-    if (appliesTo === "CONSUMER") return "applies-badge applies-badge-consumer";
-    return "applies-badge";
+  const formatDiscount = (p: any) => {
+    if (p.discountType === "PERCENT") return `${p.discountAmount}%`;
+    return `£${Number(p.discountAmount).toFixed(2)}`;
   };
 
-  const getDiscountColor = (discountAmount: number, discountType: string) => {
-    let normalizedValue = discountAmount;
-
-    if (discountType === "FIXED") {
-      normalizedValue = Math.min((discountAmount / 50) * 100, 100);
-    }
-
-    normalizedValue = Math.max(0, Math.min(100, normalizedValue));
-
-    // Pastel gradient: soft pink -> soft peach -> soft mint
-    let r, g, b;
-
-    if (normalizedValue < 50) {
-      // Soft pink to peach
-      r = Math.round(255 - (normalizedValue / 50) * 30);
-      g = Math.round(220 + (normalizedValue / 50) * 15);
-      b = Math.round(230 - (normalizedValue / 50) * 50);
-    } else {
-      // Peach to mint green
-      r = Math.round(225 - ((normalizedValue - 50) / 50) * 50);
-      g = Math.round(235 - ((normalizedValue - 50) / 50) * 20);
-      b = Math.round(180 + ((normalizedValue - 50) / 50) * 45);
-    }
-
-    return `rgb(${r}, ${g}, ${b})`;
-  };
-
-  const getDiscountTextColor = (
-    discountAmount: number,
-    discountType: string
-  ) => {
-    let normalizedValue = discountAmount;
-
-    if (discountType === "FIXED") {
-      normalizedValue = Math.min((discountAmount / 50) * 100, 100);
-    }
-
-    normalizedValue = Math.max(0, Math.min(100, normalizedValue));
-
-    // Softer, less harsh text colors
-    if (normalizedValue < 50) {
-      return "#b85c7a"; // Muted rose
-    } else if (normalizedValue < 75) {
-      return "#c67d5a"; // Muted coral
-    } else {
-      return "#5a9c7a"; // Muted teal
-    }
+  const formatDate = (d: string | null) => {
+    if (!d) return null;
+    return new Date(d).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   return (
-    <div className="promotions-container">
-      <div className="promotions-content">
-        <div className="promotions-header">
-          <div>
-            <h1 className="promotions-title">Promo Codes</h1>
-          </div>
-          <div className="header-actions">
-            <button onClick={fetchAll} className="btn btn-secondary">
-              Refresh
-            </button>
-            <button onClick={handleCreate} className="btn btn-primary">
-              Create any
-            </button>
+    <div className="promos-page">
+      {/* Toast */}
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          <span>{toast.type === "success" ? "✓" : "✗"}</span>
+          {toast.message}
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div
+            className="delete-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Delete Promo Code</h3>
+            <p>
+              Are you sure you want to delete <strong>{deleteConfirm}</strong>?
+              This cannot be undone.
+            </p>
+            <div className="delete-dialog-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={() => handleDelete(deleteConfirm)}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {error && (
-          <div className="error-alert">
-            <p className="error-text">Error: {error}</p>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="loading-container">
-            <div className="loading-content">
-              <div className="spinner"></div>
-              <p className="loading-text">Loading promo codes...</p>
-            </div>
-          </div>
-        ) : promos.length === 0 ? (
-          <div className="table-container">
-            <div className="empty-state">
-              <div className="empty-icon">🎟️</div>
-              <h3 className="empty-title">No promo codes yet</h3>
-              <p className="empty-text">
-                Create your first promo code to get started
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="table-container">
-            <div className="table-wrapper">
-              <table className="promos-table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Discount</th>
-                    <th>Target</th>
-                    <th>Restaurants</th>
-                    <th>Applies To</th>
-                    <th>Status</th>
-                    <th>Uses</th>
-                    <th>Valid Period</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {promos.map((p: any) => (
-                    <tr key={p.code} className="promo-row">
-                      <td className="code-cell">{p.code}</td>
-                      <td>{p.name || "—"}</td>
-                      <td>
-                        <span
-                          className="discount-badge"
-                          style={{
-                            backgroundColor: getDiscountColor(
-                              p.discountAmount,
-                              p.discountType
-                            ),
-                            color: getDiscountTextColor(
-                              p.discountAmount,
-                              p.discountType
-                            ),
-                          }}
-                        >
-                          {p.discountType === "PERCENT"
-                            ? `${p.discountAmount}%`
-                            : `£${p.discountAmount}`}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`target-badge ${
-                            p.discountTarget === "VENUE_HIRE_FEE"
-                              ? "target-badge-venue"
-                              : "target-badge-food"
-                          }`}
-                        >
-                          {p.discountTarget === "VENUE_HIRE_FEE"
-                            ? "Venue Hire"
-                            : "Food"}
-                        </span>
-                      </td>
-                      <td>
-                        {p.restaurantIds && p.restaurantIds.length > 0 ? (
-                          <span
-                            className="restaurants-badge"
-                            title={p.restaurantIds.map((id: string) => restaurantMap[id] || id).join(", ")}
-                          >
-                            {p.restaurantIds.length <= 2
-                              ? p.restaurantIds.map((id: string) => restaurantMap[id] || "Unknown").join(", ")
-                              : `${p.restaurantIds.length} restaurants`}
-                          </span>
-                        ) : (
-                          <span style={{ color: "#9ca3af" }}>All</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={getAppliesBadgeClass(p.appliesTo)}>
-                          {p.appliesTo}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="status-indicator">
-                          <span
-                            className={`status-dot ${
-                              p.isActive
-                                ? "status-dot-active"
-                                : "status-dot-inactive"
-                            }`}
-                          ></span>
-                          <span
-                            className={`status-text ${
-                              p.isActive
-                                ? "status-text-active"
-                                : "status-text-inactive"
-                            }`}
-                          >
-                            {p.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="uses-count">{p.usesCount ?? 0}</span>
-                        {p.maxUses && (
-                          <span style={{ color: "#6b7280" }}>
-                            {" "}
-                            / {p.maxUses}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="date-range">
-                          <div>
-                            {p.validFrom
-                              ? new Date(p.validFrom).toLocaleDateString()
-                              : "—"}
-                          </div>
-                          <div>
-                            →{" "}
-                            {p.expiresAt
-                              ? new Date(p.expiresAt).toLocaleDateString()
-                              : "—"}
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            onClick={() => handleEdit(p)}
-                            className="btn btn-secondary btn-sm"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(p.code)}
-                            className="btn btn-danger btn-sm"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {showForm && (
-          <div className="modal-overlay">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h3 className="modal-title">
-                  {editing ? `Edit ${editing.code}` : "Create any Code"}
-                </h3>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="close-button"
-                >
-                  ✕
-                </button>
-              </div>
-              <PromoForm
-                initialData={editing}
-                onCancel={() => setShowForm(false)}
-                onSubmit={handleSubmit}
-              />
-            </div>
-          </div>
-        )}
+      {/* Header */}
+      <div className="promos-header">
+        <div>
+          <h1 className="promos-title">Promo Codes</h1>
+          <p className="promos-subtitle">
+            Manage discount codes for catering and venue hire
+          </p>
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            setEditing(null);
+            setShowForm(true);
+          }}
+        >
+          + New Promo Code
+        </button>
       </div>
+
+      {/* Stats */}
+      {!loading && promos.length > 0 && (
+        <div className="stats-row">
+          <div className="stat-card">
+            <span className="stat-value">{stats.total}</span>
+            <span className="stat-label">Total</span>
+          </div>
+          <div className="stat-card stat-active">
+            <span className="stat-value">{stats.active}</span>
+            <span className="stat-label">Active</span>
+          </div>
+          <div className="stat-card stat-food">
+            <span className="stat-value">{stats.food}</span>
+            <span className="stat-label">Food</span>
+          </div>
+          <div className="stat-card stat-venue">
+            <span className="stat-value">{stats.venue}</span>
+            <span className="stat-label">Venue Hire</span>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      {!loading && promos.length > 0 && (
+        <div className="filters-bar">
+          <input
+            type="text"
+            placeholder="Search by code or name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+          <div className="filter-pills">
+            {(["all", "active", "inactive", "expired"] as FilterStatus[]).map(
+              (s) => (
+                <button
+                  key={s}
+                  className={`filter-pill ${filterStatus === s ? "filter-pill-active" : ""}`}
+                  onClick={() => setFilterStatus(s)}
+                >
+                  {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              )
+            )}
+            <span className="filter-divider" />
+            {(["all", "FOOD_SUBTOTAL", "VENUE_HIRE_FEE"] as FilterTarget[]).map(
+              (t) => (
+                <button
+                  key={t}
+                  className={`filter-pill ${filterTarget === t ? "filter-pill-active" : ""}`}
+                  onClick={() => setFilterTarget(t)}
+                >
+                  {t === "all"
+                    ? "All Targets"
+                    : t === "FOOD_SUBTOTAL"
+                      ? "Food"
+                      : "Venue Hire"}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-alert">
+          <p className="error-text">Error: {error}</p>
+          <button className="btn btn-secondary btn-sm" onClick={fetchAll}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <div className="loading-container">
+          <div className="spinner" />
+          <p className="loading-text">Loading promo codes...</p>
+        </div>
+      ) : promos.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🎟️</div>
+          <h3 className="empty-title">No promo codes yet</h3>
+          <p className="empty-text">
+            Create your first promo code to get started
+          </p>
+          <button
+            className="btn btn-primary"
+            style={{ marginTop: "1rem" }}
+            onClick={() => {
+              setEditing(null);
+              setShowForm(true);
+            }}
+          >
+            + Create Promo Code
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="empty-state">
+          <p className="empty-text">No promo codes match your filters</p>
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ marginTop: "0.75rem" }}
+            onClick={() => {
+              setSearch("");
+              setFilterStatus("all");
+              setFilterTarget("all");
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
+      ) : (
+        <div className="promo-grid">
+          {filtered.map((p: any) => {
+            const status = getPromoStatus(p);
+            return (
+              <div
+                key={p.code}
+                className={`promo-card ${status === "inactive" || status === "expired" || status === "limit-reached" ? "promo-card-dimmed" : ""}`}
+              >
+                <div className="card-top">
+                  <div className="card-top-left">
+                    <span className="card-code">{p.code}</span>
+                    {p.name && <span className="card-name">{p.name}</span>}
+                  </div>
+                  <span className={`status-badge status-${status}`}>
+                    {status === "limit-reached" ? "Limit Reached" : status.charAt(0).toUpperCase() + status.slice(1)}
+                  </span>
+                </div>
+
+                <div className="card-discount-row">
+                  <span className="card-discount">{formatDiscount(p)}</span>
+                  <span className="card-discount-label">
+                    {p.discountType === "PERCENT" ? "off" : "fixed"} ·{" "}
+                  </span>
+                  <span
+                    className={`target-pill ${p.discountTarget === "VENUE_HIRE_FEE" ? "target-venue" : "target-food"}`}
+                  >
+                    {p.discountTarget === "VENUE_HIRE_FEE"
+                      ? "Venue Hire"
+                      : "Food Subtotal"}
+                  </span>
+                </div>
+
+                <div className="card-details">
+                  <div className="card-detail">
+                    <span className="detail-label">Applies To</span>
+                    <span className="detail-value">
+                      {p.appliesTo === "BOTH"
+                        ? "Catering & Consumer"
+                        : p.appliesTo === "CATERING"
+                          ? "Catering"
+                          : "Consumer"}
+                    </span>
+                  </div>
+                  <div className="card-detail">
+                    <span className="detail-label">Usage</span>
+                    <span className="detail-value">
+                      {p.usesCount ?? 0}
+                      {p.maxUses ? ` / ${p.maxUses}` : ""}
+                      {p.maxUsesPerUser
+                        ? ` (${p.maxUsesPerUser}/user)`
+                        : ""}
+                    </span>
+                  </div>
+                  {p.restaurantIds && p.restaurantIds.length > 0 && (
+                    <div className="card-detail">
+                      <span className="detail-label">Restaurants</span>
+                      <span
+                        className="detail-value"
+                        title={p.restaurantIds
+                          .map((id: string) => restaurantMap[id] || id)
+                          .join(", ")}
+                      >
+                        {p.restaurantIds.length <= 2
+                          ? p.restaurantIds
+                              .map(
+                                (id: string) =>
+                                  restaurantMap[id] || "Unknown"
+                              )
+                              .join(", ")
+                          : `${p.restaurantIds.length} restaurants`}
+                      </span>
+                    </div>
+                  )}
+                  {(p.minOrderValue || p.maxDiscount) && (
+                    <div className="card-detail">
+                      <span className="detail-label">Limits</span>
+                      <span className="detail-value">
+                        {p.minOrderValue
+                          ? `Min £${Number(p.minOrderValue).toFixed(2)}`
+                          : ""}
+                        {p.minOrderValue && p.maxDiscount ? " · " : ""}
+                        {p.maxDiscount
+                          ? `Max £${Number(p.maxDiscount).toFixed(2)}`
+                          : ""}
+                      </span>
+                    </div>
+                  )}
+                  {(p.validFrom || p.expiresAt) && (
+                    <div className="card-detail">
+                      <span className="detail-label">Period</span>
+                      <span className="detail-value">
+                        {formatDate(p.validFrom) || "—"} →{" "}
+                        {formatDate(p.expiresAt) || "—"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="card-actions">
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setEditing(p);
+                      setShowForm(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-danger-outline btn-sm"
+                    onClick={() => setDeleteConfirm(p.code)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Form Modal */}
+      {showForm && (
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">
+                {editing ? `Edit: ${editing.code}` : "New Promo Code"}
+              </h3>
+              <button
+                onClick={() => setShowForm(false)}
+                className="close-button"
+              >
+                ✕
+              </button>
+            </div>
+            <PromoForm
+              initialData={editing}
+              onCancel={() => setShowForm(false)}
+              onSubmit={handleSubmit}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

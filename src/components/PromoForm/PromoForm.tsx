@@ -31,6 +31,7 @@ export default function PromoForm({
       ? new Date(initialData.expiresAt).toISOString().slice(0, 16)
       : "",
     appliesTo: initialData?.appliesTo ?? "BOTH",
+    discountTarget: initialData?.discountTarget ?? "FOOD_SUBTOTAL",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -68,6 +69,7 @@ export default function PromoForm({
           ? new Date(form.expiresAt).toISOString()
           : undefined,
         appliesTo: form.appliesTo,
+        discountTarget: form.discountTarget,
       };
       await onSubmit(dto);
     } finally {
@@ -122,7 +124,7 @@ export default function PromoForm({
         {/* Discount Section */}
         <section className="form-section">
           <h4 className="section-title">Discount Settings</h4>
-          <div className="form-row form-row-3">
+          <div className="form-row form-row-4">
             <div className="form-field">
               <label className="field-label required">Amount</label>
               <input
@@ -157,6 +159,17 @@ export default function PromoForm({
                 <option value="BOTH">Both</option>
                 <option value="CATERING">Catering Only</option>
                 <option value="CONSUMER">Consumer Only</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="field-label">Discount Target</label>
+              <select
+                value={form.discountTarget}
+                onChange={(e) => handleChange("discountTarget", e.target.value)}
+                className="field-select"
+              >
+                <option value="FOOD_SUBTOTAL">Food Subtotal</option>
+                <option value="VENUE_HIRE_FEE">Venue Hire Fee</option>
               </select>
             </div>
           </div>

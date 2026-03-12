@@ -2,6 +2,7 @@ import http from "./http";
 
 export type PromoDiscountType = "FIXED" | "PERCENT";
 export type PromoAppliesTo = "CATERING" | "CONSUMER" | "BOTH";
+export type PromoDiscountTarget = "FOOD_SUBTOTAL" | "VENUE_HIRE_FEE";
 
 export interface PromoCodeDto {
   code: string;
@@ -19,6 +20,7 @@ export interface PromoCodeDto {
   validFrom?: string;
   expiresAt?: string;
   appliesTo: PromoAppliesTo;
+  discountTarget: PromoDiscountTarget;
 }
 
 export interface PromoCodeResponse extends PromoCodeDto {

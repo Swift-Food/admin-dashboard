@@ -16,13 +16,13 @@ export default function PromoForm({
     name: initialData?.name ?? "",
     description: initialData?.description ?? "",
     restaurantIds: initialData?.restaurantIds ?? [],
-    discountAmount: initialData?.discountAmount ?? 0,
+    discountAmount: initialData?.discountAmount ?? "",
     discountType: initialData?.discountType ?? "PERCENT",
     currency: initialData?.currency ?? "GBP",
-    maxDiscount: initialData?.maxDiscount ?? undefined,
-    minOrderValue: initialData?.minOrderValue ?? undefined,
-    maxUses: initialData?.maxUses ?? undefined,
-    maxUsesPerUser: initialData?.maxUsesPerUser ?? undefined,
+    maxDiscount: initialData?.maxDiscount ?? "",
+    minOrderValue: initialData?.minOrderValue ?? "",
+    maxUses: initialData?.maxUses ?? "",
+    maxUsesPerUser: initialData?.maxUsesPerUser ?? "",
     isActive: initialData?.isActive ?? true,
     validFrom: initialData?.validFrom
       ? new Date(initialData.validFrom).toISOString().slice(0, 16)
@@ -37,7 +37,7 @@ export default function PromoForm({
 
   const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (k: string, v: any) =>
+  const set = (k: string, v: any) =>
     setForm((s: any) => ({ ...s, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,239 +85,317 @@ export default function PromoForm({
     }
   };
 
+  const isPercent = form.discountType === "PERCENT";
+
   return (
-    <form onSubmit={handleSubmit} className="promo-form">
-      <div className="promo-form-scroll">
-        {/* Basic Info Section */}
-        <section className="form-section">
-          <h4 className="section-title">Basic Information</h4>
-          <div className="form-row">
-            <div className="form-field">
-              <label className="field-label required">Promo Code</label>
+    <form onSubmit={handleSubmit} className="pf">
+      <div className="pf-scroll">
+        {/* Code & Name */}
+        <div className="pf-section">
+          <div className="pf-row">
+            <div className="pf-field pf-field-grow">
+              <label className="pf-label">
+                Code <span className="pf-req">*</span>
+              </label>
               <input
                 required
                 disabled={!!initialData}
                 value={form.code}
-                onChange={(e) => handleChange("code", e.target.value.toUpperCase())}
-                className="field-input"
-                placeholder="e.g., SUMMER2024"
+                onChange={(e) => set("code", e.target.value.toUpperCase())}
+                className="pf-input pf-input-code"
+                placeholder="SUMMER2024"
               />
               {initialData && (
-                <span className="field-hint">Code cannot be changed after creation</span>
+                <span className="pf-hint">Cannot change after creation</span>
               )}
             </div>
-            <div className="form-field">
-              <label className="field-label">Display Name</label>
+            <div className="pf-field pf-field-grow">
+              <label className="pf-label">Display Name</label>
               <input
                 value={form.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                className="field-input"
-                placeholder="e.g., Summer Sale 2024"
+                onChange={(e) => set("name", e.target.value)}
+                className="pf-input"
+                placeholder="Summer Sale 2024"
               />
             </div>
           </div>
-
-          <div className="form-field">
-            <label className="field-label">Description</label>
+          <div className="pf-field">
+            <label className="pf-label">Description</label>
             <textarea
               value={form.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              className="field-textarea"
-              placeholder="Internal notes about this promo code..."
+              onChange={(e) => set("description", e.target.value)}
+              className="pf-textarea"
+              placeholder="Internal notes..."
               rows={2}
             />
           </div>
-        </section>
+        </div>
 
-        {/* Discount Section */}
-        <section className="form-section">
-          <h4 className="section-title">Discount Settings</h4>
-          <div className="form-row form-row-4">
-            <div className="form-field">
-              <label className="field-label required">Amount</label>
+        {/* Discount */}
+        <div className="pf-section">
+          <div className="pf-section-header">
+            <span className="pf-section-title">Discount</span>
+          </div>
+
+          {/* Discount type selector */}
+          <div className="pf-type-selector">
+            <button
+              type="button"
+              className={`pf-type-btn ${isPercent ? "pf-type-active" : ""}`}
+              onClick={() =>
+                setForm((s: any) => ({
+                  ...s,
+                  discountType: "PERCENT",
+                  discountAmount: "",
+                }))
+              }
+            >
+              Percentage (%)
+            </button>
+            <button
+              type="button"
+              className={`pf-type-btn ${!isPercent ? "pf-type-active" : ""}`}
+              onClick={() =>
+                setForm((s: any) => ({
+                  ...s,
+                  discountType: "FIXED",
+                  discountAmount: "",
+                }))
+              }
+            >
+              Fixed Amount (£)
+            </button>
+          </div>
+
+          {/* Amount input - prominent */}
+          <div className="pf-amount-row">
+            <div className="pf-amount-wrap">
+              <span className="pf-amount-prefix">
+                {isPercent ? "%" : "£"}
+              </span>
               <input
                 required
                 type="number"
-                step="0.01"
+                step={isPercent ? "1" : "0.01"}
                 min="0"
-                max={form.discountType === "PERCENT" ? 100 : undefined}
+                max={isPercent ? 100 : undefined}
                 value={form.discountAmount}
-                onChange={(e) => handleChange("discountAmount", e.target.value)}
-                className="field-input"
-                placeholder="10"
+                onChange={(e) => set("discountAmount", e.target.value)}
+                className="pf-amount-input"
+                placeholder="0"
               />
             </div>
-            <div className="form-field">
-              <label className="field-label">Type</label>
-              <select
-                value={form.discountType}
-                onChange={(e) => {
-                  setForm((s: any) => ({
-                    ...s,
-                    discountType: e.target.value,
-                    discountAmount: 0,
-                  }));
-                }}
-                className="field-select"
-              >
-                <option value="PERCENT">Percentage (%)</option>
-                <option value="FIXED">Fixed Amount (£)</option>
-              </select>
+            {isPercent && form.discountAmount && (
+              <span className="pf-amount-hint">
+                {form.discountAmount}% off
+                {form.maxDiscount
+                  ? `, max £${Number(form.maxDiscount).toFixed(2)}`
+                  : ""}
+              </span>
+            )}
+          </div>
+
+          {/* Target + Applies To */}
+          <div className="pf-row">
+            <div className="pf-field pf-field-grow">
+              <label className="pf-label">What does it discount?</label>
+              <div className="pf-target-selector">
+                <button
+                  type="button"
+                  className={`pf-target-btn ${form.discountTarget === "FOOD_SUBTOTAL" ? "pf-target-food-active" : ""}`}
+                  onClick={() => set("discountTarget", "FOOD_SUBTOTAL")}
+                >
+                  <span className="pf-target-icon">🍽</span>
+                  Food Subtotal
+                </button>
+                <button
+                  type="button"
+                  className={`pf-target-btn ${form.discountTarget === "VENUE_HIRE_FEE" ? "pf-target-venue-active" : ""}`}
+                  onClick={() => set("discountTarget", "VENUE_HIRE_FEE")}
+                >
+                  <span className="pf-target-icon">🏢</span>
+                  Venue Hire Fee
+                </button>
+              </div>
             </div>
-            <div className="form-field">
-              <label className="field-label">Applies To</label>
+            <div className="pf-field">
+              <label className="pf-label">Who can use it?</label>
               <select
                 value={form.appliesTo}
-                onChange={(e) => handleChange("appliesTo", e.target.value)}
-                className="field-select"
+                onChange={(e) => set("appliesTo", e.target.value)}
+                className="pf-select"
               >
-                <option value="BOTH">Both</option>
+                <option value="BOTH">Everyone</option>
                 <option value="CATERING">Catering Only</option>
                 <option value="CONSUMER">Consumer Only</option>
-              </select>
-            </div>
-            <div className="form-field">
-              <label className="field-label">Discount Target</label>
-              <select
-                value={form.discountTarget}
-                onChange={(e) => handleChange("discountTarget", e.target.value)}
-                className="field-select"
-              >
-                <option value="FOOD_SUBTOTAL">Food Subtotal</option>
-                <option value="VENUE_HIRE_FEE">Venue Hire Fee</option>
               </select>
             </div>
           </div>
 
           {form.discountTarget === "VENUE_HIRE_FEE" && (
-            <div className="form-field" style={{ marginTop: "0.5rem" }}>
-              <label className="field-label">
-                Coworking Venue IDs (comma-separated, optional)
+            <div className="pf-field">
+              <label className="pf-label">
+                Restrict to Coworking Venues{" "}
+                <span className="pf-optional">optional</span>
               </label>
               <input
                 value={form.coworkingVenueIds}
-                onChange={(e) =>
-                  handleChange("coworkingVenueIds", e.target.value)
-                }
-                className="field-input"
-                placeholder="e.g., venue_abc123, venue_def456"
+                onChange={(e) => set("coworkingVenueIds", e.target.value)}
+                className="pf-input"
+                placeholder="Comma-separated venue IDs, or leave blank for all"
               />
             </div>
           )}
+        </div>
 
-          <div className="form-row form-row-3">
-            <div className="form-field">
-              <label className="field-label">Min Order (£)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.minOrderValue ?? ""}
-                onChange={(e) => handleChange("minOrderValue", e.target.value)}
-                className="field-input"
-                placeholder="No minimum"
-              />
+        {/* Limits */}
+        <div className="pf-section">
+          <div className="pf-section-header">
+            <span className="pf-section-title">Limits</span>
+            <span className="pf-section-subtitle">All optional</span>
+          </div>
+          <div className="pf-row pf-row-3">
+            <div className="pf-field">
+              <label className="pf-label">Min Order</label>
+              <div className="pf-input-prefix-wrap">
+                <span className="pf-input-prefix">£</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.minOrderValue}
+                  onChange={(e) => set("minOrderValue", e.target.value)}
+                  className="pf-input pf-input-prefixed"
+                  placeholder="None"
+                />
+              </div>
             </div>
-            <div className="form-field">
-              <label className="field-label">Max Discount (£)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.maxDiscount ?? ""}
-                onChange={(e) => handleChange("maxDiscount", e.target.value)}
-                className="field-input"
-                placeholder="No limit"
-              />
-            </div>
-            <div className="form-field">
-              <label className="field-label">Max Uses Per User</label>
+            {isPercent && (
+              <div className="pf-field">
+                <label className="pf-label">Max Discount</label>
+                <div className="pf-input-prefix-wrap">
+                  <span className="pf-input-prefix">£</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.maxDiscount}
+                    onChange={(e) => set("maxDiscount", e.target.value)}
+                    className="pf-input pf-input-prefixed"
+                    placeholder="None"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="pf-field">
+              <label className="pf-label">Max Uses</label>
               <input
                 type="number"
                 min="1"
-                value={form.maxUsesPerUser ?? ""}
-                onChange={(e) => handleChange("maxUsesPerUser", e.target.value)}
-                className="field-input"
+                value={form.maxUses}
+                onChange={(e) => set("maxUses", e.target.value)}
+                className="pf-input"
+                placeholder="Unlimited"
+              />
+            </div>
+            <div className="pf-field">
+              <label className="pf-label">Per User</label>
+              <input
+                type="number"
+                min="1"
+                value={form.maxUsesPerUser}
+                onChange={(e) => set("maxUsesPerUser", e.target.value)}
+                className="pf-input"
                 placeholder="Unlimited"
               />
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Restaurant Applicability */}
-        <section className="form-section">
-          <h4 className="section-title">Restaurant Applicability</h4>
+        {/* Restaurants */}
+        <div className="pf-section">
+          <div className="pf-section-header">
+            <span className="pf-section-title">Restaurants</span>
+            <span className="pf-section-subtitle">
+              Leave empty for all restaurants
+            </span>
+          </div>
           <RestaurantMultiSelect
             selectedIds={form.restaurantIds}
-            onChange={(ids) => handleChange("restaurantIds", ids)}
+            onChange={(ids) => set("restaurantIds", ids)}
           />
-        </section>
+        </div>
 
-        {/* Validity Section */}
-        <section className="form-section">
-          <h4 className="section-title">Validity Period</h4>
-          <div className="form-row form-row-3">
-            <div className="form-field">
-              <label className="field-label">Valid From</label>
+        {/* Schedule */}
+        <div className="pf-section">
+          <div className="pf-section-header">
+            <span className="pf-section-title">Schedule</span>
+            <span className="pf-section-subtitle">
+              Leave blank for no time restrictions
+            </span>
+          </div>
+          <div className="pf-row">
+            <div className="pf-field pf-field-grow">
+              <label className="pf-label">Starts</label>
               <input
                 type="datetime-local"
                 value={form.validFrom}
-                onChange={(e) => handleChange("validFrom", e.target.value)}
-                className="field-input"
+                onChange={(e) => set("validFrom", e.target.value)}
+                className="pf-input"
               />
             </div>
-            <div className="form-field">
-              <label className="field-label">Expires At</label>
+            <div className="pf-field pf-field-grow">
+              <label className="pf-label">Expires</label>
               <input
                 type="datetime-local"
                 value={form.expiresAt}
-                onChange={(e) => handleChange("expiresAt", e.target.value)}
-                className="field-input"
-              />
-            </div>
-            <div className="form-field">
-              <label className="field-label">Max Total Uses</label>
-              <input
-                type="number"
-                min="1"
-                value={form.maxUses ?? ""}
-                onChange={(e) => handleChange("maxUses", e.target.value)}
-                className="field-input"
-                placeholder="Unlimited"
+                onChange={(e) => set("expiresAt", e.target.value)}
+                className="pf-input"
               />
             </div>
           </div>
 
-          <div className="form-field-inline">
-            <label className="toggle-label">
+          <div className="pf-toggle-row">
+            <label className="pf-toggle">
               <input
                 type="checkbox"
                 checked={form.isActive}
-                onChange={(e) => handleChange("isActive", e.target.checked)}
-                className="toggle-input"
+                onChange={(e) => set("isActive", e.target.checked)}
+                className="pf-toggle-input"
               />
-              <span className="toggle-switch"></span>
-              <span className="toggle-text">
-                {form.isActive ? "Active" : "Inactive"} — {form.isActive ? "Promo code can be used" : "Promo code is disabled"}
+              <span className="pf-toggle-track">
+                <span className="pf-toggle-thumb" />
+              </span>
+              <span className="pf-toggle-label">
+                {form.isActive ? "Active" : "Inactive"}
               </span>
             </label>
           </div>
-        </section>
+        </div>
       </div>
 
-      {/* Form Actions - Fixed at bottom */}
-      <div className="promo-form-actions">
-        <button type="button" className="btn btn-cancel" onClick={onCancel} disabled={submitting}>
+      {/* Actions */}
+      <div className="pf-actions">
+        <button
+          type="button"
+          className="pf-btn pf-btn-cancel"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </button>
-        <button type="submit" className="btn btn-submit" disabled={submitting}>
+        <button
+          type="submit"
+          className="pf-btn pf-btn-submit"
+          disabled={submitting}
+        >
           {submitting ? (
             <>
-              <span className="spinner-small"></span>
+              <span className="pf-spinner" />
               Saving...
             </>
           ) : initialData ? (
-            "Update Promo Code"
+            "Save Changes"
           ) : (
             "Create Promo Code"
           )}

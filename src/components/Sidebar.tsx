@@ -10,7 +10,6 @@ import {
   faChevronRight,
   faChevronDown,
   faUtensils,
-  faBuilding,
   faTags,
   faReceipt,
   faMoneyBillWave,

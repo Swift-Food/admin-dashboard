@@ -259,6 +259,27 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     }
   };
 
+  const handleToggleAllInGroup = async (groupBundles: CateringBundle[], activate: boolean) => {
+    const toToggle = groupBundles.filter((b) => b.isActive !== activate);
+    if (toToggle.length === 0) return;
+
+    const action = activate ? "activate" : "deactivate";
+    if (!window.confirm(`${activate ? "Activate" : "Deactivate"} ${toToggle.length} bundle${toToggle.length !== 1 ? "s" : ""}?`)) {
+      return;
+    }
+
+    try {
+      const results = await Promise.all(toToggle.map((b) => toggleBundleActive(b.id)));
+      setBundles((prev) => {
+        const updatedMap = new Map(results.map((r) => [r.id, r]));
+        return prev.map((b) => updatedMap.get(b.id) || b);
+      });
+    } catch (err: any) {
+      alert(err.message || `Failed to ${action} bundles`);
+      await loadData();
+    }
+  };
+
   const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -551,21 +572,48 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
           Array.from(groupedBundles.entries()).map(([groupKey, group]) => (
             <div key={groupKey} className="bundle-group">
               {isCatering && (
-                <div
-                  className="bundle-group-header"
-                  onClick={() => toggleGroupCollapsed(groupKey)}
-                >
-                  <div className="bundle-group-title">
+                <div className="bundle-group-header">
+                  <div
+                    className="bundle-group-title"
+                    onClick={() => toggleGroupCollapsed(groupKey)}
+                    style={{ cursor: "pointer", flex: 1 }}
+                  >
                     <h2>{group.name}</h2>
                     <span className="bundle-group-count">
                       {group.bundles.length} bundle{group.bundles.length !== 1 ? "s" : ""}
                     </span>
+                    {collapsedGroups.has(groupKey) ? (
+                      <ChevronDown size={18} />
+                    ) : (
+                      <ChevronUp size={18} />
+                    )}
                   </div>
-                  {collapsedGroups.has(groupKey) ? (
-                    <ChevronDown size={20} />
-                  ) : (
-                    <ChevronUp size={20} />
-                  )}
+                  <div className="bundle-group-actions">
+                    {group.bundles.some((b) => b.isActive) && (
+                      <button
+                        className="btn btn-sm btn-toggle-active"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleAllInGroup(group.bundles, false);
+                        }}
+                      >
+                        <Power size={13} />
+                        Deactivate All
+                      </button>
+                    )}
+                    {group.bundles.some((b) => !b.isActive) && (
+                      <button
+                        className="btn btn-sm btn-toggle-inactive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleAllInGroup(group.bundles, true);
+                        }}
+                      >
+                        <Power size={13} />
+                        Activate All
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 

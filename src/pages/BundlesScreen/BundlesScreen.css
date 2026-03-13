@@ -152,6 +152,12 @@
   color: #3b82f6;
 }
 
+.bundle-group-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .bundle-group-title {
   display: flex;
   align-items: center;

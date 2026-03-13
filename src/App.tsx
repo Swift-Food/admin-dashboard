@@ -53,6 +53,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   "event-locations": "event-locations",
   calendars: "calendars",
   bundles: "bundles",
+  "catering-bundles": "catering-bundles",
 };
 
 // Map SidebarPage IDs to URL paths
@@ -76,6 +77,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "event-locations": "event-locations",
   calendars: "calendars",
   bundles: "bundles",
+  "catering-bundles": "catering-bundles",
 };
 
 // Define which pages belong to which mode
@@ -94,6 +96,7 @@ const swiftPages: SidebarPage[] = [
   "statistics",
   "map",
   "miscellaneous",
+  "catering-bundles",
 ];
 
 const prismoPages: SidebarPage[] = [
@@ -143,7 +146,9 @@ function PageRenderer() {
       case "catering-sessions":
         return <CateringSessionsScreen />;
       case "bundles":
-        return <BundlesScreen />;
+        return <BundlesScreen bundleType="prismo" />;
+      case "catering-bundles":
+        return <BundlesScreen bundleType="catering" />;
       case "payout":
         return <WithdrawalAdminDashboard />;
       case "restaurant":

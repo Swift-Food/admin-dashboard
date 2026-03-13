@@ -42,6 +42,7 @@ export type SidebarPage =
   | "catering"
   | "catering-sessions"
   | "bundles"
+  | "catering-bundles"
   | "payout"
   | "corporate"
   | "stripe-accounts"
@@ -151,6 +152,11 @@ const navSections: NavSection[] = [
         label: "Promotions",
         icon: <FontAwesomeIcon icon={faTags} style={iconCommonStyle} />,
       },
+      {
+        id: "catering-bundles",
+        label: "Catering Bundles",
+        icon: <FontAwesomeIcon icon={faBox} style={iconCommonStyle} />,
+      },
     ],
   },
   {
@@ -180,7 +186,7 @@ const navSections: NavSection[] = [
       },
       {
         id: "bundles",
-        label: "Catering Bundles",
+        label: "Prismo Bundles",
         icon: <FontAwesomeIcon icon={faBox} style={prismoIconStyle} />,
       },
     ],

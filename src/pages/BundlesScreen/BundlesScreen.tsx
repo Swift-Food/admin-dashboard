@@ -1,9 +1,18 @@
-import { useEffect, useState, useRef } from "react";
-import { Plus, Trash2, Edit, ChevronDown, ChevronUp, X, Upload } from "lucide-react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import {
+  Plus,
+  Trash2,
+  Edit,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Upload,
+} from "lucide-react";
 import type {
+  BundleType,
   CateringBundle,
-  CateringBundleItem,
   CateringMenuItem,
+  CreateCateringBundleItemDto,
 } from "../../types/bundles.types";
 import {
   getAllBundles,
@@ -13,8 +22,13 @@ import {
   uploadImage,
 } from "../../services/bundles.service";
 import { getCateringMenuItems } from "../../services/menuItems.service";
+import { getAllRestaurantsAdminDashboard } from "../../services/restaurant.service";
 import ImageCropper from "../../components/ImageCropper";
 import "./BundlesScreen.css";
+
+interface BundlesScreenProps {
+  bundleType: BundleType;
+}
 
 interface BundleFormData {
   name: string;
@@ -22,12 +36,29 @@ interface BundleFormData {
   imageUrl: string;
   pricePerPerson: number;
   baseGuestCount: number;
-  items: Omit<CateringBundleItem, "id">[];
+  restaurantId: string;
+  items: CreateCateringBundleItemDto[];
 }
 
-const BundlesScreen = () => {
+interface SimpleRestaurant {
+  id: string;
+  restaurant_name: string;
+}
+
+const emptyForm: BundleFormData = {
+  name: "",
+  description: "",
+  imageUrl: "",
+  pricePerPerson: 0,
+  baseGuestCount: 10,
+  restaurantId: "",
+  items: [],
+};
+
+const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
   const [bundles, setBundles] = useState<CateringBundle[]>([]);
   const [menuItems, setMenuItems] = useState<CateringMenuItem[]>([]);
+  const [restaurants, setRestaurants] = useState<SimpleRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -42,29 +73,45 @@ const BundlesScreen = () => {
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState<BundleFormData>({
-    name: "",
-    description: "",
-    imageUrl: "",
-    pricePerPerson: 0,
-    baseGuestCount: 10,
-    items: [],
-  });
+  const [formData, setFormData] = useState<BundleFormData>({ ...emptyForm });
+
+  const isCatering = bundleType === "catering";
+
+  // For catering bundles, filter menu items to selected restaurant
+  const filteredMenuItems = useMemo(() => {
+    if (!isCatering || !formData.restaurantId) return menuItems;
+    return menuItems.filter(
+      (mi) => mi.restaurant.id === formData.restaurantId
+    );
+  }, [menuItems, formData.restaurantId, isCatering]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [bundleType]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [bundlesData, menuItemsData] = await Promise.all([
-        getAllBundles(),
+      const promises: Promise<any>[] = [
+        getAllBundles(bundleType),
         getCateringMenuItems(),
-      ]);
-      setBundles(bundlesData);
-      setMenuItems(menuItemsData);
+      ];
+      // Only load restaurants for catering mode
+      if (bundleType === "catering") {
+        promises.push(getAllRestaurantsAdminDashboard());
+      }
+      const results = await Promise.all(promises);
+      setBundles(results[0]);
+      setMenuItems(results[1]);
+      if (results[2]) {
+        setRestaurants(
+          results[2].map((r: any) => ({
+            id: r.id,
+            restaurant_name: r.restaurant_name,
+          }))
+        );
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load data");
     } finally {
@@ -84,14 +131,7 @@ const BundlesScreen = () => {
 
   const openCreateModal = () => {
     setEditingBundle(null);
-    setFormData({
-      name: "",
-      description: "",
-      imageUrl: "",
-      pricePerPerson: 0,
-      baseGuestCount: 10,
-      items: [],
-    });
+    setFormData({ ...emptyForm });
     setShowModal(true);
   };
 
@@ -101,13 +141,11 @@ const BundlesScreen = () => {
       name: bundle.name,
       description: bundle.description || "",
       imageUrl: bundle.imageUrl || "",
-      pricePerPerson: bundle.pricePerPerson,
-      baseGuestCount: bundle.baseGuestCount,
+      pricePerPerson: bundle.pricePerPerson || 0,
+      baseGuestCount: bundle.baseGuestCount || 10,
+      restaurantId: bundle.restaurantId || "",
       items: bundle.items.map((item) => ({
-        restaurantId: item.restaurantId,
-        restaurantName: item.restaurantName,
         menuItemId: item.menuItemId,
-        menuItemName: item.menuItemName,
         quantity: item.quantity,
         selectedAddons: item.selectedAddons || [],
         sortOrder: item.sortOrder,
@@ -119,41 +157,37 @@ const BundlesScreen = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingBundle(null);
-    setFormData({
-      name: "",
-      description: "",
-      imageUrl: "",
-      pricePerPerson: 0,
-      baseGuestCount: 10,
-      items: [],
-    });
+    setFormData({ ...emptyForm });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
     if (!allowedTypes.includes(file.type)) {
       alert("Please select a valid image file (JPEG, PNG, WebP, or GIF)");
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert("Image file size must be less than 10MB");
       return;
     }
 
-    // Create a data URL to show in the cropper
     const reader = new FileReader();
     reader.onload = () => {
       setImageToCrop(reader.result as string);
     };
     reader.readAsDataURL(file);
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -164,7 +198,6 @@ const BundlesScreen = () => {
       setUploading(true);
       setImageToCrop(null);
 
-      // Convert blob to file for upload
       const file = new File([croppedBlob], "cropped-image.jpg", {
         type: "image/jpeg",
       });
@@ -188,10 +221,7 @@ const BundlesScreen = () => {
       items: [
         ...prev.items,
         {
-          restaurantId: "",
-          restaurantName: "",
           menuItemId: "",
-          menuItemName: "",
           quantity: 1,
           selectedAddons: [],
           sortOrder: prev.items.length,
@@ -203,7 +233,6 @@ const BundlesScreen = () => {
   const handleRemoveItem = (index: number) => {
     setFormData((prev) => {
       const newItems = prev.items.filter((_, i) => i !== index);
-      // Update sort order
       newItems.forEach((item, i) => {
         item.sortOrder = i;
       });
@@ -220,9 +249,6 @@ const BundlesScreen = () => {
       newItems[index] = {
         ...newItems[index],
         menuItemId: selectedMenuItem.id,
-        menuItemName: selectedMenuItem.name,
-        restaurantId: selectedMenuItem.restaurant.id,
-        restaurantName: selectedMenuItem.restaurant.restaurant_name,
         selectedAddons: [],
         sortOrder: index,
       };
@@ -241,6 +267,15 @@ const BundlesScreen = () => {
     });
   };
 
+  const handleRestaurantChange = (restaurantId: string) => {
+    // Clear items when restaurant changes (they may not belong to new restaurant)
+    setFormData((prev) => ({
+      ...prev,
+      restaurantId,
+      items: [],
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -249,13 +284,19 @@ const BundlesScreen = () => {
       return;
     }
 
-    if (formData.pricePerPerson <= 0) {
-      alert("Price per person must be greater than 0");
-      return;
+    if (!isCatering) {
+      if ((formData.pricePerPerson || 0) <= 0) {
+        alert("Price per person must be greater than 0");
+        return;
+      }
+      if ((formData.baseGuestCount || 0) <= 0) {
+        alert("Base guest count must be greater than 0");
+        return;
+      }
     }
 
-    if (formData.baseGuestCount <= 0) {
-      alert("Base guest count must be greater than 0");
+    if (isCatering && !formData.restaurantId) {
+      alert("Please select a restaurant");
       return;
     }
 
@@ -264,7 +305,6 @@ const BundlesScreen = () => {
       return;
     }
 
-    // Validate all items have menu items selected
     const invalidItems = formData.items.filter((item) => !item.menuItemId);
     if (invalidItems.length > 0) {
       alert("Please select a menu item for all items");
@@ -273,15 +313,38 @@ const BundlesScreen = () => {
 
     try {
       setSubmitting(true);
+
+      const payload = {
+        type: bundleType,
+        name: formData.name,
+        description: formData.description || undefined,
+        imageUrl: formData.imageUrl || undefined,
+        ...(isCatering
+          ? { restaurantId: formData.restaurantId }
+          : {
+              pricePerPerson: formData.pricePerPerson,
+              baseGuestCount: formData.baseGuestCount,
+            }),
+        items: formData.items.map((item, i) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          selectedAddons: item.selectedAddons,
+          sortOrder: i,
+        })),
+      };
+
       if (editingBundle) {
-        await updateBundle(editingBundle.id, formData);
+        const { type, ...updatePayload } = payload;
+        await updateBundle(editingBundle.id, updatePayload);
       } else {
-        await createBundle(formData);
+        await createBundle(payload);
       }
       await loadData();
       closeModal();
     } catch (err: any) {
-      alert(err.message || "Failed to save bundle");
+      alert(
+        err?.response?.data?.message || err.message || "Failed to save bundle"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -304,6 +367,13 @@ const BundlesScreen = () => {
     }
   };
 
+  // Helper to get the display name for a menu item from the response data
+  const getMenuItemDisplay = (menuItemId: string): string => {
+    const mi = menuItems.find((m) => m.id === menuItemId);
+    if (!mi) return menuItemId;
+    return `${mi.name} - £${mi.price} (${mi.groupTitle})${!isCatering ? ` - ${mi.restaurant.restaurant_name}` : ""}`;
+  };
+
   if (loading) {
     return (
       <div className="bundles-screen">
@@ -320,14 +390,17 @@ const BundlesScreen = () => {
     );
   }
 
+  const title = isCatering ? "Catering Bundles" : "Prismo Bundles";
+  const subtitle = isCatering
+    ? "Manage restaurant-specific catering bundle templates"
+    : "Manage premade bundle templates for catering orders";
+
   return (
     <div className="bundles-screen">
       <div className="bundles-header">
         <div>
-          <h1>Catering Bundles</h1>
-          <p className="bundles-subtitle">
-            Manage premade bundle templates for catering orders
-          </p>
+          <h1>{title}</h1>
+          <p className="bundles-subtitle">{subtitle}</p>
         </div>
         <button className="btn btn-primary" onClick={openCreateModal}>
           <Plus size={20} />
@@ -338,7 +411,7 @@ const BundlesScreen = () => {
       <div className="bundles-list">
         {bundles.length === 0 ? (
           <div className="empty-state">
-            <p>No bundles created yet</p>
+            <p>No {isCatering ? "catering" : "prismo"} bundles created yet</p>
             <button className="btn btn-primary" onClick={openCreateModal}>
               Create Your First Bundle
             </button>
@@ -364,12 +437,21 @@ const BundlesScreen = () => {
                         </p>
                       )}
                       <div className="bundle-meta">
-                        <span className="bundle-price">
-                          £{bundle.pricePerPerson}/person
-                        </span>
-                        <span className="bundle-guests">
-                          Base: {bundle.baseGuestCount} guests
-                        </span>
+                        {isCatering && bundle.restaurantName && (
+                          <span className="bundle-restaurant">
+                            {bundle.restaurantName}
+                          </span>
+                        )}
+                        {!isCatering && bundle.pricePerPerson != null && (
+                          <span className="bundle-price">
+                            £{bundle.pricePerPerson}/person
+                          </span>
+                        )}
+                        {!isCatering && bundle.baseGuestCount != null && (
+                          <span className="bundle-guests">
+                            Base: {bundle.baseGuestCount} guests
+                          </span>
+                        )}
                         <span
                           className={`bundle-status ${
                             bundle.isActive ? "active" : "inactive"
@@ -422,7 +504,9 @@ const BundlesScreen = () => {
                             {item.restaurantName}
                           </div>
                         </div>
-                        <div className="item-quantity">Qty: {item.quantity}</div>
+                        <div className="item-quantity">
+                          Qty: {item.quantity}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -435,9 +519,15 @@ const BundlesScreen = () => {
 
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content large"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h2>{editingBundle ? "Edit Bundle" : "Create Bundle"}</h2>
+              <h2>
+                {editingBundle ? "Edit" : "Create"}{" "}
+                {isCatering ? "Catering" : "Prismo"} Bundle
+              </h2>
               <button className="btn-icon" onClick={closeModal}>
                 <X size={24} />
               </button>
@@ -459,6 +549,33 @@ const BundlesScreen = () => {
                 />
               </div>
 
+              {/* Restaurant selector for catering bundles */}
+              {isCatering && (
+                <div className="form-group">
+                  <label className="form-label">
+                    Restaurant <span className="required">*</span>
+                  </label>
+                  <select
+                    className="form-select"
+                    value={formData.restaurantId}
+                    onChange={(e) => handleRestaurantChange(e.target.value)}
+                    disabled={!!editingBundle}
+                  >
+                    <option value="">Select restaurant...</option>
+                    {restaurants.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.restaurant_name}
+                      </option>
+                    ))}
+                  </select>
+                  {editingBundle && (
+                    <p className="form-hint">
+                      Restaurant cannot be changed after creation
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="form-group">
                 <label className="form-label">Bundle Image</label>
                 <div className="image-upload-section">
@@ -472,7 +589,9 @@ const BundlesScreen = () => {
                       <button
                         type="button"
                         className="btn btn-sm btn-danger image-remove-btn"
-                        onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                        onClick={() =>
+                          setFormData({ ...formData, imageUrl: "" })
+                        }
                       >
                         <X size={14} />
                         Remove
@@ -533,44 +652,47 @@ const BundlesScreen = () => {
                 />
               </div>
 
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">
-                    Price Per Person (£) <span className="required">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={formData.pricePerPerson}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        pricePerPerson: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+              {/* Price/guest fields only for prismo bundles */}
+              {!isCatering && (
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Price Per Person (£) <span className="required">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={formData.pricePerPerson}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pricePerPerson: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    Base Guest Count <span className="required">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={formData.baseGuestCount}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        baseGuestCount: parseInt(e.target.value) || 10,
-                      })
-                    }
-                    min="1"
-                  />
+                  <div className="form-group">
+                    <label className="form-label">
+                      Base Guest Count <span className="required">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={formData.baseGuestCount}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          baseGuestCount: parseInt(e.target.value) || 10,
+                        })
+                      }
+                      min="1"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="form-section">
                 <div className="form-section-header">
@@ -579,15 +701,25 @@ const BundlesScreen = () => {
                     type="button"
                     className="btn btn-sm btn-secondary"
                     onClick={handleAddItem}
+                    disabled={isCatering && !formData.restaurantId}
                   >
                     <Plus size={16} />
                     Add Item
                   </button>
                 </div>
 
-                {formData.items.length === 0 ? (
+                {isCatering && !formData.restaurantId && (
                   <div className="empty-items">
-                    <p>No items added yet. Click "Add Item" to get started.</p>
+                    <p>Select a restaurant first to add menu items.</p>
+                  </div>
+                )}
+
+                {(!isCatering || formData.restaurantId) &&
+                formData.items.length === 0 ? (
+                  <div className="empty-items">
+                    <p>
+                      No items added yet. Click "Add Item" to get started.
+                    </p>
                   </div>
                 ) : (
                   <div className="bundle-items-form">
@@ -611,13 +743,17 @@ const BundlesScreen = () => {
                           <select
                             className="form-select"
                             value={item.menuItemId}
-                            onChange={(e) => handleItemChange(index, e.target.value)}
+                            onChange={(e) =>
+                              handleItemChange(index, e.target.value)
+                            }
                           >
                             <option value="">Select menu item...</option>
-                            {menuItems.map((menuItem) => (
+                            {filteredMenuItems.map((menuItem) => (
                               <option key={menuItem.id} value={menuItem.id}>
                                 {menuItem.name} - £{menuItem.price} (
-                                {menuItem.groupTitle}) - {menuItem.restaurant.restaurant_name}
+                                {menuItem.groupTitle})
+                                {!isCatering &&
+                                  ` - ${menuItem.restaurant.restaurant_name}`}
                               </option>
                             ))}
                           </select>
@@ -663,8 +799,8 @@ const BundlesScreen = () => {
                       ? "Updating..."
                       : "Creating..."
                     : editingBundle
-                    ? "Update Bundle"
-                    : "Create Bundle"}
+                      ? "Update Bundle"
+                      : "Create Bundle"}
                 </button>
               </div>
             </form>

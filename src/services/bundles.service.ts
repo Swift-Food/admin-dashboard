@@ -1,5 +1,6 @@
 import http from "./http";
 import type {
+  BundleType,
   CateringBundle,
   CreateCateringBundleDto,
   UpdateCateringBundleDto,
@@ -18,13 +19,21 @@ export const uploadImage = async (file: File): Promise<string> => {
   return res.data;
 };
 
-export const getAllBundles = async (): Promise<CateringBundle[]> => {
-  const res = await http.get<CateringBundle[]>("/catering-bundles");
+export const getAllBundles = async (
+  type?: BundleType
+): Promise<CateringBundle[]> => {
+  const params = type ? { type } : {};
+  const res = await http.get<CateringBundle[]>("/catering-bundles", { params });
   return res.data;
 };
 
-export const getActiveBundles = async (): Promise<CateringBundle[]> => {
-  const res = await http.get<CateringBundle[]>("/catering-bundles/active");
+export const getActiveBundles = async (
+  type?: BundleType
+): Promise<CateringBundle[]> => {
+  const params = type ? { type } : {};
+  const res = await http.get<CateringBundle[]>("/catering-bundles/active", {
+    params,
+  });
   return res.data;
 };
 
@@ -33,10 +42,18 @@ export const getBundleById = async (id: string): Promise<CateringBundle> => {
   return res.data;
 };
 
+export const getBundlesByRestaurant = async (
+  restaurantId: string
+): Promise<CateringBundle[]> => {
+  const res = await http.get<CateringBundle[]>(
+    `/catering-bundles/restaurant/${restaurantId}`
+  );
+  return res.data;
+};
+
 export const createBundle = async (
   data: CreateCateringBundleDto
 ): Promise<CateringBundle> => {
-  console.log("data submitting is", JSON.stringify(data))
   const res = await http.post<CateringBundle>("/catering-bundles", data);
   return res.data;
 };

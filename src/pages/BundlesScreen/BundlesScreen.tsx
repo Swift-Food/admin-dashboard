@@ -92,6 +92,19 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     );
   }, [menuItems, formData.restaurantId, isCatering]);
 
+  // Get unique restaurants from bundles for filter dropdown
+  const bundleRestaurants = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const b of bundles) {
+      if (b.restaurantId && b.restaurantName) {
+        map.set(b.restaurantId, b.restaurantName);
+      }
+    }
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [bundles]);
+
   // Filter and group bundles
   const { groupedBundles, filteredCount, totalCount } = useMemo(() => {
     let filtered = bundles;
@@ -467,19 +480,6 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
   const subtitle = isCatering
     ? "Manage restaurant-specific catering bundle templates"
     : "Manage premade bundle templates for catering orders";
-
-  // Get unique restaurants from bundles for filter dropdown
-  const bundleRestaurants = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const b of bundles) {
-      if (b.restaurantId && b.restaurantName) {
-        map.set(b.restaurantId, b.restaurantName);
-      }
-    }
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
-  }, [bundles]);
 
   return (
     <div className="bundles-screen">

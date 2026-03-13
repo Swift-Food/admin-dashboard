@@ -8,7 +8,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .bundles-header h1 {
@@ -28,6 +28,66 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Filters */
+.bundles-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex: 1;
+  max-width: 320px;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #040273;
+  width: 100%;
+  background: transparent;
+}
+
+.search-box input::placeholder {
+  color: #9ca3af;
+}
+
+.search-box svg {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #040273;
+  background: white;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.filter-count {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-left: auto;
 }
 
 /* Loading and Error States */
@@ -62,101 +122,200 @@
 .bundles-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+}
+
+/* Bundle Group */
+.bundle-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.bundle-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f0f4ff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.bundle-group-header:hover {
+  background: #e0e9ff;
+}
+
+.bundle-group-header svg {
+  color: #3b82f6;
+}
+
+.bundle-group-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bundle-group-title h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e40af;
+  margin: 0;
+}
+
+.bundle-group-count {
+  font-size: 13px;
+  color: #3b82f6;
+  background: white;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.bundle-group-items {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
+
+/* When no group header (prismo), remove top border gap */
+.bundle-group:not(:has(.bundle-group-header)) .bundle-group-items {
+  border-top: 1px solid #e5e7eb;
+  border-radius: 10px;
 }
 
 /* Bundle Card */
 .bundle-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
+  transition: background 0.15s;
+}
+
+.bundle-card:not(:last-child) {
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .bundle-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: #fafbff;
+}
+
+.bundle-card-inactive {
+  opacity: 0.6;
+}
+
+.bundle-card-inactive:hover {
+  opacity: 0.85;
 }
 
 .bundle-card-header {
-  padding: 20px;
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
 }
 
 .bundle-card-main {
   flex: 1;
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.bundle-image {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .bundle-card-info {
   flex: 1;
-  display: flex;
-  gap: 16px;
+  min-width: 0;
 }
 
-.bundle-image {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+.bundle-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .bundle-card-info h3 {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 600;
   color: #040273;
-  margin: 0 0 8px 0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bundle-description {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
-  margin: 0 0 12px 0;
-  line-height: 1.5;
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .bundle-meta {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .bundle-price {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 600;
   color: #10b981;
 }
 
 .bundle-guests {
-  font-size: 14px;
+  font-size: 12px;
   color: #6b7280;
-  padding: 4px 12px;
+  padding: 2px 8px;
   background: #f3f4f6;
-  border-radius: 6px;
+  border-radius: 4px;
+}
+
+.bundle-items-count {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
 }
 
 .bundle-restaurant {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #3b82f6;
-  padding: 4px 12px;
+  padding: 2px 8px;
   background: #dbeafe;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .bundle-status {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
 .bundle-status.active {
@@ -169,9 +328,36 @@
   color: #991b1b;
 }
 
+.bundle-expand-icon {
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+
 .bundle-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Toggle Active/Inactive buttons */
+.btn-toggle-active {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.btn-toggle-active:hover:not(:disabled) {
+  background: #fde68a;
+}
+
+.btn-toggle-inactive {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.btn-toggle-inactive:hover:not(:disabled) {
+  background: #a7f3d0;
 }
 
 .btn-icon {
@@ -199,72 +385,75 @@
 
 /* Bundle Items Section */
 .bundle-items {
-  padding: 0 20px 20px 20px;
-  border-top: 1px solid #e5e7eb;
-  margin-top: -1px;
+  padding: 0 16px 14px 16px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .bundle-items h4 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #040273;
-  margin: 20px 0 12px 0;
+  margin: 12px 0 8px 0;
 }
 
 .items-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .bundle-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 8px 10px;
   background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
 }
 
 .item-number {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #3b82f6;
   color: white;
-  border-radius: 6px;
+  border-radius: 4px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
   flex-shrink: 0;
 }
 
 .item-details {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .item-name {
-  font-weight: 600;
+  font-weight: 500;
   color: #040273;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .item-restaurant {
-  font-size: 13px;
-  color: #6b7280;
-  margin-top: 2px;
+  font-size: 12px;
+  color: #9ca3af;
 }
 
 .item-quantity {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #6b7280;
-  padding: 4px 12px;
+  padding: 2px 8px;
   background: white;
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 /* Modal Styles */
@@ -279,6 +468,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  z-index: 1000;
 }
 
 .modal-content {
@@ -556,22 +746,35 @@
     gap: 16px;
   }
 
+  .bundles-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .filter-count {
+    margin-left: 0;
+  }
+
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
 
   .bundle-card-header {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .bundle-card-actions {
-    width: 100%;
     justify-content: flex-end;
   }
 
   .bundle-image {
-    width: 60px;
-    height: 60px;
+    width: 40px;
+    height: 40px;
   }
 
   .image-upload-controls {

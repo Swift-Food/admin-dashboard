@@ -7,6 +7,8 @@ import {
   ChevronUp,
   X,
   Upload,
+  Power,
+  Search,
 } from "lucide-react";
 import type {
   BundleType,
@@ -19,6 +21,7 @@ import {
   createBundle,
   updateBundle,
   deleteBundle,
+  toggleBundleActive,
   uploadImage,
 } from "../../services/bundles.service";
 import { getCateringMenuItems } from "../../services/menuItems.service";
@@ -71,6 +74,10 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
   );
   const [uploading, setUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRestaurant, setFilterRestaurant] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<BundleFormData>({ ...emptyForm });
@@ -85,8 +92,64 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     );
   }, [menuItems, formData.restaurantId, isCatering]);
 
+  // Filter and group bundles
+  const { groupedBundles, filteredCount, totalCount } = useMemo(() => {
+    let filtered = bundles;
+
+    // Search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (b) =>
+          b.name.toLowerCase().includes(q) ||
+          b.description?.toLowerCase().includes(q) ||
+          b.restaurantName?.toLowerCase().includes(q)
+      );
+    }
+
+    // Restaurant filter
+    if (filterRestaurant) {
+      filtered = filtered.filter((b) => b.restaurantId === filterRestaurant);
+    }
+
+    // Status filter
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((b) =>
+        filterStatus === "active" ? b.isActive : !b.isActive
+      );
+    }
+
+    // Group by restaurant for catering bundles
+    const groups = new Map<string, { name: string; bundles: CateringBundle[] }>();
+    if (isCatering) {
+      for (const bundle of filtered) {
+        const key = bundle.restaurantId || "unassigned";
+        const name = bundle.restaurantName || "Unassigned";
+        if (!groups.has(key)) {
+          groups.set(key, { name, bundles: [] });
+        }
+        groups.get(key)!.bundles.push(bundle);
+      }
+    } else {
+      // For prismo, single group
+      if (filtered.length > 0) {
+        groups.set("all", { name: "All Bundles", bundles: filtered });
+      }
+    }
+
+    return {
+      groupedBundles: groups,
+      filteredCount: filtered.length,
+      totalCount: bundles.length,
+    };
+  }, [bundles, searchQuery, filterRestaurant, filterStatus, isCatering]);
+
   useEffect(() => {
     setExpandedBundles(new Set());
+    setSearchQuery("");
+    setFilterRestaurant("");
+    setFilterStatus("all");
+    setCollapsedGroups(new Set());
     loadData();
   }, [bundleType]);
 
@@ -98,7 +161,6 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
         getAllBundles(bundleType),
         getCateringMenuItems(),
       ];
-      // Only load restaurants for catering mode
       if (bundleType === "catering") {
         promises.push(getAllRestaurantsAdminDashboard());
       }
@@ -132,6 +194,16 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     setExpandedBundles(newExpanded);
   };
 
+  const toggleGroupCollapsed = (groupKey: string) => {
+    const newCollapsed = new Set(collapsedGroups);
+    if (newCollapsed.has(groupKey)) {
+      newCollapsed.delete(groupKey);
+    } else {
+      newCollapsed.add(groupKey);
+    }
+    setCollapsedGroups(newCollapsed);
+  };
+
   const openCreateModal = () => {
     setEditingBundle(null);
     setFormData({ ...emptyForm });
@@ -161,6 +233,17 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     setShowModal(false);
     setEditingBundle(null);
     setFormData({ ...emptyForm });
+  };
+
+  const handleToggleActive = async (bundle: CateringBundle) => {
+    try {
+      const updated = await toggleBundleActive(bundle.id);
+      setBundles((prev) =>
+        prev.map((b) => (b.id === updated.id ? updated : b))
+      );
+    } catch (err: any) {
+      alert(err.message || "Failed to toggle bundle status");
+    }
   };
 
   const handleImageUpload = async (
@@ -271,7 +354,6 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
   };
 
   const handleRestaurantChange = (restaurantId: string) => {
-    // Clear items when restaurant changes (they may not belong to new restaurant)
     setFormData((prev) => ({
       ...prev,
       restaurantId,
@@ -287,15 +369,13 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
       return;
     }
 
-    if (!isCatering) {
-      if ((formData.pricePerPerson || 0) <= 0) {
-        alert("Price per person must be greater than 0");
-        return;
-      }
-      if ((formData.baseGuestCount || 0) <= 0) {
-        alert("Base guest count must be greater than 0");
-        return;
-      }
+    if ((formData.pricePerPerson || 0) <= 0) {
+      alert("Price per person must be greater than 0");
+      return;
+    }
+    if ((formData.baseGuestCount || 0) <= 0) {
+      alert("Base guest count must be greater than 0");
+      return;
     }
 
     if (isCatering && !formData.restaurantId) {
@@ -322,12 +402,9 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
         name: formData.name,
         description: formData.description || undefined,
         imageUrl: formData.imageUrl || undefined,
-        ...(isCatering
-          ? { restaurantId: formData.restaurantId }
-          : {
-              pricePerPerson: formData.pricePerPerson,
-              baseGuestCount: formData.baseGuestCount,
-            }),
+        pricePerPerson: formData.pricePerPerson,
+        baseGuestCount: formData.baseGuestCount,
+        ...(isCatering ? { restaurantId: formData.restaurantId } : {}),
         items: formData.items.map((item, i) => ({
           menuItemId: item.menuItemId,
           quantity: item.quantity,
@@ -391,6 +468,19 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     ? "Manage restaurant-specific catering bundle templates"
     : "Manage premade bundle templates for catering orders";
 
+  // Get unique restaurants from bundles for filter dropdown
+  const bundleRestaurants = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const b of bundles) {
+      if (b.restaurantId && b.restaurantName) {
+        map.set(b.restaurantId, b.restaurantName);
+      }
+    }
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [bundles]);
+
   return (
     <div className="bundles-screen">
       <div className="bundles-header">
@@ -404,6 +494,47 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
         </button>
       </div>
 
+      {/* Filters bar */}
+      {bundles.length > 0 && (
+        <div className="bundles-filters">
+          <div className="search-box">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Search bundles..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {isCatering && (
+            <select
+              className="filter-select"
+              value={filterRestaurant}
+              onChange={(e) => setFilterRestaurant(e.target.value)}
+            >
+              <option value="">All restaurants</option>
+              {bundleRestaurants.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <select
+            className="filter-select"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active only</option>
+            <option value="inactive">Inactive only</option>
+          </select>
+          <span className="filter-count">
+            {filteredCount} of {totalCount} bundles
+          </span>
+        </div>
+      )}
+
       <div className="bundles-list">
         {bundles.length === 0 ? (
           <div className="empty-state">
@@ -412,100 +543,147 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
               Create Your First Bundle
             </button>
           </div>
+        ) : filteredCount === 0 ? (
+          <div className="empty-state">
+            <p>No bundles match your filters</p>
+          </div>
         ) : (
-          bundles.map((bundle) => (
-            <div key={bundle.id} className="bundle-card">
-              <div className="bundle-card-header">
-                <div className="bundle-card-main">
-                  <div className="bundle-card-info">
-                    {bundle.imageUrl && (
-                      <img
-                        src={bundle.imageUrl}
-                        alt={bundle.name}
-                        className="bundle-image"
-                      />
-                    )}
-                    <div>
-                      <h3>{bundle.name}</h3>
-                      {bundle.description && (
-                        <p className="bundle-description">
-                          {bundle.description}
-                        </p>
-                      )}
-                      <div className="bundle-meta">
-                        {isCatering && bundle.restaurantName && (
-                          <span className="bundle-restaurant">
-                            {bundle.restaurantName}
-                          </span>
-                        )}
-                        {!isCatering && bundle.pricePerPerson != null && (
-                          <span className="bundle-price">
-                            £{bundle.pricePerPerson}/person
-                          </span>
-                        )}
-                        {!isCatering && bundle.baseGuestCount != null && (
-                          <span className="bundle-guests">
-                            Base: {bundle.baseGuestCount} guests
-                          </span>
-                        )}
-                        <span
-                          className={`bundle-status ${
-                            bundle.isActive ? "active" : "inactive"
-                          }`}
-                        >
-                          {bundle.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                    </div>
+          Array.from(groupedBundles.entries()).map(([groupKey, group]) => (
+            <div key={groupKey} className="bundle-group">
+              {isCatering && (
+                <div
+                  className="bundle-group-header"
+                  onClick={() => toggleGroupCollapsed(groupKey)}
+                >
+                  <div className="bundle-group-title">
+                    <h2>{group.name}</h2>
+                    <span className="bundle-group-count">
+                      {group.bundles.length} bundle{group.bundles.length !== 1 ? "s" : ""}
+                    </span>
                   </div>
-                  <button
-                    className="btn-icon"
-                    onClick={() => toggleBundleExpanded(bundle.id)}
-                  >
-                    {expandedBundles.has(bundle.id) ? (
-                      <ChevronUp size={20} />
-                    ) : (
-                      <ChevronDown size={20} />
-                    )}
-                  </button>
+                  {collapsedGroups.has(groupKey) ? (
+                    <ChevronDown size={20} />
+                  ) : (
+                    <ChevronUp size={20} />
+                  )}
                 </div>
-                <div className="bundle-card-actions">
-                  <button
-                    className="btn btn-sm btn-secondary"
-                    onClick={() => openEditModal(bundle)}
-                  >
-                    <Edit size={16} />
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => handleDelete(bundle.id)}
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </button>
-                </div>
-              </div>
+              )}
 
-              {expandedBundles.has(bundle.id) && (
-                <div className="bundle-items">
-                  <h4>Items ({bundle.items.length})</h4>
-                  <div className="items-list">
-                    {bundle.items.map((item, index) => (
-                      <div key={index} className="bundle-item">
-                        <div className="item-number">{index + 1}</div>
-                        <div className="item-details">
-                          <div className="item-name">{item.menuItemName}</div>
-                          <div className="item-restaurant">
-                            {item.restaurantName}
+              {!collapsedGroups.has(groupKey) && (
+                <div className="bundle-group-items">
+                  {group.bundles.map((bundle) => (
+                    <div
+                      key={bundle.id}
+                      className={`bundle-card ${!bundle.isActive ? "bundle-card-inactive" : ""}`}
+                    >
+                      <div className="bundle-card-header">
+                        <div
+                          className="bundle-card-main"
+                          onClick={() => toggleBundleExpanded(bundle.id)}
+                        >
+                          {bundle.imageUrl && (
+                            <img
+                              src={bundle.imageUrl}
+                              alt={bundle.name}
+                              className="bundle-image"
+                            />
+                          )}
+                          <div className="bundle-card-info">
+                            <div className="bundle-card-title-row">
+                              <h3>{bundle.name}</h3>
+                              <span
+                                className={`bundle-status ${
+                                  bundle.isActive ? "active" : "inactive"
+                                }`}
+                              >
+                                {bundle.isActive ? "Active" : "Inactive"}
+                              </span>
+                            </div>
+                            {bundle.description && (
+                              <p className="bundle-description">
+                                {bundle.description}
+                              </p>
+                            )}
+                            <div className="bundle-meta">
+                              {!isCatering && bundle.restaurantName && (
+                                <span className="bundle-restaurant">
+                                  {bundle.restaurantName}
+                                </span>
+                              )}
+                              {bundle.pricePerPerson != null && (
+                                <span className="bundle-price">
+                                  £{bundle.pricePerPerson}/person
+                                </span>
+                              )}
+                              {bundle.baseGuestCount != null && (
+                                <span className="bundle-guests">
+                                  {bundle.baseGuestCount} guests
+                                </span>
+                              )}
+                              <span className="bundle-items-count">
+                                {bundle.items.length} item{bundle.items.length !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="bundle-expand-icon">
+                            {expandedBundles.has(bundle.id) ? (
+                              <ChevronUp size={18} />
+                            ) : (
+                              <ChevronDown size={18} />
+                            )}
                           </div>
                         </div>
-                        <div className="item-quantity">
-                          Qty: {item.quantity}
+                        <div className="bundle-card-actions">
+                          <button
+                            className={`btn btn-sm ${bundle.isActive ? "btn-toggle-active" : "btn-toggle-inactive"}`}
+                            onClick={() => handleToggleActive(bundle)}
+                            title={bundle.isActive ? "Deactivate" : "Activate"}
+                          >
+                            <Power size={14} />
+                            {bundle.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => openEditModal(bundle)}
+                          >
+                            <Edit size={14} />
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleDelete(bundle.id)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+
+                      {expandedBundles.has(bundle.id) && (
+                        <div className="bundle-items">
+                          <div className="items-list">
+                            {bundle.items.map((item, index) => (
+                              <div key={index} className="bundle-item">
+                                <div className="item-number">{index + 1}</div>
+                                <div className="item-details">
+                                  <span className="item-name">
+                                    {item.menuItemName}
+                                  </span>
+                                  {!isCatering && (
+                                    <span className="item-restaurant">
+                                      {item.restaurantName}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="item-quantity">
+                                  x{item.quantity}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -648,9 +826,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                 />
               </div>
 
-              {/* Price/guest fields only for prismo bundles */}
-              {!isCatering && (
-                <div className="form-grid-2">
+              <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">
                       Price Per Person (£) <span className="required">*</span>
@@ -687,8 +863,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                       min="1"
                     />
                   </div>
-                </div>
-              )}
+              </div>
 
               <div className="form-section">
                 <div className="form-section-header">

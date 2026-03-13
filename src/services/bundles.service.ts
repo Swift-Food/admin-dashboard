@@ -74,6 +74,15 @@ export const hardDeleteBundle = async (id: string): Promise<void> => {
   await http.delete(`/catering-bundles/${id}/hard`);
 };
 
+export const toggleBundleActive = async (
+  id: string
+): Promise<CateringBundle> => {
+  const res = await http.patch<CateringBundle>(
+    `/catering-bundles/${id}/toggle-active`
+  );
+  return res.data;
+};
+
 export const getBundlesContainingMenuItem = async (
   menuItemId: string
 ): Promise<Array<{ id: string; name: string }>> => {

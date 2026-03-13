@@ -73,3 +73,12 @@ export const deleteBundle = async (id: string): Promise<void> => {
 export const hardDeleteBundle = async (id: string): Promise<void> => {
   await http.delete(`/catering-bundles/${id}/hard`);
 };
+
+export const getBundlesContainingMenuItem = async (
+  menuItemId: string
+): Promise<Array<{ id: string; name: string }>> => {
+  const res = await http.get<Array<{ id: string; name: string }>>(
+    `/catering-bundles/menu-item/${menuItemId}/bundles`
+  );
+  return res.data;
+};

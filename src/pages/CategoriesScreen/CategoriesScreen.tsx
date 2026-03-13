@@ -15,6 +15,7 @@ import {
   ArrowDown,
   Edit2,
 } from "lucide-react";
+import { getBundlesContainingMenuItem } from "../../services/bundles.service";
 import {
   getAllCategories,
   getSubcategoriesByCategory,
@@ -296,7 +297,19 @@ const CategoriesScreen: React.FC = () => {
   };
 
   const handleRemoveMenuItem = async (subcategory: Subcategory, menuItemId: string) => {
-    if (!confirm("Remove this item from the subcategory?")) return;
+    // Check if this menu item is in any bundles
+    let bundleWarning = "";
+    try {
+      const bundles = await getBundlesContainingMenuItem(menuItemId);
+      if (bundles.length > 0) {
+        const bundleNames = bundles.map((b) => `"${b.name}"`).join(", ");
+        bundleWarning = `\n\nWarning: This item is used in ${bundles.length} bundle(s): ${bundleNames}. Removing it will also remove it from those bundles.`;
+      }
+    } catch {
+      // Non-blocking — proceed with normal confirm if check fails
+    }
+
+    if (!confirm(`Remove this item from the subcategory?${bundleWarning}`)) return;
 
     try {
       const result = await removeMenuItems(subcategory.id, [menuItemId]);

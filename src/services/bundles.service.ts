@@ -23,7 +23,7 @@ export const getAllBundles = async (
   type?: BundleType
 ): Promise<CateringBundle[]> => {
   const params = type ? { type } : {};
-  const res = await http.get<CateringBundle[]>("/catering-bundles", { params });
+  const res = await http.get<CateringBundle[]>("/catering-bundles/admin", { params });
   return res.data;
 };
 

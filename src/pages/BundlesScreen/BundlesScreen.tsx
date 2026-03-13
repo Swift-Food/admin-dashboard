@@ -86,6 +86,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
   }, [menuItems, formData.restaurantId, isCatering]);
 
   useEffect(() => {
+    setExpandedBundles(new Set());
     loadData();
   }, [bundleType]);
 
@@ -111,6 +112,8 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
             restaurant_name: r.restaurant_name,
           }))
         );
+      } else {
+        setRestaurants([]);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load data");
@@ -334,7 +337,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
       };
 
       if (editingBundle) {
-        const { type, ...updatePayload } = payload;
+        const { type, restaurantId, ...updatePayload } = payload as any;
         await updateBundle(editingBundle.id, updatePayload);
       } else {
         await createBundle(payload);
@@ -365,13 +368,6 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     } catch (err: any) {
       alert(err.message || "Failed to delete bundle");
     }
-  };
-
-  // Helper to get the display name for a menu item from the response data
-  const getMenuItemDisplay = (menuItemId: string): string => {
-    const mi = menuItems.find((m) => m.id === menuItemId);
-    if (!mi) return menuItemId;
-    return `${mi.name} - £${mi.price} (${mi.groupTitle})${!isCatering ? ` - ${mi.restaurant.restaurant_name}` : ""}`;
   };
 
   if (loading) {

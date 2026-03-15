@@ -45,6 +45,7 @@ const RestaurantAdminDashboard = () => {
   // Image upload state
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const isEditingCateringEnabled = editForm.isCatering ?? false;
 
   useEffect(() => {
     fetchRestaurants();
@@ -93,6 +94,7 @@ const RestaurantAdminDashboard = () => {
       restaurant_name: restaurant.restaurant_name,
       restaurant_description: restaurant.restaurant_description || "",
       commission: restaurant.commission ?? 20,
+      isCatering: restaurant.isCatering ?? false,
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
       status: restaurant.status ?? "inactive",
@@ -442,6 +444,31 @@ const RestaurantAdminDashboard = () => {
                                       </select>
                                     </div>
 
+                                    <div className="form-field">
+                                      <label className="field-label">
+                                        Restaurant Type
+                                        <span className="field-hint">
+                                          Enable catering ordering for this restaurant
+                                        </span>
+                                      </label>
+                                      <label className="checkbox-label restaurant-type-toggle">
+                                        <input
+                                          type="checkbox"
+                                          checked={isEditingCateringEnabled}
+                                          onChange={(e) =>
+                                            setEditForm({
+                                              ...editForm,
+                                              isCatering: e.target.checked,
+                                            })
+                                          }
+                                          className="form-checkbox"
+                                        />
+                                        <span className="checkbox-label-text">
+                                          Catering enabled
+                                        </span>
+                                      </label>
+                                    </div>
+
                                     <div className="form-field full-width">
                                       <label className="field-label">Description</label>
                                       <textarea
@@ -455,7 +482,7 @@ const RestaurantAdminDashboard = () => {
                                       />
                                     </div>
 
-                                    {restaurant.isCatering && (
+                                    {isEditingCateringEnabled && (
                                       <div className="form-field full-width">
                                         <label className="field-label">
                                           Catering Image
@@ -498,12 +525,16 @@ const RestaurantAdminDashboard = () => {
                                         )}
                                       </span>
                                     </div>
-                                    {restaurant.isCatering && (
-                                      <div className="setting-item">
-                                        <span className="setting-label">Catering</span>
-                                        <span className="setting-value badge-yes">Enabled</span>
-                                      </div>
-                                    )}
+                                    <div className="setting-item">
+                                      <span className="setting-label">Catering</span>
+                                      <span
+                                        className={`setting-value ${
+                                          restaurant.isCatering ? "badge-yes" : "badge-no"
+                                        }`}
+                                      >
+                                        {restaurant.isCatering ? "Enabled" : "Disabled"}
+                                      </span>
+                                    </div>
                                   </div>
 
                                   {restaurant.isCatering && restaurant.images?.[0] && (

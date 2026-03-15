@@ -798,6 +798,39 @@
   color: #374151;
 }
 
+.restaurant-type-toggle {
+  min-height: 42px;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.form-checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.checkbox-label-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.restaurant-type-toggle:hover {
+  border-color: #93c5fd;
+  background-color: #f8fbff;
+}
+
 /* Settings Display (Read-only) */
 .settings-display {
   margin-top: 0.5rem;

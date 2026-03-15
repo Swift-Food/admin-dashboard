@@ -85,6 +85,7 @@ export interface UpdateRestaurantDto {
   restaurant_description?: string;
   commission?: number;
   featured?: boolean;
+  isCatering?: boolean;
   fsa?: number;
   fsaLink?: string;
   autoAccept?: boolean;

@@ -53,7 +53,7 @@ const emptyForm: BundleFormData = {
   description: "",
   imageUrl: "",
   pricePerPerson: 0,
-  baseGuestCount: 10,
+  baseGuestCount: 0,
   restaurantId: "",
   items: [],
 };
@@ -229,8 +229,8 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
       name: bundle.name,
       description: bundle.description || "",
       imageUrl: bundle.imageUrl || "",
-      pricePerPerson: bundle.pricePerPerson || 0,
-      baseGuestCount: bundle.baseGuestCount || 10,
+      pricePerPerson: bundle.pricePerPerson,
+      baseGuestCount: bundle.baseGuestCount,
       restaurantId: bundle.restaurantId || "",
       items: bundle.items.map((item) => ({
         menuItemId: item.menuItemId,
@@ -658,16 +658,12 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                                   {bundle.restaurantName}
                                 </span>
                               )}
-                              {bundle.pricePerPerson != null && (
-                                <span className="bundle-price">
-                                  £{bundle.pricePerPerson}/person
-                                </span>
-                              )}
-                              {bundle.baseGuestCount != null && (
-                                <span className="bundle-guests">
-                                  {bundle.baseGuestCount} guests
-                                </span>
-                              )}
+                              <span className="bundle-price">
+                                £{bundle.pricePerPerson}/person
+                              </span>
+                              <span className="bundle-guests">
+                                {bundle.baseGuestCount} guests
+                              </span>
                               <span className="bundle-items-count">
                                 {bundle.items.length} item{bundle.items.length !== 1 ? "s" : ""}
                               </span>
@@ -905,7 +901,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          baseGuestCount: parseInt(e.target.value) || 10,
+                          baseGuestCount: parseInt(e.target.value) || 0,
                         })
                       }
                       min="1"

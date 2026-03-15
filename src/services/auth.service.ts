@@ -8,6 +8,11 @@ export interface SignInDto {
   role: UserRole;
 }
 
+export interface AdminSignInDto {
+  email: string;
+  password: string;
+}
+
 export interface TokenPair {
   access_token: string;
   refresh_token: string;
@@ -30,6 +35,21 @@ class AuthService {
       localStorage.setItem('refresh_token', response.data.refresh_token);
     }
     console.log("logs in fine", response)
+
+    return response.data;
+  }
+
+  async loginAdmin(dto: AdminSignInDto): Promise<TokenPair> {
+    const response: AxiosResponse<TokenPair> = await http.post<TokenPair>(
+      `/auth/login-admin`,
+      dto
+    );
+
+    if (response.data.access_token) {
+      localStorage.setItem('access_token', response.data.access_token);
+      localStorage.setItem('refresh_token', response.data.refresh_token);
+    }
+    console.log("admin logs in fine", response);
 
     return response.data;
   }

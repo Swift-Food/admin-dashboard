@@ -17,10 +17,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     setLoading(true);
 
     try {
-      await authService.loginConsumer({
+      await authService.loginAdmin({
         email,
         password,
-        role: 'admin'
       });
       onLogin();
     } catch (err: any) {

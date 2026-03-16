@@ -229,8 +229,8 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
       name: bundle.name,
       description: bundle.description || "",
       imageUrl: bundle.imageUrl || "",
-      pricePerPerson: bundle.pricePerPerson,
-      baseGuestCount: bundle.baseGuestCount,
+      pricePerPerson: bundle.pricePerPerson ?? 0,
+      baseGuestCount: bundle.baseGuestCount ?? 0,
       restaurantId: bundle.restaurantId || "",
       items: bundle.items.map((item) => ({
         menuItemId: item.menuItemId,

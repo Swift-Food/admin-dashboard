@@ -52,7 +52,7 @@ export interface Restaurant {
   openingHours: OpeningHours[];
   images: string[];
   eventImages?: string[];
-  isCatering?: boolean;
+  showOnSite?: boolean;
   averageRating: number;
   status: 'active' | 'inactive' | 'coming_soon';
   owner?: RestaurantUser;
@@ -85,7 +85,7 @@ export interface UpdateRestaurantDto {
   restaurant_description?: string;
   commission?: number;
   featured?: boolean;
-  isCatering?: boolean;
+  showOnSite?: boolean;
   fsa?: number;
   fsaLink?: string;
   autoAccept?: boolean;

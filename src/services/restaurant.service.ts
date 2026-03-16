@@ -53,7 +53,6 @@ interface RestaurantResponse {
   createdAt?: Date;
   updatedAt?: Date;
   images?: string[];
-  isCatering?: boolean;
   showOnSite?: boolean;
 }
 
@@ -144,7 +143,7 @@ const getAllRestaurantsAdminDashboard = async (): Promise<
   const res = await http.get<RestaurantResponse[]>(
     "/restaurant/all-admin-dashboard"
   );
-  return res.data.map((r) => ({ ...r, showOnSite: r.isCatering ?? true }));
+  return res.data;
 };
 
 const getRestaurantById = async (
@@ -209,9 +208,7 @@ const updateRestaurant = async (
   id: string,
   updateDto: UpdateRestaurantDto
 ): Promise<RestaurantResponse> => {
-  const { showOnSite, ...rest } = updateDto;
-  const payload = { ...rest, ...(showOnSite !== undefined ? { isCatering: showOnSite } : {}) };
-  const res = await http.patch<RestaurantResponse>(`/restaurant/${id}`, payload);
+  const res = await http.patch<RestaurantResponse>(`/restaurant/${id}`, updateDto);
   return res.data;
 };
 

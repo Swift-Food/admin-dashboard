@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AlertCircle, Plus, Trash2, Edit2, Globe, Save, X } from "lucide-react";
 import eventContinentService from "../../services/event-continent.service";
-import type { EventContinent, CreateEventContinentDto } from "../../types/event-location.types";
+import type { EventContinent } from "../../types/event-location.types";
 
 const EventContinentsScreen: React.FC = () => {
   const [continents, setContinents] = useState<EventContinent[]>([]);

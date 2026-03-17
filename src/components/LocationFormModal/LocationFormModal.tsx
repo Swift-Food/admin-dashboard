@@ -10,6 +10,7 @@ interface LocationFormModalProps {
   isOpen: boolean;
   mode: "add" | "edit";
   initialData?: EventLocation;
+  defaultContinentId?: string;
   isSubmitting: boolean;
   onSubmit: (data: CreateEventLocationDto) => void;
   onClose: () => void;
@@ -38,6 +39,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
   isOpen,
   mode,
   initialData,
+  defaultContinentId,
   isSubmitting,
   onSubmit,
   onClose,
@@ -151,7 +153,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
       setShowBoundsEditor(false);
     } else if (isOpen && !initialData) {
       setName("");
-      setContinentId("");
+      setContinentId(defaultContinentId ?? "");
       setImage("");
       setBannerImage("");
       setMinLat("");

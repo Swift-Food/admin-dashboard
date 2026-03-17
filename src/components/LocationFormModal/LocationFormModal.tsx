@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Upload, X, ImageOff } from "lucide-react";
-import type { EventLocation, CreateEventLocationDto } from "../../types/event-location.types";
+import type { EventLocation, EventContinent, CreateEventLocationDto } from "../../types/event-location.types";
 import { uploadImage } from "../../services/bundles.service";
+import eventContinentService from "../../services/event-continent.service";
 import ImageCropper from "../ImageCropper";
 import "./LocationFormModal.css";
 
@@ -16,6 +17,7 @@ interface LocationFormModalProps {
 
 interface FormErrors {
   name?: string;
+  continentId?: string;
   minLat?: string;
   maxLat?: string;
   minLng?: string;
@@ -31,6 +33,8 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
   onClose,
 }) => {
   const [name, setName] = useState("");
+  const [continentId, setContinentId] = useState("");
+  const [continents, setContinents] = useState<EventContinent[]>([]);
   const [image, setImage] = useState("");
   const [bannerImage, setBannerImage] = useState("");
   const [minLat, setMinLat] = useState("");
@@ -47,8 +51,12 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      eventContinentService.getAllContinents().then(setContinents).catch(() => {});
+    }
     if (isOpen && initialData) {
       setName(initialData.name);
+      setContinentId(initialData.continentId ?? "");
       setImage(initialData.image ?? "");
       setBannerImage(initialData.bannerImage ?? "");
       setMinLat(String(initialData.minLat));
@@ -57,6 +65,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
       setMaxLng(String(initialData.maxLng));
     } else if (isOpen && !initialData) {
       setName("");
+      setContinentId("");
       setImage("");
       setBannerImage("");
       setMinLat("");
@@ -123,6 +132,10 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
       errs.name = "Name must be 100 characters or fewer";
     }
 
+    if (!continentId) {
+      errs.continentId = "Continent is required";
+    }
+
     const minLatNum = parseFloat(minLat);
     const maxLatNum = parseFloat(maxLat);
     const minLngNum = parseFloat(minLng);
@@ -174,6 +187,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
       maxLat: parseFloat(maxLat),
       minLng: parseFloat(minLng),
       maxLng: parseFloat(maxLng),
+      continentId,
     });
   };
 
@@ -208,6 +222,21 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
               maxLength={100}
             />
             {errors.name && <span className="field-error">{errors.name}</span>}
+          </div>
+
+          <div className="form-group">
+            <label>Continent *</label>
+            <select
+              value={continentId}
+              onChange={(e) => setContinentId(e.target.value)}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #d1d5db" }}
+            >
+              <option value="">Select a continent</option>
+              {continents.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {errors.continentId && <span className="field-error">{errors.continentId}</span>}
           </div>
 
           {/* Image upload */}

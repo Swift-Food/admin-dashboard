@@ -153,6 +153,7 @@ const EventLocationsScreen: React.FC = () => {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Continent</th>
                 <th>Image</th>
                 <th>Lat Bounds</th>
                 <th>Lng Bounds</th>
@@ -168,6 +169,7 @@ const EventLocationsScreen: React.FC = () => {
                     <span className="el-loc-name">{loc.name}</span>
                     <span className="el-loc-id">{loc.id.slice(0, 8)}…</span>
                   </td>
+                  <td>{loc.continentName || "—"}</td>
                   <td>
                     {loc.image ? (
                       <img

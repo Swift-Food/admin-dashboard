@@ -27,6 +27,7 @@ import MiscellaneousScreen from "./pages/MiscellaneousScreen";
 import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
 import EventsScreen from "./pages/EventsScreen/EventsScreen";
 import EventLocationsScreen from "./pages/EventLocationsScreen/EventLocationsScreen";
+import EventContinentsScreen from "./pages/EventContinentsScreen/EventContinentsScreen";
 import CalendarsScreen from "./pages/CalendarsScreen/CalendarsScreen";
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import authService from "./services/auth.service";
@@ -51,6 +52,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   "event-categories": "event-categories",
   events: "events",
   "event-locations": "event-locations",
+  "event-continents": "event-continents",
   calendars: "calendars",
   bundles: "bundles",
   "catering-bundles": "catering-bundles",
@@ -75,6 +77,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "event-categories": "event-categories",
   events: "events",
   "event-locations": "event-locations",
+  "event-continents": "event-continents",
   calendars: "calendars",
   bundles: "bundles",
   "catering-bundles": "catering-bundles",
@@ -104,6 +107,7 @@ const prismoPages: SidebarPage[] = [
   "event-categories",
   "events",
   "event-locations",
+  "event-continents",
   "calendars",
   "bundles",
 ];
@@ -173,6 +177,8 @@ function PageRenderer() {
         return <EventsScreen />;
       case "event-locations":
         return <EventLocationsScreen />;
+      case "event-continents":
+        return <EventContinentsScreen />;
       case "calendars":
         return <CalendarsScreen />;
       default:

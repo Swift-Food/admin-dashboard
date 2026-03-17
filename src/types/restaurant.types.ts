@@ -29,6 +29,7 @@ export interface MenuItem {
   description?: string;
   price: number;
   restaurantId: string;
+  minOrderQuantity?: number;
 }
 export interface OrderItem {
   id: string;

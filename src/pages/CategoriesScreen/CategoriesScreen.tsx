@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
-import { createPortal } from "react-dom";
 import {
   AlertCircle,
   Plus,
@@ -14,7 +12,10 @@ import {
   ArrowUp,
   ArrowDown,
   Edit2,
+  Upload,
+  ImageOff,
 } from "lucide-react";
+import ImageCropper from "../../components/ImageCropper";
 import { getBundlesContainingMenuItem } from "../../services/bundles.service";
 import {
   getAllCategories,
@@ -36,120 +37,8 @@ import {
   type MenuItem,
   type Restaurant,
 } from "../../services/subcategory.service";
+import { uploadImage } from "../../services/bundles.service";
 import "./CategoriesScreen.css";
-
-interface CategoryEmojiFieldProps {
-  value: string;
-  onChange: (value: string) => void;
-}
-
-const CategoryEmojiField: React.FC<CategoryEmojiFieldProps> = ({ value, onChange }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement | null>(null);
-  const triggerRef = useRef<HTMLDivElement | null>(null);
-  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
-  const pickerHeight = 520;
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const updatePosition = () => {
-      if (!triggerRef.current) return;
-
-      const rect = triggerRef.current.getBoundingClientRect();
-      const pickerWidth = Math.min(352, window.innerWidth - 24);
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const openUpward = spaceBelow < pickerHeight + 16;
-
-      const left = Math.max(12, Math.min(rect.right - pickerWidth, window.innerWidth - pickerWidth - 12));
-      const top = openUpward
-        ? Math.max(12, rect.top - pickerHeight - 8)
-        : Math.min(window.innerHeight - pickerHeight - 12, rect.bottom + 8);
-
-      setPopoverStyle({
-        position: "fixed",
-        top,
-        left,
-        width: pickerWidth,
-        zIndex: 10000,
-      });
-    };
-
-    updatePosition();
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const clickedInsidePicker = pickerRef.current?.contains(target);
-      const clickedInsideTrigger = triggerRef.current?.contains(target);
-
-      if (!clickedInsidePicker && !clickedInsideTrigger) {
-        setIsOpen(false);
-      }
-    };
-
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
-
-  const handleEmojiClick = (emojiData: EmojiClickData) => {
-    onChange(emojiData.emoji);
-    setIsOpen(false);
-  };
-
-  return (
-    <div className="emoji-field" ref={triggerRef}>
-      <div className="emoji-field-input-row">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="e.g., 🍕"
-          maxLength={8}
-        />
-        <button
-          type="button"
-          className="btn btn-secondary emoji-picker-trigger"
-          onClick={() => setIsOpen((prev) => !prev)}
-        >
-          {value || "😀"} Pick
-        </button>
-        {value && (
-          <button
-            type="button"
-            className="btn btn-secondary emoji-picker-reset"
-            onClick={() => onChange("")}
-          >
-            Clear
-          </button>
-        )}
-      </div>
-
-      {isOpen && createPortal(
-        <div
-          className="emoji-picker-popover"
-          ref={pickerRef}
-          style={popoverStyle}
-        >
-          <EmojiPicker
-            onEmojiClick={handleEmojiClick}
-            width="100%"
-            height={pickerHeight}
-            lazyLoadEmojis
-            searchPlaceholder="Search all emojis"
-            skinTonesDisabled
-          />
-        </div>
-      , document.body)}
-    </div>
-  );
-};
 
 const CategoriesScreen: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -177,12 +66,14 @@ const CategoriesScreen: React.FC = () => {
   // Form states
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryIcon, setNewCategoryIcon] = useState("");
   const [editCategoryName, setEditCategoryName] = useState("");
-  const [editCategoryIcon, setEditCategoryIcon] = useState("");
+  const [editCategoryImage, setEditCategoryImage] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
   const [targetSubcategoryId, setTargetSubcategoryId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [uploadingCategoryImage, setUploadingCategoryImage] = useState(false);
+  const editImageInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -397,13 +288,11 @@ const CategoriesScreen: React.FC = () => {
       setSubmitting(true);
       const newCat = await createCategory({
         name: newCategoryName.trim(),
-        icon: newCategoryIcon.trim() || undefined,
         displayOrder: categories.length,
       });
       setCategories([...categories, newCat]);
       setShowAddCategory(false);
       setNewCategoryName("");
-      setNewCategoryIcon("");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to create category");
     } finally {
@@ -414,8 +303,58 @@ const CategoriesScreen: React.FC = () => {
   const openEditCategoryModal = (category: Category) => {
     setSelectedCategory(category);
     setEditCategoryName(category.name);
-    setEditCategoryIcon(category.icon ?? "");
+    setEditCategoryImage(category.selectedImage ?? category.images ?? "");
     setShowEditCategory(true);
+  };
+
+  const closeEditCategoryModal = () => {
+    setShowEditCategory(false);
+    setSelectedCategory(null);
+    setEditCategoryName("");
+    setEditCategoryImage("");
+    setImageToCrop(null);
+    setUploadingCategoryImage(false);
+    if (editImageInputRef.current) {
+      editImageInputRef.current.value = "";
+    }
+  };
+
+  const handleEditCategoryImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowed.includes(file.type)) {
+      alert("Please select a valid image file (JPEG, PNG, WebP, or GIF)");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image file size must be less than 10MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageToCrop(reader.result as string);
+    reader.readAsDataURL(file);
+
+    if (editImageInputRef.current) {
+      editImageInputRef.current.value = "";
+    }
+  };
+
+  const handleEditCategoryCropComplete = async (croppedBlob: Blob) => {
+    try {
+      setUploadingCategoryImage(true);
+      setImageToCrop(null);
+      const file = new File([croppedBlob], "category-image.jpg", { type: "image/jpeg" });
+      const url = await uploadImage(file);
+      setEditCategoryImage(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upload image");
+    } finally {
+      setUploadingCategoryImage(false);
+    }
   };
 
   const handleEditCategory = async () => {
@@ -425,7 +364,8 @@ const CategoriesScreen: React.FC = () => {
       setSubmitting(true);
       const updatedCategory = await updateCategory(selectedCategory.id, {
         name: editCategoryName.trim(),
-        icon: editCategoryIcon.trim(),
+        images: editCategoryImage.trim(),
+        selectedImage: editCategoryImage.trim(),
       });
 
       setCategories((prev) =>
@@ -433,10 +373,7 @@ const CategoriesScreen: React.FC = () => {
           category.id === updatedCategory.id ? { ...category, ...updatedCategory } : category
         )
       );
-      setShowEditCategory(false);
-      setSelectedCategory(null);
-      setEditCategoryName("");
-      setEditCategoryIcon("");
+      closeEditCategoryModal();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to update category");
     } finally {
@@ -940,17 +877,18 @@ const CategoriesScreen: React.FC = () => {
                 autoFocus
               />
             </div>
+            {/* Category icons are deprecated in favor of category images.
             <div className="form-group">
               <label>Emoji</label>
               <CategoryEmojiField value={newCategoryIcon} onChange={setNewCategoryIcon} />
               <small>Leave blank to use the default folder icon.</small>
             </div>
+            */}
             <div className="modal-actions">
               <button
                 className="btn btn-secondary"
                 onClick={() => {
                   setShowAddCategory(false);
-                  setNewCategoryIcon("");
                 }}
               >
                 Cancel
@@ -970,15 +908,12 @@ const CategoriesScreen: React.FC = () => {
       {showEditCategory && selectedCategory && (
         <div
           className="modal-overlay"
-          onClick={() => {
-            setShowEditCategory(false);
-            setSelectedCategory(null);
-          }}
+          onClick={closeEditCategoryModal}
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Edit Category Details</h2>
             <p className="modal-subtitle">
-              Update the category name and emoji shown in Swift.
+              Update the category name and image shown in Swift.
             </p>
             <div className="form-group">
               <label>Category Name</label>
@@ -990,31 +925,98 @@ const CategoriesScreen: React.FC = () => {
                 autoFocus
               />
             </div>
+            {/* Category icons are deprecated in favor of category images.
             <div className="form-group">
               <label>Emoji</label>
               <CategoryEmojiField value={editCategoryIcon} onChange={setEditCategoryIcon} />
               <small>Leave blank to use the default folder icon.</small>
             </div>
+            */}
+            <div className="form-group">
+              <label>Category Image</label>
+              <input
+                ref={editImageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleEditCategoryImageChange}
+                style={{ display: "none" }}
+              />
+              {editCategoryImage ? (
+                <div className="category-image-preview-wrap">
+                  <img
+                    src={editCategoryImage}
+                    alt="Category preview"
+                    className="category-image-preview"
+                  />
+                  <div className="category-image-preview-actions">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => editImageInputRef.current?.click()}
+                      disabled={submitting || uploadingCategoryImage}
+                    >
+                      <Upload size={14} /> Replace
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => setEditCategoryImage("")}
+                      disabled={submitting || uploadingCategoryImage}
+                    >
+                      <X size={14} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="category-image-upload-btn"
+                  onClick={() => editImageInputRef.current?.click()}
+                  disabled={submitting || uploadingCategoryImage}
+                >
+                  {uploadingCategoryImage ? (
+                    <>
+                      <div className="upload-spinner" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <ImageOff size={20} className="category-image-upload-icon" />
+                      <span>Click to upload a category image</span>
+                      <span className="category-image-upload-hint">
+                        Cropped to a square before upload. JPEG, PNG, WebP or GIF, max 10 MB.
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <div className="modal-actions">
               <button
                 className="btn btn-secondary"
-                onClick={() => {
-                  setShowEditCategory(false);
-                  setSelectedCategory(null);
-                }}
+                onClick={closeEditCategoryModal}
               >
                 Cancel
               </button>
               <button
                 className="btn btn-primary"
                 onClick={handleEditCategory}
-                disabled={submitting || !editCategoryName.trim()}
+                disabled={submitting || uploadingCategoryImage || !editCategoryName.trim()}
               >
                 {submitting ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleEditCategoryCropComplete}
+          onCancel={() => setImageToCrop(null)}
+          aspectRatio={1}
+        />
       )}
     </div>
   );

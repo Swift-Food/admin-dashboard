@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Upload, X, ImageOff } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Upload, X, ImageOff, Search, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import type { EventLocation, EventContinent, CreateEventLocationDto } from "../../types/event-location.types";
 import { uploadImage } from "../../services/bundles.service";
 import eventContinentService from "../../services/event-continent.service";
@@ -22,6 +22,16 @@ interface FormErrors {
   maxLat?: string;
   minLng?: string;
   maxLng?: string;
+}
+
+interface GeoResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  boundingbox: [string, string, string, string]; // [minLat, maxLat, minLng, maxLng]
+  type: string;
+  class: string;
 }
 
 const LocationFormModal: React.FC<LocationFormModalProps> = ({
@@ -47,8 +57,82 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
   const [cropTarget, setCropTarget] = useState<"image" | "banner">("image");
   const [uploading, setUploading] = useState(false);
 
+  // Geocoding state
+  const [geoQuery, setGeoQuery] = useState("");
+  const [geoResults, setGeoResults] = useState<GeoResult[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [boundsSource, setBoundsSource] = useState<string>("");
+  const [showBoundsEditor, setShowBoundsEditor] = useState(false);
+  const geoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Geocode search using Nominatim (OpenStreetMap)
+  const searchGeo = useCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setGeoResults([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setGeoLoading(true);
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        format: "json",
+        limit: "6",
+        featuretype: "city",
+        addressdetails: "0",
+      });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { "Accept-Language": "en" },
+      });
+      if (!res.ok) throw new Error("Geocoding failed");
+      const data: GeoResult[] = await res.json();
+      setGeoResults(data);
+      setShowSuggestions(data.length > 0);
+    } catch {
+      setGeoResults([]);
+    } finally {
+      setGeoLoading(false);
+    }
+  }, []);
+
+  const handleGeoQueryChange = (value: string) => {
+    setGeoQuery(value);
+    if (geoDebounceRef.current) clearTimeout(geoDebounceRef.current);
+    geoDebounceRef.current = setTimeout(() => searchGeo(value), 400);
+  };
+
+  const handleGeoSelect = (result: GeoResult) => {
+    const [bMinLat, bMaxLat, bMinLng, bMaxLng] = result.boundingbox;
+    setMinLat(bMinLat);
+    setMaxLat(bMaxLat);
+    setMinLng(bMinLng);
+    setMaxLng(bMaxLng);
+
+    // Use just the city/region name (first part of display_name)
+    const shortName = result.display_name.split(",")[0].trim();
+    setName(shortName);
+    setGeoQuery("");
+    setBoundsSource(result.display_name);
+    setShowSuggestions(false);
+    setGeoResults([]);
+    setErrors((prev) => ({ ...prev, minLat: undefined, maxLat: undefined, minLng: undefined, maxLng: undefined }));
+  };
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -63,6 +147,8 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
       setMaxLat(String(initialData.maxLat));
       setMinLng(String(initialData.minLng));
       setMaxLng(String(initialData.maxLng));
+      setBoundsSource("");
+      setShowBoundsEditor(false);
     } else if (isOpen && !initialData) {
       setName("");
       setContinentId("");
@@ -72,7 +158,12 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
       setMaxLat("");
       setMinLng("");
       setMaxLng("");
+      setBoundsSource("");
+      setShowBoundsEditor(false);
     }
+    setGeoQuery("");
+    setGeoResults([]);
+    setShowSuggestions(false);
     setErrors({});
     setImageToCrop(null);
     setCropTarget("image");
@@ -211,6 +302,38 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
               : "Update location details and bounds"}
           </p>
 
+          {/* City Search */}
+          <div className="form-group" ref={suggestionsRef}>
+            <label>Search City</label>
+            <div className="geo-search-wrap">
+              <Search size={16} className="geo-search-icon" />
+              <input
+                type="text"
+                value={geoQuery}
+                onChange={(e) => handleGeoQueryChange(e.target.value)}
+                placeholder="Type a city name to auto-fill bounds..."
+                autoFocus={mode === "add"}
+                className="geo-search-input"
+              />
+              {geoLoading && <div className="upload-spinner geo-spinner" />}
+            </div>
+            {showSuggestions && geoResults.length > 0 && (
+              <div className="geo-suggestions">
+                {geoResults.map((r) => (
+                  <button
+                    key={r.place_id}
+                    type="button"
+                    className="geo-suggestion-item"
+                    onClick={() => handleGeoSelect(r)}
+                  >
+                    <MapPin size={14} className="geo-suggestion-icon" />
+                    <span>{r.display_name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="form-group">
             <label>Location Name *</label>
             <input
@@ -218,7 +341,6 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Cape Town, Johannesburg CBD"
-              autoFocus
               maxLength={100}
             />
             {errors.name && <span className="field-error">{errors.name}</span>}
@@ -349,69 +471,103 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
             )}
           </div>
 
-          <div className="bounds-section">
-            <div className="bounds-section-label">Latitude Bounds</div>
-            <div className="bounds-row">
-              <div className="form-group">
-                <label>Min Latitude *</label>
-                <input
-                  type="number"
-                  value={minLat}
-                  onChange={(e) => setMinLat(e.target.value)}
-                  placeholder="-90 to 90"
-                  step="any"
-                  min={-90}
-                  max={90}
-                />
-                {errors.minLat && <span className="field-error">{errors.minLat}</span>}
+          {/* Bounds status / collapsible editor */}
+          {(minLat || maxLat || minLng || maxLng) && (
+            <div className="bounds-status">
+              <div className="bounds-status-header">
+                <div>
+                  <MapPin size={14} />
+                  <span className="bounds-status-label">
+                    {boundsSource ? "Bounds auto-filled" : "Geographic bounds set"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="bounds-toggle-btn"
+                  onClick={() => setShowBoundsEditor(!showBoundsEditor)}
+                >
+                  {showBoundsEditor ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {showBoundsEditor ? "Hide" : "Edit"}
+                </button>
               </div>
-              <div className="form-group">
-                <label>Max Latitude *</label>
-                <input
-                  type="number"
-                  value={maxLat}
-                  onChange={(e) => setMaxLat(e.target.value)}
-                  placeholder="-90 to 90"
-                  step="any"
-                  min={-90}
-                  max={90}
-                />
-                {errors.maxLat && <span className="field-error">{errors.maxLat}</span>}
-              </div>
+              {boundsSource && (
+                <div className="bounds-status-source">From: {boundsSource}</div>
+              )}
+              {!showBoundsEditor && (
+                <div className="bounds-status-summary">
+                  Lat: {Number(minLat).toFixed(4)} to {Number(maxLat).toFixed(4)} · Lng: {Number(minLng).toFixed(4)} to {Number(maxLng).toFixed(4)}
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
-          <div className="bounds-section">
-            <div className="bounds-section-label">Longitude Bounds</div>
-            <div className="bounds-row">
-              <div className="form-group">
-                <label>Min Longitude *</label>
-                <input
-                  type="number"
-                  value={minLng}
-                  onChange={(e) => setMinLng(e.target.value)}
-                  placeholder="-180 to 180"
-                  step="any"
-                  min={-180}
-                  max={180}
-                />
-                {errors.minLng && <span className="field-error">{errors.minLng}</span>}
+          {(showBoundsEditor || (!minLat && !maxLat && !minLng && !maxLng)) && (
+            <>
+              <div className="bounds-section">
+                <div className="bounds-section-label">Latitude Bounds</div>
+                <div className="bounds-row">
+                  <div className="form-group">
+                    <label>Min Latitude *</label>
+                    <input
+                      type="number"
+                      value={minLat}
+                      onChange={(e) => { setMinLat(e.target.value); setBoundsSource(""); }}
+                      placeholder="-90 to 90"
+                      step="any"
+                      min={-90}
+                      max={90}
+                    />
+                    {errors.minLat && <span className="field-error">{errors.minLat}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label>Max Latitude *</label>
+                    <input
+                      type="number"
+                      value={maxLat}
+                      onChange={(e) => { setMaxLat(e.target.value); setBoundsSource(""); }}
+                      placeholder="-90 to 90"
+                      step="any"
+                      min={-90}
+                      max={90}
+                    />
+                    {errors.maxLat && <span className="field-error">{errors.maxLat}</span>}
+                  </div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Max Longitude *</label>
-                <input
-                  type="number"
-                  value={maxLng}
-                  onChange={(e) => setMaxLng(e.target.value)}
-                  placeholder="-180 to 180"
-                  step="any"
-                  min={-180}
-                  max={180}
-                />
-                {errors.maxLng && <span className="field-error">{errors.maxLng}</span>}
+
+              <div className="bounds-section">
+                <div className="bounds-section-label">Longitude Bounds</div>
+                <div className="bounds-row">
+                  <div className="form-group">
+                    <label>Min Longitude *</label>
+                    <input
+                      type="number"
+                      value={minLng}
+                      onChange={(e) => { setMinLng(e.target.value); setBoundsSource(""); }}
+                      placeholder="-180 to 180"
+                      step="any"
+                      min={-180}
+                      max={180}
+                    />
+                    {errors.minLng && <span className="field-error">{errors.minLng}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label>Max Longitude *</label>
+                    <input
+                      type="number"
+                      value={maxLng}
+                      onChange={(e) => { setMaxLng(e.target.value); setBoundsSource(""); }}
+                      placeholder="-180 to 180"
+                      step="any"
+                      min={-180}
+                      max={180}
+                    />
+                    {errors.maxLng && <span className="field-error">{errors.maxLng}</span>}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
 
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={handleClose} disabled={busy}>

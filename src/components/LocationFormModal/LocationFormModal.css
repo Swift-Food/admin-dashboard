@@ -111,3 +111,137 @@
   flex-direction: column;
   gap: 8px;
 }
+
+/* Geo search */
+.form-group:has(.geo-search-wrap) {
+  position: relative;
+}
+
+.geo-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.geo-search-icon {
+  position: absolute;
+  left: 10px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.geo-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 32px !important;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 0.875rem;
+}
+
+.geo-spinner {
+  position: absolute;
+  right: 10px;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.geo-suggestions {
+  position: absolute;
+  z-index: 50;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  margin-top: 4px;
+}
+
+.geo-suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8125rem;
+  color: #374151;
+  transition: background 0.1s;
+  font-family: inherit;
+}
+
+.geo-suggestion-item:hover {
+  background: #f3f4f6;
+}
+
+.geo-suggestion-icon {
+  flex-shrink: 0;
+  color: #7c3aed;
+  margin-top: 2px;
+}
+
+/* Bounds status (auto-filled) */
+.bounds-status {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.bounds-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bounds-status-header > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #166534;
+}
+
+.bounds-status-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.bounds-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-family: inherit;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.bounds-toggle-btn:hover {
+  background: #e5e7eb;
+}
+
+.bounds-status-source {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bounds-status-summary {
+  font-size: 0.75rem;
+  color: #374151;
+  margin-top: 4px;
+  font-family: monospace;
+}

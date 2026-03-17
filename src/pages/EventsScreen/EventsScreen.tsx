@@ -10,14 +10,23 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Globe,
+  Filter,
 } from "lucide-react";
 import eventService from "../../services/event.service";
+import { getAllContinents } from "../../services/event-continent.service";
+import { getAllLocations } from "../../services/event-location.service";
 import type {
   AdminEvent,
   AdminEventSearchParams,
   EventStatus,
   AdminUpdateEventDto,
 } from "../../types/event.types";
+import type {
+  EventContinent,
+  EventLocation,
+} from "../../types/event-location.types";
 import "./EventsScreen.css";
 
 const STATUS_OPTIONS: { value: EventStatus | ""; label: string }[] = [
@@ -46,8 +55,16 @@ const EventsScreen: React.FC = () => {
   // Search & filter
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<EventStatus | "">("");
+  const [continentFilter, setContinentFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const [page, setPage] = useState(0);
   const pageSize = 20;
+
+  // Filter data
+  const [continents, setContinents] = useState<EventContinent[]>([]);
+  const [locations, setLocations] = useState<EventLocation[]>([]);
 
   // Modals
   const [showEditModal, setShowEditModal] = useState(false);
@@ -60,6 +77,45 @@ const EventsScreen: React.FC = () => {
   const [editStatus, setEditStatus] = useState<EventStatus>("draft");
   const [submitting, setSubmitting] = useState(false);
 
+  // Load continents and locations on mount
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const [continentData, locationData] = await Promise.all([
+          getAllContinents(),
+          getAllLocations(),
+        ]);
+        setContinents(continentData.sort((a, b) => a.displayOrder - b.displayOrder));
+        setLocations(locationData.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        console.error("Failed to load filter data:", err);
+      }
+    };
+    loadFilterData();
+  }, []);
+
+  // Filtered locations based on selected continent
+  const filteredLocations = continentFilter
+    ? locations.filter((loc) => loc.continentId === continentFilter)
+    : locations;
+
+  const hasActiveFilters =
+    statusFilter !== "" ||
+    continentFilter !== "" ||
+    locationFilter !== "" ||
+    startDateFilter !== "" ||
+    endDateFilter !== "";
+
+  const clearAllFilters = () => {
+    setStatusFilter("");
+    setContinentFilter("");
+    setLocationFilter("");
+    setStartDateFilter("");
+    setEndDateFilter("");
+    setSearchQuery("");
+    setPage(0);
+  };
+
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
@@ -70,6 +126,15 @@ const EventsScreen: React.FC = () => {
 
       if (searchQuery.trim()) params.search = searchQuery.trim();
       if (statusFilter) params.status = statusFilter;
+      if (locationFilter) params.locationId = locationFilter;
+      else if (continentFilter) params.continentId = continentFilter;
+      if (startDateFilter) params.startDate = new Date(startDateFilter).toISOString();
+      if (endDateFilter) {
+        // Set end date to end of day
+        const end = new Date(endDateFilter);
+        end.setHours(23, 59, 59, 999);
+        params.endDate = end.toISOString();
+      }
 
       const data = await eventService.searchEvents(params);
       setEvents(data.events);
@@ -80,7 +145,7 @@ const EventsScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, searchQuery, statusFilter]);
+  }, [page, searchQuery, statusFilter, continentFilter, locationFilter, startDateFilter, endDateFilter]);
 
   useEffect(() => {
     fetchEvents();
@@ -98,6 +163,22 @@ const EventsScreen: React.FC = () => {
     e.preventDefault();
     setPage(0);
     fetchEvents();
+  };
+
+  const handleContinentChange = (value: string) => {
+    setContinentFilter(value);
+    setLocationFilter(""); // Reset location when continent changes
+    setPage(0);
+  };
+
+  const handleLocationChange = (value: string) => {
+    setLocationFilter(value);
+    // Auto-select continent if a location is picked and continent isn't set
+    if (value && !continentFilter) {
+      const loc = locations.find((l) => l.id === value);
+      if (loc) setContinentFilter(loc.continentId);
+    }
+    setPage(0);
   };
 
   const openEditModal = (event: AdminEvent) => {
@@ -186,7 +267,7 @@ const EventsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search and Filters */}
       <div className="events-filters">
         <form onSubmit={handleSearch} className="search-form">
           <div className="search-input-wrapper">
@@ -207,7 +288,7 @@ const EventsScreen: React.FC = () => {
             setStatusFilter(e.target.value as EventStatus | "");
             setPage(0);
           }}
-          className="status-filter"
+          className="filter-select"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -216,6 +297,140 @@ const EventsScreen: React.FC = () => {
           ))}
         </select>
       </div>
+
+      {/* Location & Date Filters */}
+      <div className="events-filters-row">
+        <div className="filter-group">
+          <Globe size={15} className="filter-icon" />
+          <select
+            value={continentFilter}
+            onChange={(e) => handleContinentChange(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Continents</option>
+            {continents.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <MapPin size={15} className="filter-icon" />
+          <select
+            value={locationFilter}
+            onChange={(e) => handleLocationChange(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Cities</option>
+            {continentFilter ? (
+              // Show locations for selected continent
+              filteredLocations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
+                </option>
+              ))
+            ) : (
+              // Group by continent
+              continents.map((continent) => {
+                const continentLocations = locations.filter(
+                  (loc) => loc.continentId === continent.id
+                );
+                if (continentLocations.length === 0) return null;
+                return (
+                  <optgroup key={continent.id} label={continent.name}>
+                    {continentLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })
+            )}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <Calendar size={15} className="filter-icon" />
+          <input
+            type="date"
+            value={startDateFilter}
+            onChange={(e) => {
+              setStartDateFilter(e.target.value);
+              setPage(0);
+            }}
+            className="filter-date"
+            placeholder="From"
+          />
+          <span className="date-separator">to</span>
+          <input
+            type="date"
+            value={endDateFilter}
+            onChange={(e) => {
+              setEndDateFilter(e.target.value);
+              setPage(0);
+            }}
+            className="filter-date"
+            min={startDateFilter || undefined}
+          />
+        </div>
+
+        {hasActiveFilters && (
+          <button className="btn-clear-filters" onClick={clearAllFilters}>
+            <X size={14} />
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* Active filter pills */}
+      {hasActiveFilters && (
+        <div className="active-filters">
+          <Filter size={14} />
+          {statusFilter && (
+            <span className="filter-pill">
+              {STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label}
+              <button onClick={() => { setStatusFilter(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {continentFilter && !locationFilter && (
+            <span className="filter-pill">
+              {continents.find((c) => c.id === continentFilter)?.name}
+              <button onClick={() => { setContinentFilter(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {locationFilter && (
+            <span className="filter-pill">
+              {locations.find((l) => l.id === locationFilter)?.name}
+              <button onClick={() => { setLocationFilter(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {startDateFilter && (
+            <span className="filter-pill">
+              From: {startDateFilter}
+              <button onClick={() => { setStartDateFilter(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {endDateFilter && (
+            <span className="filter-pill">
+              To: {endDateFilter}
+              <button onClick={() => { setEndDateFilter(""); setPage(0); }}>
+                <X size={12} />
+              </button>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Events Table */}
       <div className="events-table-container">
@@ -230,6 +445,7 @@ const EventsScreen: React.FC = () => {
               <tr>
                 <th>Event</th>
                 <th>Owner</th>
+                <th>Location</th>
                 <th>Status</th>
                 <th>Date</th>
                 <th>Tickets</th>
@@ -240,7 +456,7 @@ const EventsScreen: React.FC = () => {
             <tbody>
               {events.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="no-results">
+                  <td colSpan={8} className="no-results">
                     No events found
                   </td>
                 </tr>
@@ -273,6 +489,25 @@ const EventsScreen: React.FC = () => {
                         <span className="owner-name">{event.ownerName}</span>
                         <span className="owner-email">{event.ownerEmail}</span>
                       </div>
+                    </td>
+                    <td className="location-cell">
+                      {event.locationNames && event.locationNames.length > 0 ? (
+                        <div className="location-tags">
+                          {event.locationNames.slice(0, 2).map((name, i) => (
+                            <span key={i} className="location-tag">
+                              <MapPin size={11} />
+                              {name}
+                            </span>
+                          ))}
+                          {event.locationNames.length > 2 && (
+                            <span className="location-tag location-tag-more" title={event.locationNames.slice(2).join(", ")}>
+                              +{event.locationNames.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="no-location">No location</span>
+                      )}
                     </td>
                     <td>
                       <span
@@ -402,6 +637,11 @@ const EventsScreen: React.FC = () => {
               <p>
                 <strong>Tickets:</strong> {selectedEvent.ticketCount} | <strong>Guests:</strong> {selectedEvent.guestCount}
               </p>
+              {selectedEvent.locationNames && selectedEvent.locationNames.length > 0 && (
+                <p>
+                  <strong>Locations:</strong> {selectedEvent.locationNames.join(", ")}
+                </p>
+              )}
             </div>
 
             <div className="modal-actions">

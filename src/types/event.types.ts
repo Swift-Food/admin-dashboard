@@ -84,6 +84,8 @@ export interface AdminEvent {
   ownerEventUserId: string;
   ticketCount: number;
   guestCount: number;
+  locationNames: string[];
+  continentNames: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -91,6 +93,10 @@ export interface AdminEvent {
 export interface AdminEventSearchParams {
   search?: string;
   status?: EventStatus;
+  locationId?: string;
+  continentId?: string;
+  startDate?: string;
+  endDate?: string;
   skip?: number;
   take?: number;
 }

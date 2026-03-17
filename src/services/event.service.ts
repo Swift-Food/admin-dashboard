@@ -19,6 +19,10 @@ const searchEvents = async (
 
   if (params.search) queryParams.append("search", params.search);
   if (params.status) queryParams.append("status", params.status);
+  if (params.locationId) queryParams.append("locationId", params.locationId);
+  if (params.continentId) queryParams.append("continentId", params.continentId);
+  if (params.startDate) queryParams.append("startDate", params.startDate);
+  if (params.endDate) queryParams.append("endDate", params.endDate);
   if (params.skip !== undefined) queryParams.append("skip", params.skip.toString());
   if (params.take !== undefined) queryParams.append("take", params.take.toString());
 

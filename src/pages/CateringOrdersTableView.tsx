@@ -443,41 +443,113 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             </div>
           )}
 
-          {/* Order Items */}
+          {/* Order Items — grouped by meal session if available */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Order Items ({(order.restaurants || order.orderItems || []).length} Restaurant{(order.restaurants || order.orderItems || []).length !== 1 ? 's' : ''})</h3>
-            <div className="space-y-4">
-              {(order.restaurants || order.orderItems || []).map((item, idx) => (
-                <div key={idx} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-purple-300 transition-colors">
-                  <h4 className="font-bold text-xl text-gray-900 mb-4">{item.restaurantName}</h4>
-                  {item.menuItems && item.menuItems.length > 0 && (
-                    <div className="space-y-2">
-                      {item.menuItems.filter((menuItem) => menuItem != null).map((menuItem, menuIdx) => {
-                        const price = menuItem && 'customerTotalPrice' in menuItem
-                          ? menuItem.customerTotalPrice
-                          : menuItem && 'totalPrice' in menuItem
-                          ? menuItem.totalPrice
-                          : 0;
-
-                        return (
-                          <div key={menuIdx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                            <span className="text-base text-gray-900">
-                              <span className="font-bold text-purple-600">{menuItem.quantity}x</span> {menuItem.menuItemName}
-                            </span>
-                            <span className="font-bold text-lg text-gray-900">{formatCurrency(price)}</span>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Order Items</h3>
+            {order.mealSessions && order.mealSessions.length > 0 ? (
+              <div className="space-y-6">
+                {order.mealSessions.map((session: any, sIdx: number) => (
+                  <div key={session.id || sIdx} className={order.mealSessions.length > 1 ? "border-2 border-gray-200 rounded-xl overflow-hidden" : ""}>
+                    {order.mealSessions.length > 1 && (
+                      <div className="bg-purple-50 px-5 py-3 border-b border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-bold text-gray-900">{session.sessionName || `Session ${sIdx + 1}`}</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {session.sessionDate ? new Date(session.sessionDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
+                              {session.eventTime ? ` at ${session.eventTime}` : ''}
+                              {session.collectionTime ? ` — Collection: ${session.collectionTime}` : ''}
+                            </p>
                           </div>
-                        );
-                      })}
+                          {session.subtotal != null && (
+                            <span className="text-sm font-bold text-gray-700">{formatCurrency(Number(session.subtotal))}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className={order.mealSessions.length > 1 ? "p-5 space-y-4" : "space-y-4"}>
+                      {(session.orderItems || []).map((item: any, rIdx: number) => (
+                        <div key={rIdx} className="bg-white border border-gray-100 rounded-lg p-4">
+                          <h5 className="font-bold text-gray-900 mb-3">{item.restaurantName}</h5>
+                          <div className="space-y-2">
+                            {(item.menuItems || []).filter((m: any) => m != null).map((menuItem: any, mIdx: number) => {
+                              const price = menuItem.customerTotalPrice ?? menuItem.totalPrice ?? 0;
+                              const addons = menuItem.selectedAddons || menuItem.addons || [];
+                              return (
+                                <div key={mIdx}>
+                                  <div className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                                    <span className="text-sm text-gray-900">
+                                      <span className="font-bold text-purple-600">{menuItem.quantity}x</span> {menuItem.menuItemName}
+                                    </span>
+                                    <span className="font-bold text-sm text-gray-900">{formatCurrency(price)}</span>
+                                  </div>
+                                  {addons.length > 0 && (
+                                    <div className="ml-6 mt-1 mb-2 space-y-0.5">
+                                      {addons.map((addon: any, aIdx: number) => (
+                                        <div key={aIdx} className="flex justify-between text-xs text-purple-700">
+                                          <span>+ {addon.name}{addon.quantity > 1 ? ` ×${addon.quantity}` : ''}</span>
+                                          {addon.customerUnitPrice > 0 && (
+                                            <span>{formatCurrency(addon.customerUnitPrice * (addon.quantity || 1))}</span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                  {item.specialInstructions && (
-                    <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r">
-                      <p className="text-sm text-yellow-900 italic">Note: {item.specialInstructions}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Fallback for orders without meal sessions */
+              <div className="space-y-4">
+                {(order.restaurants || order.orderItems || []).map((item: any, idx: number) => (
+                  <div key={idx} className="bg-white border-2 border-gray-200 rounded-xl p-6">
+                    <h4 className="font-bold text-xl text-gray-900 mb-4">{item.restaurantName}</h4>
+                    {item.menuItems && item.menuItems.length > 0 && (
+                      <div className="space-y-2">
+                        {item.menuItems.filter((menuItem: any) => menuItem != null).map((menuItem: any, menuIdx: number) => {
+                          const price = menuItem.customerTotalPrice ?? menuItem.totalPrice ?? 0;
+                          const addons = menuItem.selectedAddons || menuItem.addons || [];
+                          return (
+                            <div key={menuIdx}>
+                              <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                                <span className="text-base text-gray-900">
+                                  <span className="font-bold text-purple-600">{menuItem.quantity}x</span> {menuItem.menuItemName}
+                                </span>
+                                <span className="font-bold text-lg text-gray-900">{formatCurrency(price)}</span>
+                              </div>
+                              {addons.length > 0 && (
+                                <div className="ml-6 mt-1 mb-2 space-y-0.5">
+                                  {addons.map((addon: any, aIdx: number) => (
+                                    <div key={aIdx} className="flex justify-between text-xs text-purple-700">
+                                      <span>+ {addon.name}{addon.quantity > 1 ? ` ×${addon.quantity}` : ''}</span>
+                                      {addon.customerUnitPrice > 0 && (
+                                        <span>{formatCurrency(addon.customerUnitPrice * (addon.quantity || 1))}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {item.specialInstructions && (
+                      <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r">
+                        <p className="text-sm text-yellow-900 italic">Note: {item.specialInstructions}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

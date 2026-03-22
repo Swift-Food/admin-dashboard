@@ -155,18 +155,18 @@ const navSections: NavSection[] = [
   },
   {
     id: "prismo-management",
-    label: "Event Management",
+    label: "Manage",
     mode: "prismo",
     items: [
-      {
-        id: "event-categories",
-        label: "Event Categories",
-        icon: <FontAwesomeIcon icon={faCalendarAlt} style={prismoIconStyle} />,
-      },
       {
         id: "events",
         label: "Events",
         icon: <FontAwesomeIcon icon={faCalendarAlt} style={prismoIconStyle} />,
+      },
+      {
+        id: "event-categories",
+        label: "Categories",
+        icon: <FontAwesomeIcon icon={faLayerGroup} style={prismoIconStyle} />,
       },
       {
         id: "event-locations",
@@ -180,7 +180,7 @@ const navSections: NavSection[] = [
       },
       {
         id: "bundles",
-        label: "Prismo Bundles",
+        label: "Packages",
         icon: <FontAwesomeIcon icon={faBox} style={prismoIconStyle} />,
       },
     ],

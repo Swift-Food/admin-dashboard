@@ -142,7 +142,7 @@ const PrismoDashboard: React.FC = () => {
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Dashboard</h1>
-          <p style={styles.subtitle}>Prismo admin overview</p>
+          <p style={styles.subtitle}>Welcome back. Here&apos;s what&apos;s happening with your events.</p>
         </div>
       </div>
 
@@ -328,50 +328,13 @@ const PrismoDashboard: React.FC = () => {
                     >
                       <Package size={16} color="#f59e0b" />
                     </div>
-                    <span style={styles.quickStatLabel}>Prismo Bundles</span>
+                    <span style={styles.quickStatLabel}>Packages</span>
                   </div>
                   <span style={styles.quickStatValue}>{bundleCount}</span>
                 </div>
               ) : null}
 
-              {/* Event breakdown */}
-              {eventStats && (
-                <>
-                  <div style={styles.divider} />
-                  <div style={styles.quickStatItem}>
-                    <div style={styles.quickStatLeft}>
-                      <div
-                        style={{
-                          ...styles.quickStatIcon,
-                          backgroundColor: "#fce7f3",
-                        }}
-                      >
-                        <CheckCircle size={16} color="#ef4444" />
-                      </div>
-                      <span style={styles.quickStatLabel}>Cancelled</span>
-                    </div>
-                    <span style={styles.quickStatValue}>
-                      {eventStats.cancelled}
-                    </span>
-                  </div>
-                  <div style={styles.quickStatItem}>
-                    <div style={styles.quickStatLeft}>
-                      <div
-                        style={{
-                          ...styles.quickStatIcon,
-                          backgroundColor: "#ede9fe",
-                        }}
-                      >
-                        <CheckCircle size={16} color="#8b5cf6" />
-                      </div>
-                      <span style={styles.quickStatLabel}>Completed</span>
-                    </div>
-                    <span style={styles.quickStatValue}>
-                      {eventStats.completed}
-                    </span>
-                  </div>
-                </>
-              )}
+              {/* Bundles label update */}
             </div>
           </div>
         </div>

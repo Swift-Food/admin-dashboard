@@ -9,6 +9,7 @@ import {
   Upload,
   Power,
   Search,
+  Package,
 } from "lucide-react";
 import type {
   BundleType,
@@ -629,12 +630,16 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                           className="bundle-card-main"
                           onClick={() => toggleBundleExpanded(bundle.id)}
                         >
-                          {bundle.imageUrl && (
+                          {bundle.imageUrl ? (
                             <img
                               src={bundle.imageUrl}
                               alt={bundle.name}
                               className="bundle-image"
                             />
+                          ) : (
+                            <div className="bundle-image bundle-image-placeholder">
+                              <Package size={24} color="#9ca3af" />
+                            </div>
                           )}
                           <div className="bundle-card-info">
                             <div className="bundle-card-title-row">

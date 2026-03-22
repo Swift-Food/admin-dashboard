@@ -180,7 +180,7 @@ const navSections: NavSection[] = [
       },
       {
         id: "bundles",
-        label: "Packages",
+        label: "Bundles",
         icon: <FontAwesomeIcon icon={faBox} style={prismoIconStyle} />,
       },
     ],

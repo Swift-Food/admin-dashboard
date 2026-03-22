@@ -328,7 +328,7 @@ const PrismoDashboard: React.FC = () => {
                     >
                       <Package size={16} color="#f59e0b" />
                     </div>
-                    <span style={styles.quickStatLabel}>Packages</span>
+                    <span style={styles.quickStatLabel}>Bundles</span>
                   </div>
                   <span style={styles.quickStatValue}>{bundleCount}</span>
                 </div>

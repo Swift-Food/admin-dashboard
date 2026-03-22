@@ -255,87 +255,96 @@ const EventsScreen: React.FC = () => {
 
   return (
     <div className="events-container">
-      {/* Header */}
-      <div className="events-header">
-        <div>
-          <h1>Events</h1>
-          <p>{total} events {statusFilter ? `· ${statusFilter}` : ""} {locationFilter ? `· ${locations.find(l => l.id === locationFilter)?.name}` : continentFilter ? `· ${continents.find(c => c.id === continentFilter)?.name}` : ""}</p>
-        </div>
-      </div>
-
-      {/* Search + Status Pills */}
-      <div className="events-filter-bar">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-input-wrapper">
-            <Search size={17} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
+      {/* Unified Filter Card */}
+      <div className="filter-card">
+        <div className="filter-card-top">
+          <div className="filter-card-header">
+            <h1>Events</h1>
+            <span className="events-count">{total}</span>
           </div>
-        </form>
+          <form onSubmit={handleSearch} className="search-form">
+            <div className="search-input-wrapper">
+              <Search size={16} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search by name or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+              {searchQuery && (
+                <button type="button" className="search-clear" onClick={() => { setSearchQuery(""); setPage(0); }}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        <div className="filter-card-controls">
+          <div className="filter-controls-left">
+            <button
+              className={`filter-toggle ${hidePast ? "filter-toggle-active" : ""}`}
+              onClick={() => { setHidePast(!hidePast); setPage(0); }}
+            >
+              <Calendar size={13} />
+              {hidePast ? "Upcoming" : "All time"}
+            </button>
+
+            <div className="filter-select-wrap">
+              <MapPin size={13} className="filter-select-icon" />
+              <select
+                value={locationFilter}
+                onChange={(e) => handleLocationChange(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All locations</option>
+                {continents.map((continent) => {
+                  const locs = locations.filter((l) => l.continentId === continent.id);
+                  if (locs.length === 0) return null;
+                  return (
+                    <optgroup key={continent.id} label={continent.name}>
+                      {locs.map((loc) => (
+                        <option key={loc.id} value={loc.id}>{loc.name}</option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="filter-date-wrap">
+              <input type="date" value={startDateFilter} onChange={(e) => { setStartDateFilter(e.target.value); setPage(0); }} className="filter-date" />
+              <span className="date-sep">to</span>
+              <input type="date" value={endDateFilter} onChange={(e) => { setEndDateFilter(e.target.value); setPage(0); }} className="filter-date" min={startDateFilter || undefined} />
+            </div>
+          </div>
+
+          {(hasActiveFilters || searchQuery) && (
+            <button className="btn-clear-filters" onClick={clearAllFilters}>
+              <X size={12} />
+              Clear
+            </button>
+          )}
+        </div>
 
         <div className="status-pills">
-          {STATUS_OPTIONS.filter(o => o.value).map((opt) => (
-            <button
-              key={opt.value}
-              className={`status-pill ${statusFilter === opt.value ? "status-pill-active" : ""}`}
-              style={statusFilter === opt.value ? { backgroundColor: STATUS_COLORS[opt.value as EventStatus], color: "#fff" } : {}}
-              onClick={() => { setStatusFilter(statusFilter === opt.value ? "" : opt.value as EventStatus); setPage(0); }}
-            >
-              {opt.label}
-            </button>
-          ))}
+          {STATUS_OPTIONS.filter(o => o.value).map((opt) => {
+            const active = statusFilter === opt.value;
+            const color = STATUS_COLORS[opt.value as EventStatus];
+            return (
+              <button
+                key={opt.value}
+                className={`status-pill ${active ? "status-pill-active" : ""}`}
+                style={active ? { backgroundColor: color, borderColor: color, color: "#fff" } : { borderColor: color + "40" }}
+                onClick={() => { setStatusFilter(active ? "" : opt.value as EventStatus); setPage(0); }}
+              >
+                <span className="status-dot" style={{ backgroundColor: active ? "#fff" : color }} />
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
-      </div>
-
-      {/* Secondary Filters */}
-      <div className="events-secondary-filters">
-        <button
-          className={`hide-past-btn ${hidePast ? "hide-past-active" : ""}`}
-          onClick={() => { setHidePast(!hidePast); setPage(0); }}
-        >
-          {hidePast ? "Upcoming only" : "All events"}
-        </button>
-
-        <div className="filter-group">
-          <MapPin size={14} className="filter-icon" />
-          <select
-            value={locationFilter}
-            onChange={(e) => handleLocationChange(e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All locations</option>
-            {continents.map((continent) => {
-              const locs = locations.filter((l) => l.continentId === continent.id);
-              if (locs.length === 0) return null;
-              return (
-                <optgroup key={continent.id} label={continent.name}>
-                  {locs.map((loc) => (
-                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                  ))}
-                </optgroup>
-              );
-            })}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <Calendar size={14} className="filter-icon" />
-          <input type="date" value={startDateFilter} onChange={(e) => { setStartDateFilter(e.target.value); setPage(0); }} className="filter-date" />
-          <span className="date-separator">—</span>
-          <input type="date" value={endDateFilter} onChange={(e) => { setEndDateFilter(e.target.value); setPage(0); }} className="filter-date" min={startDateFilter || undefined} />
-        </div>
-
-        {(hasActiveFilters || searchQuery) && (
-          <button className="btn-clear-filters" onClick={clearAllFilters}>
-            <X size={13} />
-            Clear all
-          </button>
-        )}
       </div>
 
       {/* Events Cards */}

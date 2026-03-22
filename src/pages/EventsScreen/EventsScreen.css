@@ -66,6 +66,33 @@
   flex-wrap: wrap;
 }
 
+.hide-past-btn {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hide-past-btn:hover {
+  border-color: #c7d2fe;
+  background: #f9fafb;
+}
+
+.hide-past-active {
+  background: #ede9fe;
+  color: #7c3aed;
+  border-color: #c4b5fd;
+}
+
+.hide-past-active:hover {
+  background: #ddd6fe;
+}
+
 .search-form {
   flex: 1;
   max-width: 500px;

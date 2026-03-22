@@ -57,6 +57,7 @@ const EventsScreen: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
+  const [hidePast, setHidePast] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 20;
 
@@ -106,6 +107,7 @@ const EventsScreen: React.FC = () => {
     setStartDateFilter("");
     setEndDateFilter("");
     setSearchQuery("");
+    setHidePast(true);
     setPage(0);
   };
 
@@ -121,9 +123,15 @@ const EventsScreen: React.FC = () => {
       if (statusFilter) params.status = statusFilter;
       if (locationFilter) params.locationId = locationFilter;
       else if (continentFilter) params.continentId = continentFilter;
-      if (startDateFilter) params.startDate = new Date(startDateFilter).toISOString();
+
+      // Hide past: use today as startDate (unless user set a manual startDate)
+      if (hidePast && !startDateFilter) {
+        params.startDate = new Date().toISOString();
+      } else if (startDateFilter) {
+        params.startDate = new Date(startDateFilter).toISOString();
+      }
+
       if (endDateFilter) {
-        // Set end date to end of day
         const end = new Date(endDateFilter);
         end.setHours(23, 59, 59, 999);
         params.endDate = end.toISOString();
@@ -138,7 +146,7 @@ const EventsScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, searchQuery, statusFilter, continentFilter, locationFilter, startDateFilter, endDateFilter]);
+  }, [page, searchQuery, statusFilter, continentFilter, locationFilter, startDateFilter, endDateFilter, hidePast]);
 
   useEffect(() => {
     fetchEvents();
@@ -286,6 +294,13 @@ const EventsScreen: React.FC = () => {
 
       {/* Secondary Filters */}
       <div className="events-secondary-filters">
+        <button
+          className={`hide-past-btn ${hidePast ? "hide-past-active" : ""}`}
+          onClick={() => { setHidePast(!hidePast); setPage(0); }}
+        >
+          {hidePast ? "Upcoming only" : "All events"}
+        </button>
+
         <div className="filter-group">
           <MapPin size={14} className="filter-icon" />
           <select

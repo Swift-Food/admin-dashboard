@@ -84,8 +84,10 @@ const EventsScreen: React.FC = () => {
           getAllContinents(),
           getAllLocations(),
         ]);
-        setContinents(continentData.sort((a, b) => a.displayOrder - b.displayOrder));
-        setLocations(locationData.sort((a, b) => a.name.localeCompare(b.name)));
+        const activeLocations = locationData.filter((l) => l.eventCount > 0).sort((a, b) => a.name.localeCompare(b.name));
+        const activeContinentIds = new Set(activeLocations.map((l) => l.continentId));
+        setContinents(continentData.filter((c) => activeContinentIds.has(c.id)).sort((a, b) => a.displayOrder - b.displayOrder));
+        setLocations(activeLocations);
       } catch (err) {
         console.error("Failed to load filter data:", err);
       }

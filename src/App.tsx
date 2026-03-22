@@ -29,6 +29,7 @@ import EventsScreen from "./pages/EventsScreen/EventsScreen";
 import EventLocationsScreen from "./pages/EventLocationsScreen/EventLocationsScreen";
 import CalendarsScreen from "./pages/CalendarsScreen/CalendarsScreen";
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
+import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -181,8 +182,10 @@ function PageRenderer() {
         return <EventLocationsScreen />;
       case "calendars":
         return <CalendarsScreen />;
+      case "home":
+        return isPrismoAdmin ? <PrismoDashboard /> : <RestaurantAdminDashboard />;
       default:
-        return isPrismoAdmin ? <EventsScreen /> : <RestaurantAdminDashboard />;
+        return isPrismoAdmin ? <PrismoDashboard /> : <RestaurantAdminDashboard />;
     }
   };
 

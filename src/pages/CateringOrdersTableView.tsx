@@ -449,8 +449,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             {order.mealSessions && order.mealSessions.length > 0 ? (
               <div className="space-y-6">
                 {order.mealSessions.map((session: any, sIdx: number) => (
-                  <div key={session.id || sIdx} className={order.mealSessions.length > 1 ? "border-2 border-gray-200 rounded-xl overflow-hidden" : ""}>
-                    {order.mealSessions.length > 1 && (
+                  <div key={session.id || sIdx} className={order.mealSessions!.length > 1 ? "border-2 border-gray-200 rounded-xl overflow-hidden" : ""}>
+                    {order.mealSessions!.length > 1 && (
                       <div className="bg-purple-50 px-5 py-3 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                           <div>
@@ -467,7 +467,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                         </div>
                       </div>
                     )}
-                    <div className={order.mealSessions.length > 1 ? "p-5 space-y-4" : "space-y-4"}>
+                    <div className={order.mealSessions!.length > 1 ? "p-5 space-y-4" : "space-y-4"}>
                       {(session.orderItems || []).map((item: any, rIdx: number) => (
                         <div key={rIdx} className="bg-white border border-gray-100 rounded-lg p-4">
                           <h5 className="font-bold text-gray-900 mb-3">{item.restaurantName}</h5>

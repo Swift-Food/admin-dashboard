@@ -111,11 +111,17 @@ const prismoPages: SidebarPage[] = [
 function PageRenderer() {
   const { mode, page } = useParams<{ mode: string; page: string }>();
   const navigate = useNavigate();
+  const isPrismoAdmin = authService.isPrismoAdmin();
 
   // Validate that mode is valid
   if (mode !== "swift" && mode !== "prismo") {
-    const savedMode = localStorage.getItem("adminMode") || "swift";
+    const savedMode = isPrismoAdmin ? "prismo" : (localStorage.getItem("adminMode") || "swift");
     return <Navigate to={`/${savedMode}/home`} replace />;
+  }
+
+  // PRISMO_ADMIN cannot access swift mode
+  if (isPrismoAdmin && mode === "swift") {
+    return <Navigate to="/prismo/home" replace />;
   }
 
   const adminMode = mode as AdminMode;
@@ -176,7 +182,7 @@ function PageRenderer() {
       case "calendars":
         return <CalendarsScreen />;
       default:
-        return <RestaurantAdminDashboard />;
+        return isPrismoAdmin ? <EventsScreen /> : <RestaurantAdminDashboard />;
     }
   };
 
@@ -207,7 +213,8 @@ function App() {
   }
 
   // Get the saved admin mode from localStorage for the default redirect
-  const savedMode = localStorage.getItem("adminMode") || "swift";
+  const isPrismoAdmin = authService.isPrismoAdmin();
+  const savedMode = isPrismoAdmin ? "prismo" : (localStorage.getItem("adminMode") || "swift");
 
   return (
     <BrowserRouter>
@@ -216,7 +223,9 @@ function App() {
         <Route path="/" element={<Navigate to={`/${savedMode}/home`} replace />} />
 
         {/* Swift routes */}
-        <Route path="/swift" element={<Navigate to="/swift/home" replace />} />
+        <Route path="/swift" element={
+          isPrismoAdmin ? <Navigate to="/prismo/home" replace /> : <Navigate to="/swift/home" replace />
+        } />
 
         {/* Prismo routes */}
         <Route path="/prismo" element={<Navigate to="/prismo/home" replace />} />

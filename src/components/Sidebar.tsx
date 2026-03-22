@@ -249,6 +249,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [pendingCateringCount, setPendingCateringCount] = useState(0);
   const navigate = useNavigate();
+  const isPrismoAdmin = authService.isPrismoAdmin();
 
   const fetchPendingCount = useCallback(async () => {
     try {
@@ -261,10 +262,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
   }, []);
 
   useEffect(() => {
-    fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchPendingCount]);
+    if (!isPrismoAdmin) {
+      fetchPendingCount();
+      const interval = setInterval(fetchPendingCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchPendingCount, isPrismoAdmin]);
 
   const handleModeChange = (newMode: AdminMode) => {
     localStorage.setItem("adminMode", newMode);
@@ -337,57 +340,59 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
       </div>
 
       {/* Mode Toggle */}
-      <div style={modeToggleContainerStyle}>
-        {expanded ? (
-          <div style={modeToggleStyle}>
+      {!isPrismoAdmin && (
+        <div style={modeToggleContainerStyle}>
+          {expanded ? (
+            <div style={modeToggleStyle}>
+              <button
+                onClick={() => handleModeChange("swift")}
+                style={{
+                  ...modeButtonStyle,
+                  background: isSwift ? "#dbeafe" : "transparent",
+                  color: isSwift ? "#1d4ed8" : "#6b7280",
+                  fontWeight: isSwift ? 600 : 400,
+                }}
+              >
+                Swift
+              </button>
+              <button
+                onClick={() => handleModeChange("prismo")}
+                style={{
+                  ...modeButtonStyle,
+                  background: !isSwift ? "#ede9fe" : "transparent",
+                  color: !isSwift ? "#7c3aed" : "#6b7280",
+                  fontWeight: !isSwift ? 600 : 400,
+                }}
+              >
+                Prismo
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => handleModeChange("swift")}
-              style={{
-                ...modeButtonStyle,
-                background: isSwift ? "#dbeafe" : "transparent",
-                color: isSwift ? "#1d4ed8" : "#6b7280",
-                fontWeight: isSwift ? 600 : 400,
-              }}
+              onClick={() => handleModeChange(isSwift ? "prismo" : "swift")}
+              style={modeIconButtonStyle}
+              title={`Switch to ${isSwift ? "Prismo" : "Swift"}`}
             >
-              Swift
+              <span
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  background: isSwift ? "#dbeafe" : "#ede9fe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: isSwift ? "#1d4ed8" : "#7c3aed",
+                }}
+              >
+                {isSwift ? "S" : "P"}
+              </span>
             </button>
-            <button
-              onClick={() => handleModeChange("prismo")}
-              style={{
-                ...modeButtonStyle,
-                background: !isSwift ? "#ede9fe" : "transparent",
-                color: !isSwift ? "#7c3aed" : "#6b7280",
-                fontWeight: !isSwift ? 600 : 400,
-              }}
-            >
-              Prismo
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => handleModeChange(isSwift ? "prismo" : "swift")}
-            style={modeIconButtonStyle}
-            title={`Switch to ${isSwift ? "Prismo" : "Swift"}`}
-          >
-            <span
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: "50%",
-                background: isSwift ? "#dbeafe" : "#ede9fe",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 700,
-                color: isSwift ? "#1d4ed8" : "#7c3aed",
-              }}
-            >
-              {isSwift ? "S" : "P"}
-            </span>
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation */}
       <nav style={navStyle}>

@@ -432,129 +432,68 @@ const EventsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Events Table */}
-      <div className="events-table-container">
-        {loading && events.length === 0 ? (
-          <div className="events-loading">
-            <div className="spinner"></div>
-            <p>Loading events...</p>
-          </div>
-        ) : (
-          <table className="events-table">
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Owner</th>
-                <th>Location</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Tickets</th>
-                <th>Guests</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="no-results">
-                    No events found
-                  </td>
-                </tr>
-              ) : (
-                events.map((event) => (
-                  <tr key={event.id}>
-                    <td className="event-name-cell">
-                      <div className="event-name-wrapper">
-                        {event.eventImage ? (
-                          <img
-                            src={event.eventImage}
-                            alt={event.name}
-                            className="event-thumbnail"
-                          />
-                        ) : (
-                          <div className="event-thumbnail-placeholder">
-                            <Calendar size={20} />
-                          </div>
-                        )}
-                        <div className="event-name-info">
-                          <span className="event-name">{event.name}</span>
-                          {event.isPrivate && (
-                            <span className="private-badge">Private</span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="owner-cell">
-                      <div className="owner-info">
-                        <span className="owner-name">{event.ownerName}</span>
-                        <span className="owner-email">{event.ownerEmail}</span>
-                      </div>
-                    </td>
-                    <td className="location-cell">
-                      {event.locationNames && event.locationNames.length > 0 ? (
-                        <div className="location-tags">
-                          {event.locationNames.slice(0, 2).map((name, i) => (
-                            <span key={i} className="location-tag">
-                              <MapPin size={11} />
-                              {name}
-                            </span>
-                          ))}
-                          {event.locationNames.length > 2 && (
-                            <span className="location-tag location-tag-more" title={event.locationNames.slice(2).join(", ")}>
-                              +{event.locationNames.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="no-location">No location</span>
-                      )}
-                    </td>
-                    <td>
-                      <span
-                        className="status-badge"
-                        style={{ backgroundColor: STATUS_COLORS[event.status] }}
-                      >
-                        {event.status}
-                      </span>
-                    </td>
-                    <td className="date-cell">
-                      <span>{formatDate(event.startDateTime)}</span>
-                    </td>
-                    <td>
-                      <div className="count-cell">
-                        <Ticket size={16} />
-                        <span>{event.ticketCount}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="count-cell">
-                        <Users size={16} />
-                        <span>{event.guestCount}</span>
-                      </div>
-                    </td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => openEditModal(event)}
-                        title="Edit event"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => openDeleteModal(event)}
-                        title="Delete event"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Events Cards */}
+      {loading && events.length === 0 ? (
+        <div className="events-loading">
+          <div className="spinner"></div>
+          <p>Loading events...</p>
+        </div>
+      ) : events.length === 0 ? (
+        <div className="no-results-card">No events found</div>
+      ) : (
+        <div className="events-card-grid">
+          {events.map((event) => (
+            <div key={event.id} className="event-card">
+              <div className="event-card-image-wrap">
+                {event.eventImage ? (
+                  <img src={event.eventImage} alt={event.name} className="event-card-image" />
+                ) : (
+                  <div className="event-card-image event-card-image-placeholder">
+                    <Calendar size={28} color="#d1d5db" />
+                  </div>
+                )}
+                <span className="status-badge" style={{ backgroundColor: STATUS_COLORS[event.status] }}>
+                  {event.status}
+                </span>
+                {event.isPrivate && <span className="private-badge-overlay">Private</span>}
+              </div>
+              <div className="event-card-body">
+                <h3 className="event-card-name">{event.name}</h3>
+                <div className="event-card-owner">
+                  <span>{event.ownerName}</span>
+                </div>
+                <div className="event-card-meta">
+                  <span className="event-card-date">
+                    <Calendar size={13} />
+                    {formatDate(event.startDateTime)}
+                  </span>
+                  {event.locationNames && event.locationNames.length > 0 && (
+                    <span className="event-card-location">
+                      <MapPin size={13} />
+                      {event.locationNames[0]}
+                      {event.locationNames.length > 1 && ` +${event.locationNames.length - 1}`}
+                    </span>
+                  )}
+                </div>
+                <div className="event-card-footer">
+                  <div className="event-card-stats">
+                    <span className="event-card-stat"><Ticket size={13} /> {event.ticketCount}</span>
+                    <span className="event-card-stat"><Users size={13} /> {event.guestCount}</span>
+                  </div>
+                  <div className="event-card-actions">
+                    <button className="btn-icon-sm" onClick={() => openEditModal(event)} title="Edit">
+                      <Edit2 size={15} />
+                    </button>
+                    <button className="btn-icon-sm btn-icon-danger" onClick={() => openDeleteModal(event)} title="Delete">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (

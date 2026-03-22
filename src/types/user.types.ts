@@ -1,7 +1,7 @@
 import type { Restaurant } from "./restaurant.types";
 import type { Order } from "./order.types";
 
-export type UserRole = "customer" | "restaurant_owner" | "driver" | "admin";
+export type UserRole = "customer" | "restaurant_owner" | "driver" | "admin" | "prismo_admin";
 
 export type DriverStatus = "available" | "unavailable" | "occupied";
 

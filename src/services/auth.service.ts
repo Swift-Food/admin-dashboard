@@ -34,7 +34,6 @@ class AuthService {
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
     }
-    console.log("logs in fine", response)
 
     return response.data;
   }
@@ -48,8 +47,8 @@ class AuthService {
     if (response.data.access_token) {
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
+      this.storeRoleFromToken(response.data.access_token);
     }
-    console.log("admin logs in fine", response);
 
     return response.data;
   }
@@ -69,6 +68,7 @@ class AuthService {
       if (response.data.access_token) {
         localStorage.setItem('access_token', response.data.access_token);
         localStorage.setItem('refresh_token', response.data.refresh_token);
+        this.storeRoleFromToken(response.data.access_token);
       }
 
       return response.data;
@@ -98,6 +98,8 @@ class AuthService {
   logout() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('admin_role');
+    localStorage.removeItem('adminMode');
   }
 
   getAccessToken(): string | null {
@@ -106,6 +108,23 @@ class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getAccessToken();
+  }
+
+  getRole(): string {
+    return localStorage.getItem('admin_role') || 'admin';
+  }
+
+  isPrismoAdmin(): boolean {
+    return this.getRole() === 'prismo_admin';
+  }
+
+  private storeRoleFromToken(token: string): void {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      localStorage.setItem('admin_role', payload.role || 'admin');
+    } catch {
+      localStorage.setItem('admin_role', 'admin');
+    }
   }
 }
 

@@ -22,32 +22,46 @@
   margin: 0;
 }
 
-.events-stats {
+/* ---- Filter Bar ---- */
+.events-filter-bar {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
-.stat-badge {
-  background: #f3f4f6;
-  color: #374151;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
+.status-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
   border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-/* ---- Filters ---- */
-.events-filters {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
+.status-pill:hover {
+  border-color: #c7d2fe;
+  background: #f9fafb;
 }
 
-.events-filters-row {
+.status-pill-active {
+  border-color: transparent !important;
+}
+
+.events-secondary-filters {
   display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 16px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -87,10 +101,10 @@
 }
 
 .filter-select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 7px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.78rem;
   background: white;
   cursor: pointer;
   outline: none;
@@ -99,7 +113,8 @@
 }
 
 .filter-select:focus {
-  border-color: #3b82f6;
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
 }
 
 .filter-group {
@@ -115,18 +130,19 @@
 }
 
 .filter-date {
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 7px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.78rem;
   outline: none;
   color: #374151;
   background: white;
-  min-width: 130px;
+  min-width: 120px;
 }
 
 .filter-date:focus {
-  border-color: #3b82f6;
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
 }
 
 .date-separator {
@@ -138,63 +154,22 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  background: white;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn-clear-filters:hover {
-  background: #f3f4f6;
-  color: #374151;
-  border-color: #9ca3af;
-}
-
-/* Active filter pills */
-.active-filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  color: #6b7280;
-}
-
-.filter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px 4px 10px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 16px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 20px;
   font-size: 0.72rem;
-  color: #1d4ed8;
+  background: #fef2f2;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
   font-weight: 500;
 }
 
-.filter-pill button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 1px;
-  color: #1d4ed8;
-  border-radius: 50%;
-  opacity: 0.6;
+.btn-clear-filters:hover {
+  background: #fee2e2;
 }
 
-.filter-pill button:hover {
-  opacity: 1;
-  background: #dbeafe;
-}
 
 /* ---- Event Cards Grid ---- */
 .events-card-grid {

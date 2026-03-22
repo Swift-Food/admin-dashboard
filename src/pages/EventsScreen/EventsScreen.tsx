@@ -11,8 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
-  Globe,
-  Filter,
 } from "lucide-react";
 import eventService from "../../services/event.service";
 import { getAllContinents } from "../../services/event-continent.service";
@@ -94,11 +92,6 @@ const EventsScreen: React.FC = () => {
     loadFilterData();
   }, []);
 
-  // Filtered locations based on selected continent
-  const filteredLocations = continentFilter
-    ? locations.filter((loc) => loc.continentId === continentFilter)
-    : locations;
-
   const hasActiveFilters =
     statusFilter !== "" ||
     continentFilter !== "" ||
@@ -165,18 +158,15 @@ const EventsScreen: React.FC = () => {
     fetchEvents();
   };
 
-  const handleContinentChange = (value: string) => {
-    setContinentFilter(value);
-    setLocationFilter(""); // Reset location when continent changes
-    setPage(0);
-  };
-
   const handleLocationChange = (value: string) => {
     setLocationFilter(value);
-    // Auto-select continent if a location is picked and continent isn't set
-    if (value && !continentFilter) {
+    if (value) {
+      // Auto-set continent to match location
       const loc = locations.find((l) => l.id === value);
       if (loc) setContinentFilter(loc.continentId);
+    } else {
+      // Clear continent when location is cleared
+      setContinentFilter("");
     }
     setPage(0);
   };
@@ -257,24 +247,22 @@ const EventsScreen: React.FC = () => {
 
   return (
     <div className="events-container">
+      {/* Header */}
       <div className="events-header">
         <div>
-          <h1>Event Management</h1>
-          <p>Search, view, update, and delete events</p>
-        </div>
-        <div className="events-stats">
-          <span className="stat-badge">{total} total events</span>
+          <h1>Events</h1>
+          <p>{total} events {statusFilter ? `· ${statusFilter}` : ""} {locationFilter ? `· ${locations.find(l => l.id === locationFilter)?.name}` : continentFilter ? `· ${continents.find(c => c.id === continentFilter)?.name}` : ""}</p>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="events-filters">
+      {/* Search + Status Pills */}
+      <div className="events-filter-bar">
         <form onSubmit={handleSearch} className="search-form">
           <div className="search-input-wrapper">
-            <Search size={18} className="search-icon" />
+            <Search size={17} className="search-icon" />
             <input
               type="text"
-              placeholder="Search events by name or description..."
+              placeholder="Search events..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
@@ -282,155 +270,58 @@ const EventsScreen: React.FC = () => {
           </div>
         </form>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value as EventStatus | "");
-            setPage(0);
-          }}
-          className="filter-select"
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
+        <div className="status-pills">
+          {STATUS_OPTIONS.filter(o => o.value).map((opt) => (
+            <button
+              key={opt.value}
+              className={`status-pill ${statusFilter === opt.value ? "status-pill-active" : ""}`}
+              style={statusFilter === opt.value ? { backgroundColor: STATUS_COLORS[opt.value as EventStatus], color: "#fff" } : {}}
+              onClick={() => { setStatusFilter(statusFilter === opt.value ? "" : opt.value as EventStatus); setPage(0); }}
+            >
               {opt.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      {/* Location & Date Filters */}
-      <div className="events-filters-row">
+      {/* Secondary Filters */}
+      <div className="events-secondary-filters">
         <div className="filter-group">
-          <Globe size={15} className="filter-icon" />
-          <select
-            value={continentFilter}
-            onChange={(e) => handleContinentChange(e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Continents</option>
-            {continents.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <MapPin size={15} className="filter-icon" />
+          <MapPin size={14} className="filter-icon" />
           <select
             value={locationFilter}
             onChange={(e) => handleLocationChange(e.target.value)}
             className="filter-select"
           >
-            <option value="">All Cities</option>
-            {continentFilter ? (
-              // Show locations for selected continent
-              filteredLocations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))
-            ) : (
-              // Group by continent
-              continents.map((continent) => {
-                const continentLocations = locations.filter(
-                  (loc) => loc.continentId === continent.id
-                );
-                if (continentLocations.length === 0) return null;
-                return (
-                  <optgroup key={continent.id} label={continent.name}>
-                    {continentLocations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })
-            )}
+            <option value="">All locations</option>
+            {continents.map((continent) => {
+              const locs = locations.filter((l) => l.continentId === continent.id);
+              if (locs.length === 0) return null;
+              return (
+                <optgroup key={continent.id} label={continent.name}>
+                  {locs.map((loc) => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </optgroup>
+              );
+            })}
           </select>
         </div>
 
         <div className="filter-group">
-          <Calendar size={15} className="filter-icon" />
-          <input
-            type="date"
-            value={startDateFilter}
-            onChange={(e) => {
-              setStartDateFilter(e.target.value);
-              setPage(0);
-            }}
-            className="filter-date"
-            placeholder="From"
-          />
-          <span className="date-separator">to</span>
-          <input
-            type="date"
-            value={endDateFilter}
-            onChange={(e) => {
-              setEndDateFilter(e.target.value);
-              setPage(0);
-            }}
-            className="filter-date"
-            min={startDateFilter || undefined}
-          />
+          <Calendar size={14} className="filter-icon" />
+          <input type="date" value={startDateFilter} onChange={(e) => { setStartDateFilter(e.target.value); setPage(0); }} className="filter-date" />
+          <span className="date-separator">—</span>
+          <input type="date" value={endDateFilter} onChange={(e) => { setEndDateFilter(e.target.value); setPage(0); }} className="filter-date" min={startDateFilter || undefined} />
         </div>
 
-        {hasActiveFilters && (
+        {(hasActiveFilters || searchQuery) && (
           <button className="btn-clear-filters" onClick={clearAllFilters}>
-            <X size={14} />
-            Clear filters
+            <X size={13} />
+            Clear all
           </button>
         )}
       </div>
-
-      {/* Active filter pills */}
-      {hasActiveFilters && (
-        <div className="active-filters">
-          <Filter size={14} />
-          {statusFilter && (
-            <span className="filter-pill">
-              {STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label}
-              <button onClick={() => { setStatusFilter(""); setPage(0); }}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          {continentFilter && !locationFilter && (
-            <span className="filter-pill">
-              {continents.find((c) => c.id === continentFilter)?.name}
-              <button onClick={() => { setContinentFilter(""); setPage(0); }}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          {locationFilter && (
-            <span className="filter-pill">
-              {locations.find((l) => l.id === locationFilter)?.name}
-              <button onClick={() => { setLocationFilter(""); setPage(0); }}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          {startDateFilter && (
-            <span className="filter-pill">
-              From: {startDateFilter}
-              <button onClick={() => { setStartDateFilter(""); setPage(0); }}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          {endDateFilter && (
-            <span className="filter-pill">
-              To: {endDateFilter}
-              <button onClick={() => { setEndDateFilter(""); setPage(0); }}>
-                <X size={12} />
-              </button>
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Events Cards */}
       {loading && events.length === 0 ? (

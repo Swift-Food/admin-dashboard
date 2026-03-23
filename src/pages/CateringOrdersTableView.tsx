@@ -702,6 +702,19 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   </div>
                 )}
 
+                {/* Venue Hire Fee (coworking orders only) */}
+                {(order as any).coworkingOrder && Number((order as any).coworkingOrder.venueHireFee || 0) > 0 && (
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border-2 border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold text-purple-800 uppercase">Event Hire Fee</h3>
+                        <p className="text-xs text-purple-600 mt-0.5">Venue hire charge for this event</p>
+                      </div>
+                      <p className="text-2xl font-bold text-purple-900">{formatCurrency(Number((order as any).coworkingOrder.venueHireFee))}</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Grand Total */}
                 <div className="bg-gradient-to-br from-green-50 to-green-100 p-5 rounded-xl border-2 border-green-200">
                   <div className="flex items-center justify-between">
@@ -709,7 +722,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                       <h3 className="text-sm font-bold text-green-800 uppercase">Calculated Total</h3>
                       <p className="text-xs text-green-600 mt-0.5">Auto-updates when delivery fees change</p>
                     </div>
-                    <p className="text-3xl font-bold text-green-900">{formatCurrency(computedTotal)}</p>
+                    <p className="text-3xl font-bold text-green-900">{formatCurrency(computedTotal + ((order as any).coworkingOrder ? Number((order as any).coworkingOrder.venueHireFee || 0) : 0))}</p>
                   </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search,
   AlertCircle,
@@ -11,10 +11,15 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
+  ImagePlus,
+  RefreshCw,
+  ImageOff,
 } from "lucide-react";
 import eventService from "../../services/event.service";
 import { getAllContinents } from "../../services/event-continent.service";
 import { getAllLocations } from "../../services/event-location.service";
+import { uploadImage } from "../../services/bundles.service";
+import EventCoverPicker from "../../components/EventCoverPicker/EventCoverPicker";
 import type {
   AdminEvent,
   AdminEventSearchParams,
@@ -74,7 +79,11 @@ const EventsScreen: React.FC = () => {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState<EventStatus>("draft");
+  const [editEventImage, setEditEventImage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load continents and locations on mount
   useEffect(() => {
@@ -186,6 +195,7 @@ const EventsScreen: React.FC = () => {
     setEditName(event.name);
     setEditDescription(event.description);
     setEditStatus(event.status);
+    setEditEventImage(event.eventImage);
     setShowEditModal(true);
   };
 
@@ -203,6 +213,7 @@ const EventsScreen: React.FC = () => {
         name: editName.trim(),
         description: editDescription.trim(),
         status: editStatus,
+        eventImage: editEventImage || "",
       };
 
       await eventService.updateEvent(selectedEvent.id, dto);
@@ -242,6 +253,22 @@ const EventsScreen: React.FC = () => {
   };
 
   const totalPages = Math.ceil(total / pageSize);
+
+  const handleEventCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingCover(true);
+      const imageUrl = await uploadImage(file);
+      setEditEventImage(imageUrl);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upload cover image");
+    } finally {
+      setUploadingCover(false);
+      event.target.value = "";
+    }
+  };
 
   if (error && events.length === 0) {
     return (
@@ -470,6 +497,45 @@ const EventsScreen: React.FC = () => {
             </div>
 
             <div className="form-group">
+              <label>Cover Image</label>
+              <div className="cover-edit-panel">
+                <div className="cover-edit-preview">
+                  {editEventImage ? (
+                    <img src={editEventImage} alt={editName || selectedEvent.name} className="cover-edit-image" />
+                  ) : (
+                    <div className="cover-edit-placeholder">
+                      <ImagePlus size={24} />
+                      <span>No cover selected</span>
+                    </div>
+                  )}
+                </div>
+                <div className="cover-edit-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowCoverPicker(true)}>
+                    <RefreshCw size={15} />
+                    Choose Cover
+                  </button>
+                  <label className="btn btn-secondary cover-upload-btn">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={coverUploadInputRef}
+                      onChange={handleEventCoverUpload}
+                      disabled={uploadingCover}
+                    />
+                    <ImagePlus size={15} />
+                    {uploadingCover ? "Uploading..." : "Upload Image"}
+                  </label>
+                  {editEventImage && (
+                    <button type="button" className="btn btn-secondary" onClick={() => setEditEventImage(null)}>
+                      <ImageOff size={15} />
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
               <label>Status</label>
               <select
                 value={editStatus}
@@ -482,6 +548,17 @@ const EventsScreen: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            <EventCoverPicker
+              isOpen={showCoverPicker}
+              currentCover={editEventImage}
+              onClose={() => setShowCoverPicker(false)}
+              onSelect={(imageUrl) => setEditEventImage(imageUrl)}
+              onUploadClick={() => {
+                setShowCoverPicker(false);
+                coverUploadInputRef.current?.click();
+              }}
+            />
 
             <div className="modal-info">
               <p>

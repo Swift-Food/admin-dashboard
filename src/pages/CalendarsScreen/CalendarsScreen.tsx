@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search,
   AlertCircle,
@@ -12,8 +12,13 @@ import {
   ChevronRight,
   Globe,
   Lock,
+  ImagePlus,
+  RefreshCw,
+  ImageOff,
 } from "lucide-react";
 import calendarService from "../../services/calendar.service";
+import { uploadImage } from "../../services/bundles.service";
+import EventCoverPicker from "../../components/EventCoverPicker/EventCoverPicker";
 import type {
   AdminCalendar,
   AdminCalendarSearchParams,
@@ -57,7 +62,11 @@ const CalendarsScreen: React.FC = () => {
   const [editDescription, setEditDescription] = useState("");
   const [editIsPublic, setEditIsPublic] = useState(true);
   const [editType, setEditType] = useState<CalendarType>("personal");
+  const [editCalendarImage, setEditCalendarImage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchCalendars = useCallback(async () => {
     try {
@@ -106,6 +115,7 @@ const CalendarsScreen: React.FC = () => {
     setEditDescription(calendar.description || "");
     setEditIsPublic(calendar.isPublic);
     setEditType(calendar.calendarType);
+    setEditCalendarImage(calendar.calendarImage);
     setShowEditModal(true);
   };
 
@@ -124,6 +134,7 @@ const CalendarsScreen: React.FC = () => {
         description: editDescription.trim(),
         isPublic: editIsPublic,
         calendarType: editType,
+        calendarImage: editCalendarImage || "",
       };
 
       await calendarService.updateCalendar(selectedCalendar.id, dto);
@@ -161,6 +172,22 @@ const CalendarsScreen: React.FC = () => {
   };
 
   const totalPages = Math.ceil(total / pageSize);
+
+  const handleCalendarCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingCover(true);
+      const imageUrl = await uploadImage(file);
+      setEditCalendarImage(imageUrl);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upload cover image");
+    } finally {
+      setUploadingCover(false);
+      event.target.value = "";
+    }
+  };
 
   if (error && calendars.length === 0) {
     return (
@@ -408,6 +435,45 @@ const CalendarsScreen: React.FC = () => {
             </div>
 
             <div className="form-group">
+              <label>Cover Image</label>
+              <div className="cover-edit-panel">
+                <div className="cover-edit-preview">
+                  {editCalendarImage ? (
+                    <img src={editCalendarImage} alt={editName || selectedCalendar.name} className="cover-edit-image" />
+                  ) : (
+                    <div className="cover-edit-placeholder">
+                      <ImagePlus size={24} />
+                      <span>No cover selected</span>
+                    </div>
+                  )}
+                </div>
+                <div className="cover-edit-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowCoverPicker(true)}>
+                    <RefreshCw size={15} />
+                    Choose Cover
+                  </button>
+                  <label className="btn btn-secondary cover-upload-btn">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={coverUploadInputRef}
+                      onChange={handleCalendarCoverUpload}
+                      disabled={uploadingCover}
+                    />
+                    <ImagePlus size={15} />
+                    {uploadingCover ? "Uploading..." : "Upload Image"}
+                  </label>
+                  {editCalendarImage && (
+                    <button type="button" className="btn btn-secondary" onClick={() => setEditCalendarImage(null)}>
+                      <ImageOff size={15} />
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
               <label>Type</label>
               <select
                 value={editType}
@@ -429,6 +495,18 @@ const CalendarsScreen: React.FC = () => {
                 <label htmlFor="isPublic">Public calendar (visible to everyone)</label>
               </div>
             </div>
+
+            <EventCoverPicker
+              isOpen={showCoverPicker}
+              title="Choose Calendar Cover"
+              currentCover={editCalendarImage}
+              onClose={() => setShowCoverPicker(false)}
+              onSelect={(imageUrl) => setEditCalendarImage(imageUrl)}
+              onUploadClick={() => {
+                setShowCoverPicker(false);
+                coverUploadInputRef.current?.click();
+              }}
+            />
 
             <div className="modal-info">
               <p>

@@ -383,7 +383,8 @@
 }
 
 .cover-edit-preview {
-  height: 220px;
+  width: min(100%, 280px);
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid #d1d5db;
   border-radius: 14px;

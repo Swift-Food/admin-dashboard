@@ -33,11 +33,11 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.cover-picker-header h2 {
+.cover-picker-modal .cover-picker-header h2 {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #f8fafc !important;
 }
 
 .cover-picker-header-actions {

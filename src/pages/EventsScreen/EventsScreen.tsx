@@ -20,6 +20,7 @@ import { getAllContinents } from "../../services/event-continent.service";
 import { getAllLocations } from "../../services/event-location.service";
 import { uploadImage } from "../../services/bundles.service";
 import EventCoverPicker from "../../components/EventCoverPicker/EventCoverPicker";
+import ImageCropper from "../../components/ImageCropper";
 import type {
   AdminEvent,
   AdminEventSearchParams,
@@ -83,6 +84,7 @@ const EventsScreen: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const coverUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load continents and locations on mount
@@ -258,15 +260,36 @@ const EventsScreen: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowed.includes(file.type)) {
+      alert("Please select a valid image file (JPEG, PNG, WebP, or GIF)");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image file size must be less than 10MB");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageToCrop(reader.result as string);
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const handleEventCoverCropComplete = async (croppedBlob: Blob) => {
     try {
       setUploadingCover(true);
+      setImageToCrop(null);
+      const file = new File([croppedBlob], "event-cover.jpg", { type: "image/jpeg" });
       const imageUrl = await uploadImage(file);
       setEditEventImage(imageUrl);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to upload cover image");
     } finally {
       setUploadingCover(false);
-      event.target.value = "";
     }
   };
 
@@ -639,6 +662,15 @@ const EventsScreen: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleEventCoverCropComplete}
+          onCancel={() => setImageToCrop(null)}
+          aspectRatio={1}
+        />
       )}
     </div>
   );

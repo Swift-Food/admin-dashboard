@@ -19,6 +19,7 @@ import {
 import calendarService from "../../services/calendar.service";
 import { uploadImage } from "../../services/bundles.service";
 import EventCoverPicker from "../../components/EventCoverPicker/EventCoverPicker";
+import ImageCropper from "../../components/ImageCropper";
 import type {
   AdminCalendar,
   AdminCalendarSearchParams,
@@ -66,6 +67,7 @@ const CalendarsScreen: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const coverUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchCalendars = useCallback(async () => {
@@ -177,15 +179,36 @@ const CalendarsScreen: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowed.includes(file.type)) {
+      alert("Please select a valid image file (JPEG, PNG, WebP, or GIF)");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image file size must be less than 10MB");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageToCrop(reader.result as string);
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const handleCalendarCoverCropComplete = async (croppedBlob: Blob) => {
     try {
       setUploadingCover(true);
+      setImageToCrop(null);
+      const file = new File([croppedBlob], "calendar-cover.jpg", { type: "image/jpeg" });
       const imageUrl = await uploadImage(file);
       setEditCalendarImage(imageUrl);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to upload cover image");
     } finally {
       setUploadingCover(false);
-      event.target.value = "";
     }
   };
 
@@ -591,6 +614,15 @@ const CalendarsScreen: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleCalendarCoverCropComplete}
+          onCancel={() => setImageToCrop(null)}
+          aspectRatio={1}
+        />
       )}
     </div>
   );

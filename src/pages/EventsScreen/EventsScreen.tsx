@@ -81,11 +81,15 @@ const EventsScreen: React.FC = () => {
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState<EventStatus>("draft");
   const [editEventImage, setEditEventImage] = useState<string | null>(null);
+  const [editLocationIds, setEditLocationIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const coverUploadInputRef = useRef<HTMLInputElement | null>(null);
+
+  // All locations (not just ones with events) for the edit modal
+  const [allLocations, setAllLocations] = useState<EventLocation[]>([]);
 
   // Load continents and locations on mount
   useEffect(() => {
@@ -95,7 +99,9 @@ const EventsScreen: React.FC = () => {
           getAllContinents(),
           getAllLocations(),
         ]);
-        const activeLocations = locationData.filter((l) => l.eventCount > 0).sort((a, b) => a.name.localeCompare(b.name));
+        const sortedLocations = locationData.sort((a, b) => a.name.localeCompare(b.name));
+        setAllLocations(sortedLocations);
+        const activeLocations = sortedLocations.filter((l) => l.eventCount > 0);
         const activeContinentIds = new Set(activeLocations.map((l) => l.continentId));
         setContinents(continentData.filter((c) => activeContinentIds.has(c.id)).sort((a, b) => a.displayOrder - b.displayOrder));
         setLocations(activeLocations);
@@ -198,6 +204,10 @@ const EventsScreen: React.FC = () => {
     setEditDescription(event.description);
     setEditStatus(event.status);
     setEditEventImage(event.eventImage);
+    const ids = (event.locationNames || [])
+      .map((name) => allLocations.find((l) => l.name === name)?.id)
+      .filter(Boolean) as string[];
+    setEditLocationIds(ids);
     setShowEditModal(true);
   };
 
@@ -216,6 +226,7 @@ const EventsScreen: React.FC = () => {
         description: editDescription.trim(),
         status: editStatus,
         eventImage: editEventImage || "",
+        locationIds: editLocationIds,
       };
 
       await eventService.updateEvent(selectedEvent.id, dto);
@@ -583,6 +594,37 @@ const EventsScreen: React.FC = () => {
               }}
             />
 
+            <div className="form-group">
+              <label>Locations</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                {editLocationIds.map((id) => {
+                  const loc = allLocations.find((l) => l.id === id);
+                  return loc ? (
+                    <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 20, fontSize: "0.75rem", color: "#166534", fontWeight: 500 }}>
+                      {loc.name}
+                      <button type="button" onClick={() => setEditLocationIds((prev) => prev.filter((x) => x !== id))} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#166534", opacity: 0.6, fontSize: "0.85rem", lineHeight: 1 }}>&times;</button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value && !editLocationIds.includes(e.target.value)) {
+                    setEditLocationIds((prev) => [...prev, e.target.value]);
+                  }
+                  e.target.value = "";
+                }}
+              >
+                <option value="">Add a location...</option>
+                {allLocations
+                  .filter((l) => !editLocationIds.includes(l.id))
+                  .map((loc) => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+              </select>
+            </div>
+
             <div className="modal-info">
               <p>
                 <strong>Owner:</strong> {selectedEvent.ownerName} ({selectedEvent.ownerEmail})
@@ -593,11 +635,6 @@ const EventsScreen: React.FC = () => {
               <p>
                 <strong>Tickets:</strong> {selectedEvent.ticketCount} | <strong>Guests:</strong> {selectedEvent.guestCount}
               </p>
-              {selectedEvent.locationNames && selectedEvent.locationNames.length > 0 && (
-                <p>
-                  <strong>Locations:</strong> {selectedEvent.locationNames.join(", ")}
-                </p>
-              )}
             </div>
 
             <div className="modal-actions">

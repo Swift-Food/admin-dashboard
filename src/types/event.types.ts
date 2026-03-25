@@ -113,6 +113,7 @@ export interface AdminUpdateEventDto {
   description?: string;
   status?: EventStatus;
   eventImage?: string;
+  locationIds?: string[];
 }
 
 export interface EventStats {

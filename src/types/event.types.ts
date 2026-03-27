@@ -113,6 +113,8 @@ export interface AdminUpdateEventDto {
   description?: string;
   status?: EventStatus;
   eventImage?: string;
+  startDateTime?: string;
+  endDateTime?: string;
   locationIds?: string[];
 }
 

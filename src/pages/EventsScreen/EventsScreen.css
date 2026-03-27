@@ -599,6 +599,15 @@
   min-height: 100px;
 }
 
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
 .cover-edit-panel {
   display: grid;
   gap: 12px;

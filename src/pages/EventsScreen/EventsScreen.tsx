@@ -81,6 +81,8 @@ const EventsScreen: React.FC = () => {
   const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState<EventStatus>("draft");
   const [editEventImage, setEditEventImage] = useState<string | null>(null);
+  const [editStartDateTime, setEditStartDateTime] = useState("");
+  const [editEndDateTime, setEditEndDateTime] = useState("");
   const [editLocationIds, setEditLocationIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
@@ -198,12 +200,20 @@ const EventsScreen: React.FC = () => {
     setPage(0);
   };
 
+  const toLocalDateTimeInput = (isoStr: string) => {
+    const d = new Date(isoStr);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const openEditModal = (event: AdminEvent) => {
     setSelectedEvent(event);
     setEditName(event.name);
     setEditDescription(event.description);
     setEditStatus(event.status);
     setEditEventImage(event.eventImage);
+    setEditStartDateTime(event.startDateTime ? toLocalDateTimeInput(event.startDateTime) : "");
+    setEditEndDateTime(event.endDateTime ? toLocalDateTimeInput(event.endDateTime) : "");
     const ids = (event.locationNames || [])
       .map((name) => allLocations.find((l) => l.name === name)?.id)
       .filter(Boolean) as string[];
@@ -226,6 +236,8 @@ const EventsScreen: React.FC = () => {
         description: editDescription.trim(),
         status: editStatus,
         eventImage: editEventImage || "",
+        startDateTime: editStartDateTime ? new Date(editStartDateTime).toISOString() : undefined,
+        endDateTime: editEndDateTime ? new Date(editEndDateTime).toISOString() : undefined,
         locationIds: editLocationIds,
       };
 
@@ -581,6 +593,26 @@ const EventsScreen: React.FC = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Start Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={editStartDateTime}
+                  onChange={(e) => setEditStartDateTime(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label>End Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={editEndDateTime}
+                  onChange={(e) => setEditEndDateTime(e.target.value)}
+                  min={editStartDateTime || undefined}
+                />
+              </div>
             </div>
 
             <EventCoverPicker

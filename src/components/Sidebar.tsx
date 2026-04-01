@@ -19,11 +19,12 @@ import {
   faCreditCard,
   faWrench,
   faCalendarAlt,
+  faBuilding,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
 
-export type AdminMode = "swift" | "prismo";
+export type AdminMode = "swift" | "prismo" | "coworking";
 
 export type SidebarPage =
   | "home"
@@ -45,6 +46,7 @@ export type SidebarPage =
   | "payout"
   | "corporate"
   | "stripe-accounts"
+  | "coworking-spaces"
   | "miscellaneous";
 
 interface NavItem {
@@ -85,6 +87,17 @@ const iconCommonStyle = {
 const prismoIconStyle = {
   ...iconCommonStyle,
   color: "#7c3aed",
+};
+
+const coworkingIconStyle = {
+  ...iconCommonStyle,
+  color: "#862040",
+};
+
+const modeColors: Record<AdminMode, { primary: string; activeBg: string; border: string; label: string; initial: string }> = {
+  swift: { primary: "#1d4ed8", activeBg: "#dbeafe", border: "#e5e7eb", label: "Swift", initial: "S" },
+  prismo: { primary: "#7c3aed", activeBg: "#ede9fe", border: "#ddd6fe", label: "Prismo", initial: "P" },
+  coworking: { primary: "#862040", activeBg: "#fbe3e8", border: "#f5c6ce", label: "Coworking", initial: "C" },
 };
 
 const sectionIconStyle = {
@@ -182,6 +195,18 @@ const navSections: NavSection[] = [
         id: "bundles",
         label: "Bundles",
         icon: <FontAwesomeIcon icon={faBox} style={prismoIconStyle} />,
+      },
+    ],
+  },
+  {
+    id: "coworking-management",
+    label: "Manage",
+    mode: "coworking" as AdminMode,
+    items: [
+      {
+        id: "coworking-spaces" as SidebarPage,
+        label: "Spaces",
+        icon: <FontAwesomeIcon icon={faBuilding} style={coworkingIconStyle} />,
       },
     ],
   },
@@ -295,15 +320,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
     (section) => !section.mode || section.mode === adminMode
   );
 
-  const isSwift = adminMode === "swift";
-
   return (
     <aside
       style={{
         ...sidebarStyle,
         width: expanded ? 250 : 70,
         transition: "width 0.2s",
-        borderRightColor: isSwift ? "#e5e7eb" : "#ddd6fe",
+        borderRightColor: modeColors[adminMode].border,
       }}
     >
       {/* Header with brand */}
@@ -311,14 +334,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
         <span
           style={{
             ...brandStyle,
-            color: isSwift ? "#1d4ed8" : "#7c3aed",
+            color: modeColors[adminMode].primary,
             opacity: expanded ? 1 : 0,
             width: expanded ? "auto" : 0,
             overflow: "hidden",
             transition: "opacity 0.2s, width 0.2s",
           }}
         >
-          {isSwift ? "Swift" : "Prismo"}
+          {modeColors[adminMode].label}
         </span>
         <button
           style={toggleBtnStyle}
@@ -328,7 +351,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
           <FontAwesomeIcon
             icon={expanded ? faChevronLeft : faChevronRight}
             style={{
-              color: isSwift ? "#040273" : "#7c3aed",
+              color: modeColors[adminMode].primary,
               fontSize: 20,
               verticalAlign: "middle",
               display: "flex",
@@ -344,50 +367,52 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
         <div style={modeToggleContainerStyle}>
           {expanded ? (
             <div style={modeToggleStyle}>
-              <button
-                onClick={() => handleModeChange("swift")}
-                style={{
-                  ...modeButtonStyle,
-                  background: isSwift ? "#dbeafe" : "transparent",
-                  color: isSwift ? "#1d4ed8" : "#6b7280",
-                  fontWeight: isSwift ? 600 : 400,
-                }}
-              >
-                Swift
-              </button>
-              <button
-                onClick={() => handleModeChange("prismo")}
-                style={{
-                  ...modeButtonStyle,
-                  background: !isSwift ? "#ede9fe" : "transparent",
-                  color: !isSwift ? "#7c3aed" : "#6b7280",
-                  fontWeight: !isSwift ? 600 : 400,
-                }}
-              >
-                Prismo
-              </button>
+              {(isPrismoAdmin
+                ? (["prismo"] as AdminMode[])
+                : (["swift", "prismo", "coworking"] as AdminMode[])
+              ).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => handleModeChange(m)}
+                  style={{
+                    ...modeButtonStyle,
+                    background: adminMode === m ? modeColors[m].activeBg : "transparent",
+                    color: adminMode === m ? modeColors[m].primary : "#6b7280",
+                    fontWeight: adminMode === m ? 600 : 400,
+                  }}
+                >
+                  {modeColors[m].label}
+                </button>
+              ))}
             </div>
           ) : (
             <button
-              onClick={() => handleModeChange(isSwift ? "prismo" : "swift")}
+              onClick={() => {
+                const modes: AdminMode[] = isPrismoAdmin
+                  ? ["prismo"]
+                  : ["swift", "prismo", "coworking"];
+                const currentIndex = modes.indexOf(adminMode);
+                const nextMode = modes[(currentIndex + 1) % modes.length];
+                handleModeChange(nextMode);
+              }}
               style={modeIconButtonStyle}
-              title={`Switch to ${isSwift ? "Prismo" : "Swift"}`}
+              title={`Switch mode (current: ${modeColors[adminMode].label})`}
             >
               <span
                 style={{
                   width: 24,
                   height: 24,
                   borderRadius: "50%",
-                  background: isSwift ? "#dbeafe" : "#ede9fe",
+                  background: modeColors[adminMode].activeBg,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 12,
                   fontWeight: 700,
-                  color: isSwift ? "#1d4ed8" : "#7c3aed",
+                  color: modeColors[adminMode].primary,
                 }}
               >
-                {isSwift ? "S" : "P"}
+                {modeColors[adminMode].initial}
               </span>
             </button>
           )}
@@ -399,7 +424,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
         {filteredSections.map((section) => {
           const isCollapsed = collapsedSections.has(section.id);
           const hasActiveItem = isSectionActive(section);
-          const isPrismoSection = section.mode === "prismo";
+          const itemColor = section.mode ? modeColors[section.mode] : modeColors[adminMode];
 
           return (
             <div key={section.id} style={sectionContainerStyle}>
@@ -410,9 +435,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                   style={{
                     ...sectionHeaderStyle,
                     color: hasActiveItem
-                      ? isPrismoSection
-                        ? "#7c3aed"
-                        : "#1d4ed8"
+                      ? itemColor.primary
                       : "#6b7280",
                   }}
                 >
@@ -433,7 +456,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                 <div style={sectionItemsStyle}>
                   {section.items.map((item) => {
                     const isActive = currentPage === item.id;
-                    const itemIsPrismo = section.mode === "prismo";
                     return (
                       <button
                         key={item.id}
@@ -441,14 +463,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                         style={{
                           ...navBtnStyle,
                           background: isActive
-                            ? itemIsPrismo
-                              ? "#ede9fe"
-                              : "#dbeafe"
+                            ? itemColor.activeBg
                             : "transparent",
                           color: isActive
-                            ? itemIsPrismo
-                              ? "#7c3aed"
-                              : "#1d4ed8"
+                            ? itemColor.primary
                             : "#051661",
                           fontWeight: isActive ? 700 : 500,
                           height: 44,

@@ -1,0 +1,496 @@
+/* Base Styles */
+.coworking-container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 1.5rem;
+}
+
+.coworking-content {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Header */
+.coworking-header {
+  margin-bottom: 1.5rem;
+}
+
+.coworking-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.coworking-subtitle {
+  color: #4b5563;
+  margin-top: 0.5rem;
+}
+
+/* Loading State */
+.coworking-loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.coworking-loading-content {
+  text-align: center;
+}
+
+.coworking-spinner {
+  animation: coworking-spin 1s linear infinite;
+  border-radius: 50%;
+  height: 3rem;
+  width: 3rem;
+  border: 2px solid #e5e7eb;
+  border-top-color: #862040;
+  margin: 0 auto;
+}
+
+@keyframes coworking-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.coworking-loading-text {
+  margin-top: 1rem;
+  color: #4b5563;
+}
+
+/* Error State */
+.coworking-error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.coworking-error-card {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  max-width: 28rem;
+}
+
+.coworking-error-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.coworking-error-icon {
+  color: #dc2626;
+}
+
+.coworking-error-title {
+  font-weight: 600;
+  color: #7f1d1d;
+}
+
+.coworking-error-message {
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.coworking-retry-button {
+  margin-top: 1rem;
+  width: 100%;
+  background-color: #862040;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.coworking-retry-button:hover {
+  background-color: #6e1a35;
+}
+
+/* Table Container */
+.coworking-table-container {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.coworking-table-wrapper {
+  overflow-x: auto;
+}
+
+/* Table */
+.coworking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.coworking-table thead {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.coworking-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.coworking-table tbody {
+  border-top: 1px solid #e5e7eb;
+}
+
+.coworking-table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.coworking-row {
+  transition: background-color 0.15s;
+}
+
+.coworking-row:hover {
+  background-color: #f9fafb;
+}
+
+/* Space Name */
+.coworking-space-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Slug */
+.coworking-slug {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* Status Select */
+.coworking-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.coworking-status-select {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.coworking-status-active {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.coworking-status-inactive {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.coworking-btn-spinner {
+  animation: coworking-spin 1s linear infinite;
+  border-radius: 50%;
+  height: 1rem;
+  width: 1rem;
+  border: 2px solid #862040;
+  border-top-color: transparent;
+}
+
+/* Stripe Badge */
+.coworking-stripe-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.coworking-stripe-connected {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.coworking-stripe-not-connected {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Details Button */
+.coworking-btn-details {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.15s;
+  border: none;
+  cursor: pointer;
+  background-color: #862040;
+  color: white;
+}
+
+.coworking-btn-details:hover {
+  background-color: #6e1a35;
+}
+
+/* Expanded Detail Row */
+.coworking-expanded-cell {
+  padding: 0 !important;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.coworking-detail-panel {
+  background-color: #fdf8f9;
+  padding: 1.5rem;
+}
+
+.coworking-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.coworking-detail-section {
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+}
+
+.coworking-detail-section-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #111827;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.coworking-detail-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.coworking-detail-field + .coworking-detail-field {
+  border-top: 1px solid #f3f4f6;
+}
+
+.coworking-detail-label {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.coworking-detail-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.coworking-detail-value-yes {
+  color: #15803d;
+}
+
+.coworking-detail-value-no {
+  color: #6b7280;
+}
+
+.coworking-detail-value-code {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+  font-size: 0.8125rem;
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  color: #374151;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reset Stripe Button */
+.coworking-reset-stripe-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.coworking-btn-reset-stripe {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: white;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.coworking-btn-reset-stripe:hover {
+  background-color: #fef2f2;
+}
+
+.coworking-reset-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+}
+
+/* Empty State */
+.coworking-empty-state {
+  text-align: center;
+  padding: 3rem;
+}
+
+.coworking-empty-state p {
+  color: #4b5563;
+}
+
+/* Modal Overlay */
+.coworking-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.coworking-modal-content {
+  background-color: white;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.coworking-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.coworking-modal-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.coworking-modal-close {
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.coworking-modal-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.coworking-modal-body {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.coworking-modal-body p {
+  color: #374151;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.coworking-modal-space-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.coworking-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.coworking-modal-actions button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+
+.coworking-modal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.coworking-btn-cancel {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.coworking-btn-cancel:hover:not(:disabled) {
+  background-color: #e5e7eb;
+}
+
+.coworking-btn-confirm-reset {
+  background-color: #dc2626;
+  color: white;
+}
+
+.coworking-btn-confirm-reset:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .coworking-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coworking-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

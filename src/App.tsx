@@ -30,6 +30,7 @@ import EventLocationsScreen from "./pages/EventLocationsScreen/EventLocationsScr
 import CalendarsScreen from "./pages/CalendarsScreen/CalendarsScreen";
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
+import CoworkingSpacesScreen from "./pages/CoworkingSpacesScreen/CoworkingSpacesScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -55,6 +56,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   calendars: "calendars",
   bundles: "bundles",
   "catering-bundles": "catering-bundles",
+  spaces: "coworking-spaces",
 };
 
 // Map SidebarPage IDs to URL paths
@@ -79,6 +81,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   calendars: "calendars",
   bundles: "bundles",
   "catering-bundles": "catering-bundles",
+  "coworking-spaces": "spaces",
 };
 
 // Define which pages belong to which mode
@@ -109,13 +112,15 @@ const prismoPages: SidebarPage[] = [
   "bundles",
 ];
 
+const coworkingPages: SidebarPage[] = ["home", "coworking-spaces"];
+
 function PageRenderer() {
   const { mode, page } = useParams<{ mode: string; page: string }>();
   const navigate = useNavigate();
   const isPrismoAdmin = authService.isPrismoAdmin();
 
   // Validate that mode is valid
-  if (mode !== "swift" && mode !== "prismo") {
+  if (mode !== "swift" && mode !== "prismo" && mode !== "coworking") {
     const savedMode = isPrismoAdmin ? "prismo" : (localStorage.getItem("adminMode") || "swift");
     return <Navigate to={`/${savedMode}/home`} replace />;
   }
@@ -125,11 +130,18 @@ function PageRenderer() {
     return <Navigate to="/prismo/home" replace />;
   }
 
+  if (isPrismoAdmin && mode === "coworking") {
+    return <Navigate to="/prismo/home" replace />;
+  }
+
   const adminMode = mode as AdminMode;
   const currentPage = pathToPageMap[page || "home"] || "home";
 
   // Validate that the page belongs to the current mode
-  const validPagesForMode = adminMode === "swift" ? swiftPages : prismoPages;
+  const validPagesForMode =
+    adminMode === "coworking" ? coworkingPages :
+    adminMode === "prismo" ? prismoPages :
+    swiftPages;
   if (!validPagesForMode.includes(currentPage)) {
     // Redirect to home of current mode if invalid page
     return <Navigate to={`/${adminMode}/home`} replace />;
@@ -182,10 +194,16 @@ function PageRenderer() {
         return <EventLocationsScreen />;
       case "calendars":
         return <CalendarsScreen />;
+      case "coworking-spaces":
+        return <CoworkingSpacesScreen />;
       case "home":
-        return isPrismoAdmin ? <PrismoDashboard /> : <RestaurantAdminDashboard />;
+        if (adminMode === "coworking") return <CoworkingSpacesScreen />;
+        if (adminMode === "prismo") return <PrismoDashboard />;
+        return <RestaurantAdminDashboard />;
       default:
-        return isPrismoAdmin ? <PrismoDashboard /> : <RestaurantAdminDashboard />;
+        if (adminMode === "coworking") return <CoworkingSpacesScreen />;
+        if (adminMode === "prismo") return <PrismoDashboard />;
+        return <RestaurantAdminDashboard />;
     }
   };
 
@@ -232,6 +250,11 @@ function App() {
 
         {/* Prismo routes */}
         <Route path="/prismo" element={<Navigate to="/prismo/home" replace />} />
+
+        {/* Coworking routes */}
+        <Route path="/coworking" element={
+          isPrismoAdmin ? <Navigate to="/prismo/home" replace /> : <Navigate to="/coworking/home" replace />
+        } />
 
         {/* Main route pattern: /:mode/:page */}
         <Route path="/:mode/:page" element={<PageRenderer />} />

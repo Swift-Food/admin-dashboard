@@ -20,6 +20,7 @@ import {
   faWrench,
   faCalendarAlt,
   faBuilding,
+  faRightLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
@@ -47,6 +48,7 @@ export type SidebarPage =
   | "corporate"
   | "stripe-accounts"
   | "coworking-spaces"
+  | "pending-transfers"
   | "miscellaneous";
 
 interface NavItem {
@@ -224,6 +226,11 @@ const navSections: NavSection[] = [
         id: "stripe-accounts",
         label: "Stripe Accounts",
         icon: <FontAwesomeIcon icon={faCreditCard} style={iconCommonStyle} />,
+      },
+      {
+        id: "pending-transfers",
+        label: "Pending Transfers",
+        icon: <FontAwesomeIcon icon={faRightLeft} style={iconCommonStyle} />,
       },
     ],
   },

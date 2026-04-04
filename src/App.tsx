@@ -57,6 +57,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   bundles: "bundles",
   "catering-bundles": "catering-bundles",
   spaces: "coworking-spaces",
+  "pending-transfers": "pending-transfers",
 };
 
 // Map SidebarPage IDs to URL paths
@@ -82,6 +83,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   bundles: "bundles",
   "catering-bundles": "catering-bundles",
   "coworking-spaces": "spaces",
+  "pending-transfers": "pending-transfers",
 };
 
 // Define which pages belong to which mode
@@ -101,6 +103,7 @@ const swiftPages: SidebarPage[] = [
   "map",
   "miscellaneous",
   "catering-bundles",
+  "pending-transfers",
 ];
 
 const prismoPages: SidebarPage[] = [

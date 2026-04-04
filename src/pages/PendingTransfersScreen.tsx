@@ -354,7 +354,7 @@ export default function PendingTransfersScreen() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-screen bg-[#f5f7fa]">
         <p className="text-gray-500">Loading pending transfers...</p>
       </div>
     );
@@ -362,7 +362,7 @@ export default function PendingTransfersScreen() {
 
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-screen bg-[#f5f7fa]">
         <p className="text-red-600">{error ?? "Unknown error"}</p>
       </div>
     );

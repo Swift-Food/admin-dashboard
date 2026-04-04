@@ -31,6 +31,7 @@ import CalendarsScreen from "./pages/CalendarsScreen/CalendarsScreen";
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
 import CoworkingSpacesScreen from "./pages/CoworkingSpacesScreen/CoworkingSpacesScreen";
+import PendingTransfersScreen from "./pages/PendingTransfersScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -199,6 +200,8 @@ function PageRenderer() {
         return <CalendarsScreen />;
       case "coworking-spaces":
         return <CoworkingSpacesScreen />;
+      case "pending-transfers":
+        return <PendingTransfersScreen />;
       case "home":
         if (adminMode === "coworking") return <CoworkingSpacesScreen />;
         if (adminMode === "prismo") return <PrismoDashboard />;

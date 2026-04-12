@@ -449,25 +449,36 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             {order.mealSessions && order.mealSessions.length > 0 ? (
               <div className="space-y-6">
                 {order.mealSessions.map((session: any, sIdx: number) => (
-                  <div key={session.id || sIdx} className={order.mealSessions!.length > 1 ? "border-2 border-gray-200 rounded-xl overflow-hidden" : ""}>
-                    {order.mealSessions!.length > 1 && (
-                      <div className="bg-purple-50 px-5 py-3 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-bold text-gray-900">{session.sessionName || `Session ${sIdx + 1}`}</h4>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {session.sessionDate ? new Date(session.sessionDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
-                              {session.eventTime ? ` at ${session.eventTime}` : ''}
-                              {session.collectionTime ? ` — Collection: ${session.collectionTime}` : ''}
-                            </p>
-                          </div>
+                  <div key={session.id || sIdx} className="border-2 border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-purple-50 px-5 py-3 border-b border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-gray-900">{session.sessionName || `Session ${sIdx + 1}`}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {session.sessionDate ? new Date(session.sessionDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
+                            {session.eventTime ? ` at ${session.eventTime}` : ''}
+                            {session.collectionTime ? ` — Collection: ${session.collectionTime}` : ''}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          {session.deliveryFee != null && (
+                            <div className="text-xs text-gray-500">
+                              Delivery:{" "}
+                              <span className="font-semibold text-gray-700">
+                                {formatCurrency(session.deliveryFeeOverride ?? session.deliveryFee)}
+                              </span>
+                              {session.deliveryFeeOverride != null && (
+                                <span className="ml-1 text-purple-600">(overridden)</span>
+                              )}
+                            </div>
+                          )}
                           {session.subtotal != null && (
                             <span className="text-sm font-bold text-gray-700">{formatCurrency(Number(session.subtotal))}</span>
                           )}
                         </div>
                       </div>
-                    )}
-                    <div className={order.mealSessions!.length > 1 ? "p-5 space-y-4" : "space-y-4"}>
+                    </div>
+                    <div className="p-5 space-y-4">
                       {(session.orderItems || []).map((item: any, rIdx: number) => (
                         <div key={rIdx} className="bg-white border border-gray-100 rounded-lg p-4">
                           <h5 className="font-bold text-gray-900 mb-3">{item.restaurantName}</h5>

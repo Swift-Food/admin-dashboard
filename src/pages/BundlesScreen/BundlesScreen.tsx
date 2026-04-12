@@ -22,6 +22,7 @@ import {
   createBundle,
   updateBundle,
   deleteBundle,
+  hardDeleteBundle,
   toggleBundleActive,
   uploadImage,
 } from "../../services/bundles.service";
@@ -475,7 +476,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
     }
 
     try {
-      await deleteBundle(bundleId);
+      await hardDeleteBundle(bundleId);
       await loadData();
     } catch (err: any) {
       alert(err.message || "Failed to delete bundle");

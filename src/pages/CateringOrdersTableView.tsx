@@ -1351,7 +1351,12 @@ const CateringOrdersScreen = () => {
                       <div className="text-xs text-gray-500 mt-1">{new Date(order.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="text-sm font-semibold text-gray-900">{order.customerName}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold text-gray-900">{order.customerName}</div>
+                        {!!(order as any).isCoworkingOrder && (
+                          <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700 border border-purple-300 whitespace-nowrap">Coworking</span>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-500 mt-1">{order.customerEmail}</div>
                     </td>
                     <td className="px-6 py-5">

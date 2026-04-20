@@ -88,14 +88,7 @@ const PartnerSpacesScreen = () => {
   void submitting;
   void createFieldErrors;
   void createGeneralError;
-  void selectedSpace;
-  void editForm;
-  void setEditForm;
   void saving;
-  void editFieldErrors;
-  void editGeneralError;
-  void copiedKey;
-  void showRotateConfirm;
   void rotating;
   // Suppress unused icon imports
   void X; void Copy; void Check; void RefreshCw;
@@ -103,6 +96,29 @@ const PartnerSpacesScreen = () => {
   useEffect(() => {
     fetchSpaces();
   }, []);
+
+  const openDetail = (space: PartnerSpace) => {
+    setSelectedSpace(space);
+    setEditForm({
+      name: space.name,
+      slug: space.slug,
+      contactEmail: space.contactEmail,
+      webhookUrl: space.webhookUrl ?? "",
+      isActive: space.isActive,
+    });
+    setEditFieldErrors({});
+    setEditGeneralError(null);
+    setShowRotateConfirm(false);
+    setCopiedKey(false);
+  };
+
+  const closeDetail = () => {
+    setSelectedSpace(null);
+    setShowRotateConfirm(false);
+  };
+
+  // closeDetail wired in Task 7 detail modal
+  void closeDetail;
 
   const fetchSpaces = async () => {
     try {
@@ -160,12 +176,39 @@ const PartnerSpacesScreen = () => {
         <div className="ps-table-container">
           {spaces.length === 0 ? (
             <div className="ps-empty">
-              <p>No partner spaces yet.</p>
+              <p>No partner spaces yet. Click "Add Partner Space" to create one.</p>
             </div>
           ) : (
-            <p style={{ padding: "1rem", color: "#6b7280" }}>
-              {spaces.length} space(s) — table coming in Task 5
-            </p>
+            <table className="ps-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Slug</th>
+                  <th>Contact Email</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spaces.map((space) => (
+                  <tr
+                    key={space.id}
+                    className={!space.isActive ? "ps-row-inactive" : ""}
+                    onClick={() => openDetail(space)}
+                  >
+                    <td>{space.name}</td>
+                    <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{space.slug}</td>
+                    <td>{space.contactEmail}</td>
+                    <td>
+                      <span className={`ps-badge ${space.isActive ? "ps-badge-active" : "ps-badge-inactive"}`}>
+                        {space.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td>{new Date(space.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>

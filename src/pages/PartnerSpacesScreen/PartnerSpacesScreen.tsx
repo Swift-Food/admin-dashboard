@@ -185,6 +185,28 @@ const PartnerSpacesScreen = () => {
     }
   };
 
+  const handleRotateKey = async () => {
+    if (!selectedSpace) return;
+    try {
+      setRotating(true);
+      const updated = await partnerSpacesService.rotateKey(selectedSpace.id);
+      setSelectedSpace(updated);
+      setSpaces((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setShowRotateConfirm(false);
+      setCopiedKey(false);
+    } catch (err) {
+      const anyErr = err as any;
+      const msg =
+        anyErr?.response?.data?.message ||
+        anyErr?.message ||
+        "Failed to rotate key";
+      setEditGeneralError(typeof msg === "string" ? msg : "Failed to rotate key");
+      setShowRotateConfirm(false);
+    } finally {
+      setRotating(false);
+    }
+  };
+
   const fetchSpaces = async () => {
     try {
       setLoading(true);
@@ -502,7 +524,7 @@ const PartnerSpacesScreen = () => {
                       type="button"
                       className="ps-btn ps-btn-sm ps-btn-danger"
                       disabled={rotating}
-                      onClick={() => {/* Task 8 */}}
+                      onClick={handleRotateKey}
                     >
                       {rotating ? "Rotating..." : "Confirm Rotate"}
                     </button>

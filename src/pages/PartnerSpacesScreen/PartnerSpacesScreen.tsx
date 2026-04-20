@@ -47,9 +47,6 @@ const emptyCreate: CreatePartnerSpaceDto = {
   webhookUrl: "",
 };
 
-// Suppress unused-variable warnings for helpers wired in future tasks
-void toSlug;
-void parseApiErrors;
 
 const PartnerSpacesScreen = () => {
   const [spaces, setSpaces] = useState<PartnerSpace[]>([]);
@@ -82,16 +79,10 @@ const PartnerSpacesScreen = () => {
   const [rotating, setRotating] = useState(false);
 
   // Suppress unused-state warnings for future-task state — referenced via void to keep tsc happy
-  void showCreate;
-  void createForm;
-  void setCreateForm;
-  void submitting;
-  void createFieldErrors;
-  void createGeneralError;
   void saving;
   void rotating;
   // Suppress unused icon imports
-  void X; void Copy; void Check; void RefreshCw;
+  void Copy; void Check; void RefreshCw;
 
   useEffect(() => {
     fetchSpaces();
@@ -119,6 +110,51 @@ const PartnerSpacesScreen = () => {
 
   // closeDetail wired in Task 7 detail modal
   void closeDetail;
+
+  const openCreate = () => {
+    setCreateForm({ ...emptyCreate });
+    setCreateFieldErrors({});
+    setCreateGeneralError(null);
+    setShowCreate(true);
+  };
+
+  const closeCreate = () => {
+    setShowCreate(false);
+  };
+
+  const handleCreateNameChange = (name: string) => {
+    setCreateForm((prev) => ({
+      ...prev,
+      name,
+      slug: prev.slug === "" || prev.slug === toSlug(prev.name) ? toSlug(name) : prev.slug,
+    }));
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateFieldErrors({});
+    setCreateGeneralError(null);
+
+    const dto: CreatePartnerSpaceDto = {
+      name: createForm.name.trim(),
+      slug: createForm.slug.trim(),
+      contactEmail: createForm.contactEmail.trim(),
+      ...(createForm.webhookUrl?.trim() ? { webhookUrl: createForm.webhookUrl.trim() } : {}),
+    };
+
+    try {
+      setSubmitting(true);
+      await partnerSpacesService.create(dto);
+      await fetchSpaces();
+      closeCreate();
+    } catch (err) {
+      const { fieldErrors, general } = parseApiErrors(err);
+      setCreateFieldErrors(fieldErrors);
+      setCreateGeneralError(general);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const fetchSpaces = async () => {
     try {
@@ -166,7 +202,7 @@ const PartnerSpacesScreen = () => {
             <h1 className="ps-title">Partner Spaces</h1>
             <p className="ps-subtitle">Manage venues that embed the Swift catering widget</p>
           </div>
-          <button className="ps-btn ps-btn-primary" onClick={() => setShowCreate(true)}>
+          <button className="ps-btn ps-btn-primary" onClick={openCreate}>
             <Plus size={16} />
             Add Partner Space
           </button>
@@ -212,6 +248,108 @@ const PartnerSpacesScreen = () => {
           )}
         </div>
       </div>
+
+      {showCreate && (
+        <div className="ps-modal-overlay" onClick={closeCreate}>
+          <div className="ps-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ps-modal-header">
+              <h2 className="ps-modal-title">Add Partner Space</h2>
+              <button className="ps-modal-close" onClick={closeCreate}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreate}>
+              <div className="ps-modal-body">
+                {createGeneralError && (
+                  <div className="ps-general-error">{createGeneralError}</div>
+                )}
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">
+                    Name <span className="ps-required">*</span>
+                  </label>
+                  <input
+                    className={`ps-form-input${createFieldErrors.name ? " ps-input-error" : ""}`}
+                    value={createForm.name}
+                    onChange={(e) => handleCreateNameChange(e.target.value)}
+                    placeholder="e.g. Grand Hotel London"
+                    autoFocus
+                  />
+                  {createFieldErrors.name && (
+                    <p className="ps-field-error">{createFieldErrors.name}</p>
+                  )}
+                </div>
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">
+                    Slug <span className="ps-required">*</span>
+                  </label>
+                  <input
+                    className={`ps-form-input${createFieldErrors.slug ? " ps-input-error" : ""}`}
+                    value={createForm.slug}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, slug: e.target.value }))}
+                    placeholder="e.g. grand-hotel-london"
+                  />
+                  <p className="ps-form-hint">Auto-suggested from name. Must be unique.</p>
+                  {createFieldErrors.slug && (
+                    <p className="ps-field-error">{createFieldErrors.slug}</p>
+                  )}
+                </div>
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">
+                    Contact Email <span className="ps-required">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    className={`ps-form-input${createFieldErrors.contactEmail ? " ps-input-error" : ""}`}
+                    value={createForm.contactEmail}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, contactEmail: e.target.value }))}
+                    placeholder="contact@venue.com"
+                  />
+                  {createFieldErrors.contactEmail && (
+                    <p className="ps-field-error">{createFieldErrors.contactEmail}</p>
+                  )}
+                </div>
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">Webhook URL</label>
+                  <input
+                    type="url"
+                    className={`ps-form-input${createFieldErrors.webhookUrl ? " ps-input-error" : ""}`}
+                    value={createForm.webhookUrl}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, webhookUrl: e.target.value }))}
+                    placeholder="https://venue.com/webhooks/swift"
+                  />
+                  <p className="ps-form-hint">Optional. Must start with https://</p>
+                  {createFieldErrors.webhookUrl && (
+                    <p className="ps-field-error">{createFieldErrors.webhookUrl}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="ps-modal-actions">
+                <button
+                  type="button"
+                  className="ps-btn ps-btn-secondary"
+                  onClick={closeCreate}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="ps-btn ps-btn-primary"
+                  disabled={submitting}
+                >
+                  {submitting ? "Creating..." : "Create Space"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -59,7 +59,6 @@ const PartnerSpacesScreen = () => {
   const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({});
   const [createGeneralError, setCreateGeneralError] = useState<string | null>(null);
 
-  // Detail/Edit modal — used in Tasks 7 & 8
   const [selectedSpace, setSelectedSpace] = useState<PartnerSpace | null>(null);
   const [editForm, setEditForm] = useState<
     UpdatePartnerSpaceDto & { name: string; slug: string; contactEmail: string; webhookUrl: string }
@@ -174,7 +173,9 @@ const PartnerSpacesScreen = () => {
       setSubmitting(true);
       await partnerSpacesService.create(dto);
       closeCreate();
-      fetchSpaces().catch(() => {});
+      fetchSpaces().catch(() => {
+        setError("Space created, but failed to refresh the list. Please reload.");
+      });
     } catch (err) {
       const { fieldErrors, general } = parseApiErrors(err);
       setCreateFieldErrors(fieldErrors);

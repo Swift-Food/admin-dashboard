@@ -80,9 +80,13 @@ const PartnerSpacesScreen = () => {
 
   const handleCopyKey = async () => {
     if (!selectedSpace) return;
-    await navigator.clipboard.writeText(selectedSpace.publishableKey);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    try {
+      await navigator.clipboard.writeText(selectedSpace.publishableKey);
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 2000);
+    } catch {
+      setEditGeneralError("Could not copy to clipboard. Please copy the key manually.");
+    }
   };
 
   const handleSave = async () => {
@@ -91,9 +95,9 @@ const PartnerSpacesScreen = () => {
     setEditGeneralError(null);
 
     const dto: UpdatePartnerSpaceDto = {
-      name: editForm.name.trim() || undefined,
-      slug: editForm.slug.trim() || undefined,
-      contactEmail: editForm.contactEmail.trim() || undefined,
+      name: editForm.name.trim(),
+      slug: editForm.slug.trim(),
+      contactEmail: editForm.contactEmail.trim(),
       webhookUrl: editForm.webhookUrl?.trim() || undefined,
       isActive: editForm.isActive,
     };

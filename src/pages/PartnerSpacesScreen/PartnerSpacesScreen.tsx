@@ -145,8 +145,8 @@ const PartnerSpacesScreen = () => {
     try {
       setSubmitting(true);
       await partnerSpacesService.create(dto);
-      await fetchSpaces();
       closeCreate();
+      fetchSpaces().catch(() => {});
     } catch (err) {
       const { fieldErrors, general } = parseApiErrors(err);
       setCreateFieldErrors(fieldErrors);

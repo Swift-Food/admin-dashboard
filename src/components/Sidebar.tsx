@@ -21,6 +21,7 @@ import {
   faCalendarAlt,
   faBuilding,
   faRightLeft,
+  faHandshake,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
@@ -49,6 +50,7 @@ export type SidebarPage =
   | "stripe-accounts"
   | "coworking-spaces"
   | "pending-transfers"
+  | "partner-spaces"
   | "miscellaneous";
 
 interface NavItem {
@@ -165,6 +167,11 @@ const navSections: NavSection[] = [
         id: "catering-bundles",
         label: "Catering Bundles",
         icon: <FontAwesomeIcon icon={faBox} style={iconCommonStyle} />,
+      },
+      {
+        id: "partner-spaces" as SidebarPage,
+        label: "Partner Spaces",
+        icon: <FontAwesomeIcon icon={faHandshake} style={iconCommonStyle} />,
       },
     ],
   },

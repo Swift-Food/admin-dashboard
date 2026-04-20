@@ -78,11 +78,39 @@ const PartnerSpacesScreen = () => {
   const [showRotateConfirm, setShowRotateConfirm] = useState(false);
   const [rotating, setRotating] = useState(false);
 
-  // Suppress unused-state warnings for future-task state — referenced via void to keep tsc happy
-  void saving;
-  void rotating;
-  // Suppress unused icon imports
-  void Copy; void Check; void RefreshCw;
+  const handleCopyKey = async () => {
+    if (!selectedSpace) return;
+    await navigator.clipboard.writeText(selectedSpace.publishableKey);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  const handleSave = async () => {
+    if (!selectedSpace) return;
+    setEditFieldErrors({});
+    setEditGeneralError(null);
+
+    const dto: UpdatePartnerSpaceDto = {
+      name: editForm.name.trim() || undefined,
+      slug: editForm.slug.trim() || undefined,
+      contactEmail: editForm.contactEmail.trim() || undefined,
+      webhookUrl: editForm.webhookUrl?.trim() || undefined,
+      isActive: editForm.isActive,
+    };
+
+    try {
+      setSaving(true);
+      const updated = await partnerSpacesService.update(selectedSpace.id, dto);
+      setSpaces((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setSelectedSpace(updated);
+    } catch (err) {
+      const { fieldErrors, general } = parseApiErrors(err);
+      setEditFieldErrors(fieldErrors);
+      setEditGeneralError(general);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     fetchSpaces();
@@ -107,9 +135,6 @@ const PartnerSpacesScreen = () => {
     setSelectedSpace(null);
     setShowRotateConfirm(false);
   };
-
-  // closeDetail wired in Task 7 detail modal
-  void closeDetail;
 
   const openCreate = () => {
     setCreateForm({ ...emptyCreate });
@@ -347,6 +372,159 @@ const PartnerSpacesScreen = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {selectedSpace && (
+        <div className="ps-modal-overlay" onClick={closeDetail}>
+          <div className="ps-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ps-modal-header">
+              <h2 className="ps-modal-title">{selectedSpace.name}</h2>
+              <button className="ps-modal-close" onClick={closeDetail}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ps-modal-body">
+              {editGeneralError && (
+                <div className="ps-general-error">{editGeneralError}</div>
+              )}
+
+              <div className="ps-form-group">
+                <label className="ps-form-label">
+                  Name <span className="ps-required">*</span>
+                </label>
+                <input
+                  className={`ps-form-input${editFieldErrors.name ? " ps-input-error" : ""}`}
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                />
+                {editFieldErrors.name && (
+                  <p className="ps-field-error">{editFieldErrors.name}</p>
+                )}
+              </div>
+
+              <div className="ps-form-group">
+                <label className="ps-form-label">
+                  Slug <span className="ps-required">*</span>
+                </label>
+                <input
+                  className={`ps-form-input${editFieldErrors.slug ? " ps-input-error" : ""}`}
+                  value={editForm.slug}
+                  onChange={(e) => setEditForm((p) => ({ ...p, slug: e.target.value }))}
+                />
+                {editFieldErrors.slug && (
+                  <p className="ps-field-error">{editFieldErrors.slug}</p>
+                )}
+              </div>
+
+              <div className="ps-form-group">
+                <label className="ps-form-label">
+                  Contact Email <span className="ps-required">*</span>
+                </label>
+                <input
+                  type="email"
+                  className={`ps-form-input${editFieldErrors.contactEmail ? " ps-input-error" : ""}`}
+                  value={editForm.contactEmail}
+                  onChange={(e) => setEditForm((p) => ({ ...p, contactEmail: e.target.value }))}
+                />
+                {editFieldErrors.contactEmail && (
+                  <p className="ps-field-error">{editFieldErrors.contactEmail}</p>
+                )}
+              </div>
+
+              <div className="ps-form-group">
+                <label className="ps-form-label">Webhook URL</label>
+                <input
+                  type="url"
+                  className={`ps-form-input${editFieldErrors.webhookUrl ? " ps-input-error" : ""}`}
+                  value={editForm.webhookUrl}
+                  onChange={(e) => setEditForm((p) => ({ ...p, webhookUrl: e.target.value }))}
+                  placeholder="https://"
+                />
+                {editFieldErrors.webhookUrl && (
+                  <p className="ps-field-error">{editFieldErrors.webhookUrl}</p>
+                )}
+              </div>
+
+              <p className="ps-section-label">Publishable Key</p>
+              <div className="ps-key-box">
+                <span className="ps-key-text">{selectedSpace.publishableKey}</span>
+                <button
+                  type="button"
+                  className="ps-btn ps-btn-sm ps-btn-secondary"
+                  onClick={handleCopyKey}
+                >
+                  {copiedKey ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedKey ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              <div className="ps-toggle-row">
+                <span className="ps-toggle-label">Active</span>
+                <input
+                  type="checkbox"
+                  checked={editForm.isActive}
+                  onChange={(e) => setEditForm((p) => ({ ...p, isActive: e.target.checked }))}
+                />
+              </div>
+
+              <p className="ps-section-label" style={{ marginTop: "1.5rem" }}>Danger Zone</p>
+              {!showRotateConfirm ? (
+                <button
+                  type="button"
+                  className="ps-btn ps-btn-secondary ps-btn-sm"
+                  onClick={() => setShowRotateConfirm(true)}
+                >
+                  <RefreshCw size={14} />
+                  Rotate Key
+                </button>
+              ) : (
+                <div className="ps-rotate-warning">
+                  <p className="ps-rotate-warning-text">
+                    This will invalidate the current key. All widgets using it will stop working.
+                  </p>
+                  <div className="ps-rotate-actions">
+                    <button
+                      type="button"
+                      className="ps-btn ps-btn-sm ps-btn-secondary"
+                      onClick={() => setShowRotateConfirm(false)}
+                      disabled={rotating}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="ps-btn ps-btn-sm ps-btn-danger"
+                      disabled={rotating}
+                      onClick={() => {/* Task 8 */}}
+                    >
+                      {rotating ? "Rotating..." : "Confirm Rotate"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="ps-modal-actions">
+              <button
+                type="button"
+                className="ps-btn ps-btn-secondary"
+                onClick={closeDetail}
+                disabled={saving}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="ps-btn ps-btn-primary"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
           </div>
         </div>
       )}

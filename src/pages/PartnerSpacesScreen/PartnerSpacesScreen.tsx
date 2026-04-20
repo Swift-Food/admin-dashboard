@@ -53,7 +53,6 @@ const PartnerSpacesScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Create modal — used in Task 6
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState<CreatePartnerSpaceDto>({ ...emptyCreate });
   const [submitting, setSubmitting] = useState(false);
@@ -189,6 +188,7 @@ const PartnerSpacesScreen = () => {
     if (!selectedSpace) return;
     try {
       setRotating(true);
+      setEditGeneralError(null);
       const updated = await partnerSpacesService.rotateKey(selectedSpace.id);
       setSelectedSpace(updated);
       setSpaces((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
@@ -259,7 +259,6 @@ const PartnerSpacesScreen = () => {
           </button>
         </div>
 
-        {/* List table — Task 5 */}
         <div className="ps-table-container">
           {spaces.length === 0 ? (
             <div className="ps-empty">

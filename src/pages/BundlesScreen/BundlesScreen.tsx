@@ -21,7 +21,6 @@ import {
   getAllBundles,
   createBundle,
   updateBundle,
-  deleteBundle,
   hardDeleteBundle,
   toggleBundleActive,
   uploadImage,

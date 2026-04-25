@@ -427,7 +427,60 @@ const CateringOrderDetailsModal = ({
 
           {/* Order Items */}
           {(() => {
-            // Get order items from either 'restaurants' (new) or 'orderItems' (legacy)
+            if (order.mealSessions && order.mealSessions.length > 0) {
+              const sortedSessions = [...order.mealSessions].sort((a, b) => {
+                const dateA = new Date(`${a.sessionDate}T${a.eventTime || "00:00"}`).getTime();
+                const dateB = new Date(`${b.sessionDate}T${b.eventTime || "00:00"}`).getTime();
+                return dateA !== dateB ? dateA - dateB : a.sessionOrder - b.sessionOrder;
+              });
+
+              return (
+                <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <h3 className="font-semibold mb-4 text-gray-900">Order Items</h3>
+                  <div className="space-y-6">
+                    {sortedSessions.map((session) => (
+                      <div key={session.id}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <h4 className="font-semibold text-gray-800">{session.sessionName}</h4>
+                          <span className="text-xs text-gray-500">
+                            {new Date(session.sessionDate).toLocaleDateString()} at {session.eventTime}
+                          </span>
+                        </div>
+                        <div className="space-y-3 pl-3 border-l-2 border-gray-200">
+                          {session.orderItems.map((item, idx) => (
+                            <div key={idx} className="border-l-4 border-blue-300 pl-4 py-2 bg-blue-50">
+                              <h5 className="font-medium text-blue-900 mb-2">{item.restaurantName}</h5>
+                              {item.menuItems && item.menuItems.length > 0 && (
+                                <div className="space-y-1">
+                                  {item.menuItems
+                                    .filter((menuItem) => menuItem != null)
+                                    .map((menuItem, menuIdx) => {
+                                      const price = menuItem.customerTotalPrice ?? 0;
+                                      return (
+                                        <div key={menuIdx} className="text-sm text-gray-800 flex justify-between">
+                                          <span>{menuItem.quantity}x {menuItem.menuItemName}</span>
+                                          <span className="font-medium">{formatCurrency(price)}</span>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              )}
+                              {item.specialInstructions && (
+                                <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
+                                  <p className="text-sm text-yellow-900 italic">{item.specialInstructions}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            // Fallback: flat list from 'restaurants' (new) or 'orderItems' (legacy)
             const items: (PricingOrderItem | CateringOrderItem)[] =
               order.restaurants || order.orderItems || [];
 
@@ -448,9 +501,8 @@ const CateringOrderDetailsModal = ({
                       {item.menuItems && item.menuItems.length > 0 && (
                         <div className="space-y-1">
                           {item.menuItems
-                            .filter((menuItem) => menuItem != null) // Filter out null/undefined items
+                            .filter((menuItem) => menuItem != null)
                             .map((menuItem, menuIdx) => {
-                            // Handle both PricingMenuItem and legacy format
                             const price = menuItem && 'customerTotalPrice' in menuItem
                               ? menuItem.customerTotalPrice
                               : menuItem && 'totalPrice' in menuItem

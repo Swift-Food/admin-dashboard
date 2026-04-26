@@ -4,6 +4,7 @@ export interface FinancialOrder {
   orderDate: string;
   customerEmail: string;
   promoCode: string | null;
+  promoDiscount: number;
   grossOrderValue: number;
   grossExclDelivery: number;
   commission: number;
@@ -20,6 +21,7 @@ export interface FinancialOrder {
 export interface FinancialTotals {
   orderCount: number;
   grossOrderValue: number;
+  promoDiscount: number;
   grossExclDelivery: number;
   commission: number;
   deliveryFee: number;

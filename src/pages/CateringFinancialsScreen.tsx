@@ -320,6 +320,7 @@ const CateringFinancialsScreen = () => {
                   { label: "Customer Email", align: "left" },
                   { label: "Payment ID", align: "left" },
                   { label: "Promo Code", align: "left" },
+                  { label: "Promo Discount", align: "right" },
                   { label: "Gross Value", align: "right" },
                   { label: "Gross excl. Delivery", align: "right" },
                   { label: "Commission", align: "right" },
@@ -361,6 +362,9 @@ const CateringFinancialsScreen = () => {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-gray-700">
                     {order.promoCode ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-right text-gray-700">
+                    {order.promoDiscount === 0 ? "—" : formatCurrency(order.promoDiscount)}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right font-medium text-gray-900">
                     {formatCurrency(order.grossOrderValue)}
@@ -492,6 +496,9 @@ const CateringFinancialsScreen = () => {
               <tr className="bg-gray-100 border-t-2 border-gray-300 font-bold">
                 <td colSpan={4} className="px-4 py-3 text-gray-900 font-bold">
                   Total ({pagination.total} orders)
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right text-gray-900">
+                  {formatCurrency(totals.promoDiscount)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right text-gray-900">
                   {formatCurrency(totals.grossOrderValue)}

@@ -532,6 +532,24 @@ const CateringFinancialsScreen = () => {
         </div>
       </div>
 
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-lg shadow-lg text-white font-semibold text-sm transition-all ${
+            toast.type === "success"
+              ? "bg-green-600"
+              : toast.type === "warning"
+              ? "bg-amber-500"
+              : "bg-red-600"
+          }`}
+        >
+          <span>
+            {toast.type === "success" ? "✓" : toast.type === "warning" ? "⚠" : "✗"}
+          </span>
+          {toast.message}
+        </div>
+      )}
+
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">

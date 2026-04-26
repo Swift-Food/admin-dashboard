@@ -44,8 +44,8 @@ export interface FinancialMetricsResponse {
 }
 
 export interface FinancialMetricsParams {
-  from: string;
-  to: string;
+  from?: string;
+  to?: string;
   page?: number;
   limit?: number;
 }

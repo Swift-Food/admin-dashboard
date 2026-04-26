@@ -56,8 +56,8 @@ const LoadingSkeleton = () => (
 
 const CateringFinancialsScreen = () => {
   const defaults = getDefaultDates();
-  const [fromDate, setFromDate] = useState(defaults.from);
-  const [toDate, setToDate] = useState(defaults.to);
+  const [fromDate, setFromDate] = useState<string | null>(defaults.from);
+  const [toDate, setToDate] = useState<string | null>(defaults.to);
   const [pendingFrom, setPendingFrom] = useState(defaults.from);
   const [pendingTo, setPendingTo] = useState(defaults.to);
   const [page, setPage] = useState(1);
@@ -65,11 +65,16 @@ const CateringFinancialsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
 
-  const fetchData = (from: string, to: string, p: number) => {
+  const fetchData = (from: string | null, to: string | null, p: number) => {
     setLoading(true);
     setError(undefined);
     cateringFinancialsService
-      .getFinancialMetrics({ from, to, page: p, limit: LIMIT })
+      .getFinancialMetrics({
+        ...(from ? { from } : {}),
+        ...(to ? { to } : {}),
+        page: p,
+        limit: LIMIT,
+      })
       .then((res) => {
         setData(res);
         setLoading(false);
@@ -85,8 +90,16 @@ const CateringFinancialsScreen = () => {
   }, [fromDate, toDate, page]);
 
   const handleApply = () => {
-    setFromDate(pendingFrom);
-    setToDate(pendingTo);
+    setFromDate(pendingFrom || null);
+    setToDate(pendingTo || null);
+    setPage(1);
+  };
+
+  const handleClear = () => {
+    setPendingFrom("");
+    setPendingTo("");
+    setFromDate(null);
+    setToDate(null);
     setPage(1);
   };
 
@@ -118,17 +131,19 @@ const CateringFinancialsScreen = () => {
       <div className="mb-6">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Catering Financials</h1>
         <p className="text-gray-600">
-          {new Date(fromDate).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-          {" — "}
-          {new Date(toDate).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
+          {fromDate || toDate ? (
+            <>
+              {fromDate
+                ? new Date(fromDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+                : "All time"}
+              {" — "}
+              {toDate
+                ? new Date(toDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+                : "today"}
+            </>
+          ) : (
+            "All time"
+          )}
         </p>
       </div>
 
@@ -163,6 +178,12 @@ const CateringFinancialsScreen = () => {
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
         >
           Apply
+        </button>
+        <button
+          onClick={handleClear}
+          className="px-6 py-2 border-2 border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-lg transition-colors"
+        >
+          All time
         </button>
       </div>
 

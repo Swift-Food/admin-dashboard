@@ -11,6 +11,7 @@ export interface FinancialOrder {
   serviceCharge: number;
   paymentProcessingFee: number;
   invoicingFee: number;
+  mscFee: number;
   amountOwedToRestaurant: number;
   totalPlatformRevenue: number;
   profit: number;
@@ -25,6 +26,7 @@ export interface FinancialTotals {
   serviceCharge: number;
   paymentProcessingFee: number;
   invoicingFee: number;
+  mscFee: number;
   amountOwedToRestaurant: number;
   totalPlatformRevenue: number;
   profit: number;
@@ -48,4 +50,9 @@ export interface FinancialMetricsParams {
   to?: string;
   page?: number;
   limit?: number;
+}
+
+export interface UpdateMscFeesResponse {
+  updated: number;
+  notFound: string[];
 }

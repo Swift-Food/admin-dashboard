@@ -8,7 +8,7 @@ const getFinancialMetrics = async (
   params: FinancialMetricsParams
 ): Promise<FinancialMetricsResponse> => {
   const res = await http.get<FinancialMetricsResponse>(
-    "catering-orders/financial-metrics",
+    "admin/catering-orders/financial-metrics",
     { params }
   );
   return res.data;

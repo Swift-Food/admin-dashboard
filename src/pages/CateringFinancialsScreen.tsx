@@ -122,6 +122,30 @@ const CateringFinancialsScreen = () => {
     setPage(1);
   };
 
+  const handleSaveMscFees = async () => {
+    if (Object.keys(pendingEdits).length === 0) return;
+    setSaving(true);
+    try {
+      const result = await cateringFinancialsService.updateMscFees(pendingEdits);
+      if (result.notFound.length > 0) {
+        showToast(
+          `${result.updated} order${result.updated !== 1 ? "s" : ""} updated. Not found: ${result.notFound.join(", ")}`,
+          "warning"
+        );
+      } else {
+        showToast(
+          `MSC fees updated for ${result.updated} order${result.updated !== 1 ? "s" : ""}`,
+          "success"
+        );
+      }
+      fetchData(fromDate, toDate, page);
+    } catch (e: any) {
+      showToast(e?.message || "Failed to save MSC fees", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <LoadingSkeleton />;
 
   if (error) {
@@ -249,6 +273,41 @@ const CateringFinancialsScreen = () => {
           </p>
         </div>
       </div>
+
+      {/* Save MSC Fees button */}
+      {Object.keys(pendingEdits).length > 0 && (
+        <div className="flex justify-end mb-3">
+          <button
+            onClick={handleSaveMscFees}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors shadow-sm"
+          >
+            {saving && (
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                />
+              </svg>
+            )}
+            Save MSC Fees ({Object.keys(pendingEdits).length})
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4">

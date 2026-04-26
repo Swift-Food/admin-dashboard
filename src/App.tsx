@@ -20,6 +20,7 @@ import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen"
 import CategoriesScreen from "./pages/CategoriesScreen/CategoriesScreen";
 import BundlesScreen from "./pages/BundlesScreen/BundlesScreen";
 import CateringOrdersScreen from "./pages/CateringOrdersTableView";
+import CateringFinancialsScreen from "./pages/CateringFinancialsScreen";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import StripeAccountsScreen from "./pages/StripeAccountsScreen";
@@ -42,6 +43,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   orders: "orders",
   "catering-orders": "catering",
   "catering-sessions": "catering-sessions",
+  "catering-financials": "catering-financials",
   "corporate-orders": "corporate",
   restaurants: "restaurant",
   categories: "categories",
@@ -69,6 +71,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   orders: "orders",
   catering: "catering-orders",
   "catering-sessions": "catering-sessions",
+  "catering-financials": "catering-financials",
   corporate: "corporate-orders",
   restaurant: "restaurants",
   categories: "categories",
@@ -96,6 +99,7 @@ const swiftPages: SidebarPage[] = [
   "orders",
   "catering",
   "catering-sessions",
+  "catering-financials",
   "corporate",
   "restaurant",
   "categories",
@@ -172,6 +176,8 @@ function PageRenderer() {
         return <CateringOrdersScreen />;
       case "catering-sessions":
         return <CateringSessionsScreen />;
+      case "catering-financials":
+        return <CateringFinancialsScreen />;
       case "bundles":
         return <BundlesScreen bundleType="prismo" />;
       case "catering-bundles":

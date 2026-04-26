@@ -2,6 +2,7 @@ import http from "./http";
 import type {
   FinancialMetricsParams,
   FinancialMetricsResponse,
+  UpdateMscFeesResponse,
 } from "../types/catering-financials.types";
 
 const getFinancialMetrics = async (
@@ -14,4 +15,14 @@ const getFinancialMetrics = async (
   return res.data;
 };
 
-export default { getFinancialMetrics };
+const updateMscFees = async (
+  fees: Record<string, number>
+): Promise<UpdateMscFeesResponse> => {
+  const res = await http.post<UpdateMscFeesResponse>(
+    "admin/catering-orders/financial-metrics/msc-fees",
+    fees
+  );
+  return res.data;
+};
+
+export default { getFinancialMetrics, updateMscFees };

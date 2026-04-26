@@ -268,6 +268,7 @@ const CateringFinancialsScreen = () => {
                   { label: "Service Charge", align: "right" },
                   { label: "Processing Fee", align: "right" },
                   { label: "Invoicing Fee (0.4%)", align: "right" },
+                  { label: "MSC Fee", align: "right" },
                   { label: "Owed to Restaurant", align: "right" },
                   { label: "Platform Revenue", align: "right" },
                   { label: "Profit", align: "right" },

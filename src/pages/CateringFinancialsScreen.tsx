@@ -64,6 +64,22 @@ const CateringFinancialsScreen = () => {
   const [data, setData] = useState<FinancialMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
+  const [pendingEdits, setPendingEdits] = useState<Record<string, number>>({});
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "warning";
+  } | null>(null);
+
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "warning"
+  ) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchData = (from: string | null, to: string | null, p: number) => {
     setLoading(true);
@@ -78,6 +94,9 @@ const CateringFinancialsScreen = () => {
       .then((res) => {
         setData(res);
         setLoading(false);
+        setPendingEdits({});
+        setEditingCell(null);
+        setEditingValue("");
       })
       .catch((e: any) => {
         setError(e?.message || "Failed to load financial metrics");

@@ -326,6 +326,97 @@ const CateringFinancialsScreen = () => {
                   <td className="px-4 py-3 whitespace-nowrap text-right text-gray-700">
                     {formatCurrency(order.invoicingFee)}
                   </td>
+                  <td
+                    className={`px-4 py-3 whitespace-nowrap text-right text-gray-700 cursor-pointer select-none ${
+                      pendingEdits[order.orderId] !== undefined ? "bg-amber-50" : ""
+                    }`}
+                    onClick={() => {
+                      if (editingCell === order.orderId) return;
+                      setEditingCell(order.orderId);
+                      setEditingValue(
+                        String(
+                          pendingEdits[order.orderId] !== undefined
+                            ? pendingEdits[order.orderId]
+                            : order.mscFee
+                        )
+                      );
+                    }}
+                  >
+                    {editingCell === order.orderId ? (
+                      <span className="flex items-center justify-end gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={editingValue}
+                          autoFocus
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const val = parseFloat(editingValue);
+                              if (isNaN(val) || val < 0) return;
+                              if (val === order.mscFee) {
+                                const next = { ...pendingEdits };
+                                delete next[order.orderId];
+                                setPendingEdits(next);
+                              } else {
+                                setPendingEdits((prev) => ({
+                                  ...prev,
+                                  [order.orderId]: val,
+                                }));
+                              }
+                              setEditingCell(null);
+                            } else if (e.key === "Escape") {
+                              setEditingCell(null);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            if (
+                              (e.relatedTarget as HTMLElement)?.dataset?.confirm ===
+                              order.orderId
+                            )
+                              return;
+                            setEditingCell(null);
+                          }}
+                          className={`w-24 px-2 py-0.5 border rounded text-right text-sm ${
+                            editingValue !== "" &&
+                            (isNaN(parseFloat(editingValue)) ||
+                              parseFloat(editingValue) < 0)
+                              ? "border-red-500 focus:ring-red-500"
+                              : "border-gray-300 focus:ring-blue-500"
+                          } focus:outline-none focus:ring-2`}
+                        />
+                        <button
+                          data-confirm={order.orderId}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            const val = parseFloat(editingValue);
+                            if (isNaN(val) || val < 0) return;
+                            if (val === order.mscFee) {
+                              const next = { ...pendingEdits };
+                              delete next[order.orderId];
+                              setPendingEdits(next);
+                            } else {
+                              setPendingEdits((prev) => ({
+                                ...prev,
+                                [order.orderId]: val,
+                              }));
+                            }
+                            setEditingCell(null);
+                          }}
+                          className="text-green-600 hover:text-green-700 font-bold text-base leading-none"
+                        >
+                          ✓
+                        </button>
+                      </span>
+                    ) : (
+                      formatCurrency(
+                        pendingEdits[order.orderId] !== undefined
+                          ? pendingEdits[order.orderId]
+                          : order.mscFee
+                      )
+                    )}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right text-gray-700">
                     {formatCurrency(order.amountOwedToRestaurant)}
                   </td>

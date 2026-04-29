@@ -284,7 +284,7 @@ const PartnerSpacesScreen = () => {
       await partnerSpacesService.create(dto);
       closeCreate();
       fetchSpaces().catch(() => {
-        setError("Space created, but failed to refresh the list. Please reload.");
+        setError("Partner created, but failed to refresh the list. Please reload.");
       });
     } catch (err) {
       const { fieldErrors, general } = parseApiErrors(err);
@@ -361,19 +361,24 @@ const PartnerSpacesScreen = () => {
       <div className="ps-content">
         <div className="ps-header">
           <div>
-            <h1 className="ps-title">Partner Spaces</h1>
-            <p className="ps-subtitle">Manage venues that embed the Swift catering widget</p>
+            <h1 className="ps-title">Embed Partners</h1>
+            <p className="ps-subtitle">
+              Companies that embed the Swift catering widget on their own
+              website. Each one gets a publishable key the widget uses to
+              talk to our API. Distinct from coworking spaces, which run a
+              separate B2B order pipeline.
+            </p>
           </div>
           <button className="ps-btn ps-btn-primary" onClick={openCreate}>
             <Plus size={16} />
-            Add Partner Space
+            Add Embed Partner
           </button>
         </div>
 
         <div className="ps-table-container">
           {spaces.length === 0 ? (
             <div className="ps-empty">
-              <p>No partner spaces yet. Click "Add Partner Space" to create one.</p>
+              <p>No embed partners yet. Click "Add Embed Partner" to create one.</p>
             </div>
           ) : (
             <table className="ps-table">
@@ -429,7 +434,7 @@ const PartnerSpacesScreen = () => {
         <div className="ps-modal-overlay" onClick={closeCreate}>
           <div className="ps-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ps-modal-header">
-              <h2 className="ps-modal-title">Add Partner Space</h2>
+              <h2 className="ps-modal-title">Add Embed Partner</h2>
               <button className="ps-modal-close" onClick={closeCreate}>
                 <X size={20} />
               </button>
@@ -530,7 +535,7 @@ const PartnerSpacesScreen = () => {
                   className="ps-btn ps-btn-primary"
                   disabled={submitting}
                 >
-                  {submitting ? "Creating..." : "Create Space"}
+                  {submitting ? "Creating..." : "Create Partner"}
                 </button>
               </div>
             </form>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, X, Copy, Check, RefreshCw } from "lucide-react";
+import { Plus, X, Copy, Check, RefreshCw, Trash2 } from "lucide-react";
 import partnerSpacesService from "../../services/partner-spaces.service";
 import type {
   PartnerSpace,
@@ -7,6 +7,10 @@ import type {
   UpdatePartnerSpaceDto,
 } from "../../types/partner-spaces.types";
 import "./PartnerSpacesScreen.css";
+
+// Mirrors the backend's @Matches regex on CreatePartnerSpaceDto.allowedOrigins.
+// scheme://host[:port], no path, no trailing slash.
+const ORIGIN_RE = /^https?:\/\/[a-z0-9.-]+(:\d+)?$/i;
 
 const toSlug = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -29,6 +33,7 @@ const parseApiErrors = (
     if (lower.includes("slug")) fieldErrors.slug = msg;
     else if (lower.includes("email")) fieldErrors.contactEmail = msg;
     else if (lower.includes("webhook")) fieldErrors.webhookUrl = msg;
+    else if (lower.includes("origin")) fieldErrors.allowedOrigins = msg;
     else if (lower.includes("name")) fieldErrors.name = msg;
     else general = msg;
   }
@@ -40,11 +45,142 @@ const parseApiErrors = (
   return { fieldErrors, general };
 };
 
-const emptyCreate: CreatePartnerSpaceDto = {
+interface CreateFormState extends CreatePartnerSpaceDto {
+  allowedOrigins: string[];
+}
+
+const emptyCreate: CreateFormState = {
   name: "",
   slug: "",
   contactEmail: "",
   webhookUrl: "",
+  allowedOrigins: [],
+};
+
+const WebhookDetails = () => (
+  <details className="ps-webhook-details">
+    <summary>What does Swift send to this URL?</summary>
+    <div className="ps-webhook-details-body">
+      <p>
+        After a catering order is submitted via this partner's widget, Swift
+        fires a single <code>POST</code> request to this URL with a 5-second
+        timeout. Failures are logged but do not block the order — there is
+        no retry. The body is JSON:
+      </p>
+      <pre className="ps-webhook-payload">
+{`{
+  "event": "order.created",
+  "orderId": "<uuid>",
+  "status": "<order status>",
+  "partnerSpaceId": "<this partner's id>"
+}`}
+      </pre>
+      <p className="ps-webhook-meta">
+        <strong>Headers:</strong> <code>Content-Type: application/json</code>.
+        No signature today — verify the source by IP-allowlisting Swift's
+        egress, by checking that the <code>partnerSpaceId</code> matches your
+        own provisioned id, or by ignoring the body and using the order id
+        to call back into Swift's order-view API.
+      </p>
+      <p className="ps-webhook-meta">
+        <strong>When it fires:</strong> exactly once, the moment the order
+        is created. It does not fire for status changes (e.g. accepted,
+        delivered) — for those, poll the order-view API or use the widget's{" "}
+        <code>onOrderComplete</code> client-side callback.
+      </p>
+    </div>
+  </details>
+);
+
+interface OriginsEditorProps {
+  origins: string[];
+  onChange: (next: string[]) => void;
+  fieldError?: string;
+}
+
+const OriginsEditor = ({ origins, onChange, fieldError }: OriginsEditorProps) => {
+  const [draft, setDraft] = useState("");
+  const [draftError, setDraftError] = useState<string | null>(null);
+
+  const add = () => {
+    const v = draft.trim();
+    if (!v) return;
+    if (!ORIGIN_RE.test(v)) {
+      setDraftError(
+        "Must be scheme://host[:port] — e.g. https://acme.com or http://localhost:3000."
+      );
+      return;
+    }
+    const lower = v.toLowerCase();
+    if (origins.includes(lower)) {
+      setDraftError("Already in the list.");
+      return;
+    }
+    onChange([...origins, lower]);
+    setDraft("");
+    setDraftError(null);
+  };
+
+  const remove = (i: number) => onChange(origins.filter((_, idx) => idx !== i));
+
+  return (
+    <div>
+      <div className="ps-origin-input-row">
+        <input
+          className={`ps-form-input${draftError || fieldError ? " ps-input-error" : ""}`}
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (draftError) setDraftError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          placeholder="https://acme.com"
+        />
+        <button
+          type="button"
+          className="ps-btn ps-btn-secondary ps-btn-sm"
+          onClick={add}
+        >
+          <Plus size={14} />
+          Add
+        </button>
+      </div>
+      {(draftError || fieldError) && (
+        <p className="ps-field-error">{draftError || fieldError}</p>
+      )}
+      {origins.length === 0 ? (
+        <p className="ps-origin-warning">
+          ⚠ No origins set — this key will work from any site that knows it.
+          Add at least one origin for production use.
+        </p>
+      ) : (
+        <ul className="ps-origin-list">
+          {origins.map((o, i) => (
+            <li key={`${o}-${i}`} className="ps-origin-item">
+              <code>{o}</code>
+              <button
+                type="button"
+                className="ps-origin-remove"
+                onClick={() => remove(i)}
+                aria-label={`Remove ${o}`}
+              >
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="ps-form-hint">
+        Browser origins permitted to use this key. Strict equality — list each
+        subdomain and environment explicitly.
+      </p>
+    </div>
+  );
 };
 
 
@@ -54,19 +190,25 @@ const PartnerSpacesScreen = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState<CreatePartnerSpaceDto>({ ...emptyCreate });
+  const [createForm, setCreateForm] = useState<CreateFormState>({ ...emptyCreate });
   const [submitting, setSubmitting] = useState(false);
   const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({});
   const [createGeneralError, setCreateGeneralError] = useState<string | null>(null);
 
   const [selectedSpace, setSelectedSpace] = useState<PartnerSpace | null>(null);
-  const [editForm, setEditForm] = useState<
-    UpdatePartnerSpaceDto & { name: string; slug: string; contactEmail: string; webhookUrl: string }
-  >({
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    slug: string;
+    contactEmail: string;
+    webhookUrl: string;
+    allowedOrigins: string[];
+    isActive: boolean;
+  }>({
     name: "",
     slug: "",
     contactEmail: "",
     webhookUrl: "",
+    allowedOrigins: [],
     isActive: true,
   });
   const [saving, setSaving] = useState(false);
@@ -96,7 +238,8 @@ const PartnerSpacesScreen = () => {
       name: editForm.name.trim(),
       slug: editForm.slug.trim(),
       contactEmail: editForm.contactEmail.trim(),
-      webhookUrl: editForm.webhookUrl?.trim() || undefined,
+      webhookUrl: editForm.webhookUrl?.trim() || null,
+      allowedOrigins: editForm.allowedOrigins,
       isActive: editForm.isActive,
     };
 
@@ -125,6 +268,7 @@ const PartnerSpacesScreen = () => {
       slug: space.slug,
       contactEmail: space.contactEmail,
       webhookUrl: space.webhookUrl ?? "",
+      allowedOrigins: space.allowedOrigins ?? [],
       isActive: space.isActive,
     });
     setEditFieldErrors({});
@@ -167,6 +311,7 @@ const PartnerSpacesScreen = () => {
       slug: createForm.slug.trim(),
       contactEmail: createForm.contactEmail.trim(),
       ...(createForm.webhookUrl?.trim() ? { webhookUrl: createForm.webhookUrl.trim() } : {}),
+      ...(createForm.allowedOrigins.length ? { allowedOrigins: createForm.allowedOrigins } : {}),
     };
 
     try {
@@ -174,7 +319,7 @@ const PartnerSpacesScreen = () => {
       await partnerSpacesService.create(dto);
       closeCreate();
       fetchSpaces().catch(() => {
-        setError("Space created, but failed to refresh the list. Please reload.");
+        setError("Partner created, but failed to refresh the list. Please reload.");
       });
     } catch (err) {
       const { fieldErrors, general } = parseApiErrors(err);
@@ -251,19 +396,24 @@ const PartnerSpacesScreen = () => {
       <div className="ps-content">
         <div className="ps-header">
           <div>
-            <h1 className="ps-title">Partner Spaces</h1>
-            <p className="ps-subtitle">Manage venues that embed the Swift catering widget</p>
+            <h1 className="ps-title">Embed Partners</h1>
+            <p className="ps-subtitle">
+              Companies that embed the Swift catering widget on their own
+              website. Each one gets a publishable key the widget uses to
+              talk to our API. Distinct from coworking spaces, which run a
+              separate B2B order pipeline.
+            </p>
           </div>
           <button className="ps-btn ps-btn-primary" onClick={openCreate}>
             <Plus size={16} />
-            Add Partner Space
+            Add Embed Partner
           </button>
         </div>
 
         <div className="ps-table-container">
           {spaces.length === 0 ? (
             <div className="ps-empty">
-              <p>No partner spaces yet. Click "Add Partner Space" to create one.</p>
+              <p>No embed partners yet. Click "Add Embed Partner" to create one.</p>
             </div>
           ) : (
             <table className="ps-table">
@@ -272,28 +422,43 @@ const PartnerSpacesScreen = () => {
                   <th>Name</th>
                   <th>Slug</th>
                   <th>Contact Email</th>
+                  <th>Origins</th>
                   <th>Status</th>
                   <th>Created</th>
                 </tr>
               </thead>
               <tbody>
-                {spaces.map((space) => (
-                  <tr
-                    key={space.id}
-                    className={!space.isActive ? "ps-row-inactive" : ""}
-                    onClick={() => openDetail(space)}
-                  >
-                    <td>{space.name}</td>
-                    <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{space.slug}</td>
-                    <td>{space.contactEmail}</td>
-                    <td>
-                      <span className={`ps-badge ${space.isActive ? "ps-badge-active" : "ps-badge-inactive"}`}>
-                        {space.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td>{new Date(space.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
+                {spaces.map((space) => {
+                  const originCount = space.allowedOrigins?.length ?? 0;
+                  return (
+                    <tr
+                      key={space.id}
+                      className={!space.isActive ? "ps-row-inactive" : ""}
+                      onClick={() => openDetail(space)}
+                    >
+                      <td>{space.name}</td>
+                      <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{space.slug}</td>
+                      <td>{space.contactEmail}</td>
+                      <td>
+                        {originCount === 0 ? (
+                          <span className="ps-origin-count-empty" title="Any origin can use this key">
+                            ⚠ none
+                          </span>
+                        ) : (
+                          <span title={space.allowedOrigins.join(", ")}>
+                            {originCount} {originCount === 1 ? "origin" : "origins"}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`ps-badge ${space.isActive ? "ps-badge-active" : "ps-badge-inactive"}`}>
+                          {space.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td>{new Date(space.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -304,7 +469,7 @@ const PartnerSpacesScreen = () => {
         <div className="ps-modal-overlay" onClick={closeCreate}>
           <div className="ps-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ps-modal-header">
-              <h2 className="ps-modal-title">Add Partner Space</h2>
+              <h2 className="ps-modal-title">Add Embed Partner</h2>
               <button className="ps-modal-close" onClick={closeCreate}>
                 <X size={20} />
               </button>
@@ -373,10 +538,28 @@ const PartnerSpacesScreen = () => {
                     onChange={(e) => setCreateForm((p) => ({ ...p, webhookUrl: e.target.value }))}
                     placeholder="https://venue.com/webhooks/swift"
                   />
-                  <p className="ps-form-hint">Optional. Must start with https://</p>
+                  <p className="ps-form-hint">
+                    Optional. Server-to-server callback fired when a catering
+                    order is submitted via this partner's widget. Must use
+                    https://. Most partners don't need this — the widget
+                    already calls <code>onOrderComplete</code> client-side
+                    with the same data.
+                  </p>
+                  <WebhookDetails />
                   {createFieldErrors.webhookUrl && (
                     <p className="ps-field-error">{createFieldErrors.webhookUrl}</p>
                   )}
+                </div>
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">Allowed Origins</label>
+                  <OriginsEditor
+                    origins={createForm.allowedOrigins}
+                    onChange={(next) =>
+                      setCreateForm((p) => ({ ...p, allowedOrigins: next }))
+                    }
+                    fieldError={createFieldErrors.allowedOrigins}
+                  />
                 </div>
               </div>
 
@@ -394,7 +577,7 @@ const PartnerSpacesScreen = () => {
                   className="ps-btn ps-btn-primary"
                   disabled={submitting}
                 >
-                  {submitting ? "Creating..." : "Create Space"}
+                  {submitting ? "Creating..." : "Create Partner"}
                 </button>
               </div>
             </form>
@@ -469,9 +652,28 @@ const PartnerSpacesScreen = () => {
                   onChange={(e) => setEditForm((p) => ({ ...p, webhookUrl: e.target.value }))}
                   placeholder="https://"
                 />
+                <p className="ps-form-hint">
+                  Optional. Server-to-server callback fired when a catering
+                  order is submitted via this partner's widget. Must use
+                  https://. Most partners don't need this — the widget
+                  already calls <code>onOrderComplete</code> client-side with
+                  the same data.
+                </p>
+                <WebhookDetails />
                 {editFieldErrors.webhookUrl && (
                   <p className="ps-field-error">{editFieldErrors.webhookUrl}</p>
                 )}
+              </div>
+
+              <div className="ps-form-group">
+                <label className="ps-form-label">Allowed Origins</label>
+                <OriginsEditor
+                  origins={editForm.allowedOrigins}
+                  onChange={(next) =>
+                    setEditForm((p) => ({ ...p, allowedOrigins: next }))
+                  }
+                  fieldError={editFieldErrors.allowedOrigins}
+                />
               </div>
 
               <p className="ps-section-label">Publishable Key</p>

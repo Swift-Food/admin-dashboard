@@ -417,3 +417,145 @@
   letter-spacing: 0.05em;
   margin: 1.25rem 0 0.5rem;
 }
+
+/* Allowed Origins editor */
+.ps-origin-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ps-origin-input-row .ps-form-input {
+  flex: 1;
+}
+
+.ps-origin-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ps-origin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #fafafa;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+}
+
+.ps-origin-item:last-child {
+  border-bottom: none;
+}
+
+.ps-origin-item code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: #1f2937;
+  word-break: break-all;
+}
+
+.ps-origin-remove {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.ps-origin-remove:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.ps-origin-warning {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #92400e;
+}
+
+.ps-origin-count-empty {
+  color: #b45309;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Webhook help disclosure */
+.ps-webhook-details {
+  margin-top: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.ps-webhook-details > summary {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #374151;
+  font-weight: 500;
+  user-select: none;
+}
+
+.ps-webhook-details > summary:hover {
+  background: #f3f4f6;
+}
+
+.ps-webhook-details[open] > summary {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ps-webhook-details-body {
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.ps-webhook-details-body p {
+  margin: 0 0 0.75rem;
+}
+
+.ps-webhook-details-body p:last-child {
+  margin-bottom: 0;
+}
+
+.ps-webhook-details-body code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  background: #fff;
+  padding: 0.1rem 0.3rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  color: #1f2937;
+}
+
+.ps-webhook-payload {
+  background: #1f2937;
+  color: #e5e7eb;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0 0 0.75rem;
+  overflow-x: auto;
+}
+
+.ps-webhook-meta {
+  font-size: 0.78rem;
+}
+
+.ps-webhook-meta strong {
+  color: #1f2937;
+}

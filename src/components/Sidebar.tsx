@@ -176,7 +176,7 @@ const navSections: NavSection[] = [
       },
       {
         id: "partner-spaces" as SidebarPage,
-        label: "Partner Spaces",
+        label: "Embed Partners",
         icon: <FontAwesomeIcon icon={faHandshake} style={iconCommonStyle} />,
       },
     ],

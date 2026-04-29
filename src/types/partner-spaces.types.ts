@@ -6,6 +6,7 @@ export interface PartnerSpace {
   isActive: boolean;
   contactEmail: string;
   webhookUrl: string | null;
+  allowedOrigins: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -15,12 +16,14 @@ export interface CreatePartnerSpaceDto {
   slug: string;
   contactEmail: string;
   webhookUrl?: string;
+  allowedOrigins?: string[];
 }
 
 export interface UpdatePartnerSpaceDto {
   name?: string;
   slug?: string;
   contactEmail?: string;
-  webhookUrl?: string;
+  webhookUrl?: string | null;
+  allowedOrigins?: string[];
   isActive?: boolean;
 }

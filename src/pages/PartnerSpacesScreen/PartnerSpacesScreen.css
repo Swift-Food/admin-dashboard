@@ -417,3 +417,75 @@
   letter-spacing: 0.05em;
   margin: 1.25rem 0 0.5rem;
 }
+
+/* Allowed Origins editor */
+.ps-origin-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ps-origin-input-row .ps-form-input {
+  flex: 1;
+}
+
+.ps-origin-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ps-origin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #fafafa;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+}
+
+.ps-origin-item:last-child {
+  border-bottom: none;
+}
+
+.ps-origin-item code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: #1f2937;
+  word-break: break-all;
+}
+
+.ps-origin-remove {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.ps-origin-remove:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.ps-origin-warning {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #92400e;
+}
+
+.ps-origin-count-empty {
+  color: #b45309;
+  font-size: 0.85rem;
+  font-weight: 500;
+}

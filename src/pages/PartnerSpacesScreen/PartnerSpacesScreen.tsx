@@ -57,6 +57,41 @@ const emptyCreate: CreateFormState = {
   allowedOrigins: [],
 };
 
+const WebhookDetails = () => (
+  <details className="ps-webhook-details">
+    <summary>What does Swift send to this URL?</summary>
+    <div className="ps-webhook-details-body">
+      <p>
+        After a catering order is submitted via this partner's widget, Swift
+        fires a single <code>POST</code> request to this URL with a 5-second
+        timeout. Failures are logged but do not block the order — there is
+        no retry. The body is JSON:
+      </p>
+      <pre className="ps-webhook-payload">
+{`{
+  "event": "order.created",
+  "orderId": "<uuid>",
+  "status": "<order status>",
+  "partnerSpaceId": "<this partner's id>"
+}`}
+      </pre>
+      <p className="ps-webhook-meta">
+        <strong>Headers:</strong> <code>Content-Type: application/json</code>.
+        No signature today — verify the source by IP-allowlisting Swift's
+        egress, by checking that the <code>partnerSpaceId</code> matches your
+        own provisioned id, or by ignoring the body and using the order id
+        to call back into Swift's order-view API.
+      </p>
+      <p className="ps-webhook-meta">
+        <strong>When it fires:</strong> exactly once, the moment the order
+        is created. It does not fire for status changes (e.g. accepted,
+        delivered) — for those, poll the order-view API or use the widget's{" "}
+        <code>onOrderComplete</code> client-side callback.
+      </p>
+    </div>
+  </details>
+);
+
 interface OriginsEditorProps {
   origins: string[];
   onChange: (next: string[]) => void;
@@ -503,7 +538,14 @@ const PartnerSpacesScreen = () => {
                     onChange={(e) => setCreateForm((p) => ({ ...p, webhookUrl: e.target.value }))}
                     placeholder="https://venue.com/webhooks/swift"
                   />
-                  <p className="ps-form-hint">Optional. Must start with https://</p>
+                  <p className="ps-form-hint">
+                    Optional. Server-to-server callback fired when a catering
+                    order is submitted via this partner's widget. Must use
+                    https://. Most partners don't need this — the widget
+                    already calls <code>onOrderComplete</code> client-side
+                    with the same data.
+                  </p>
+                  <WebhookDetails />
                   {createFieldErrors.webhookUrl && (
                     <p className="ps-field-error">{createFieldErrors.webhookUrl}</p>
                   )}
@@ -610,6 +652,14 @@ const PartnerSpacesScreen = () => {
                   onChange={(e) => setEditForm((p) => ({ ...p, webhookUrl: e.target.value }))}
                   placeholder="https://"
                 />
+                <p className="ps-form-hint">
+                  Optional. Server-to-server callback fired when a catering
+                  order is submitted via this partner's widget. Must use
+                  https://. Most partners don't need this — the widget
+                  already calls <code>onOrderComplete</code> client-side with
+                  the same data.
+                </p>
+                <WebhookDetails />
                 {editFieldErrors.webhookUrl && (
                   <p className="ps-field-error">{editFieldErrors.webhookUrl}</p>
                 )}

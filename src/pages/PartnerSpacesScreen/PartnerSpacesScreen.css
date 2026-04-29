@@ -489,3 +489,73 @@
   font-size: 0.85rem;
   font-weight: 500;
 }
+
+/* Webhook help disclosure */
+.ps-webhook-details {
+  margin-top: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.ps-webhook-details > summary {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #374151;
+  font-weight: 500;
+  user-select: none;
+}
+
+.ps-webhook-details > summary:hover {
+  background: #f3f4f6;
+}
+
+.ps-webhook-details[open] > summary {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ps-webhook-details-body {
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.ps-webhook-details-body p {
+  margin: 0 0 0.75rem;
+}
+
+.ps-webhook-details-body p:last-child {
+  margin-bottom: 0;
+}
+
+.ps-webhook-details-body code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  background: #fff;
+  padding: 0.1rem 0.3rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  color: #1f2937;
+}
+
+.ps-webhook-payload {
+  background: #1f2937;
+  color: #e5e7eb;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0 0 0.75rem;
+  overflow-x: auto;
+}
+
+.ps-webhook-meta {
+  font-size: 0.78rem;
+}
+
+.ps-webhook-meta strong {
+  color: #1f2937;
+}

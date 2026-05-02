@@ -12,6 +12,7 @@ const getFinancialMetrics = async (
     "admin/catering-orders/financial-metrics",
     { params }
   );
+  console.log("data", res.data)
   return res.data;
 };
 

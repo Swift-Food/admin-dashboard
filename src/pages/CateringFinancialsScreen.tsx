@@ -5,16 +5,15 @@ import cateringFinancialsService from "../services/catering-financials.service";
 const LIMIT = 50;
 
 function getDefaultDates() {
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+
   return {
-    from: from.toISOString().slice(0, 10),
-    to: now.toISOString().slice(0, 10),
+    from: "",
+    to: "",
   };
 }
 
 function formatCurrency(amount: number): string {
-  return amount.toLocaleString("en-GB", { style: "currency", currency: "GBP" });
+  return amount ? amount.toLocaleString() : ""
 }
 
 function truncatePaymentId(id: string | null): string {
@@ -102,6 +101,7 @@ const CateringFinancialsScreen = () => {
         setError(e?.message || "Failed to load financial metrics");
         setLoading(false);
       });
+      console.log(JSON.stringify(data))
   };
 
   useEffect(() => {
@@ -210,8 +210,8 @@ const CateringFinancialsScreen = () => {
           </label>
           <input
             type="date"
-            value={pendingTo}
-            min={pendingFrom}
+            value={pendingTo ?? ""}
+            min={pendingFrom ?? ""}
             onChange={(e) => setPendingTo(e.target.value)}
             className="px-3 py-2 border-2 border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />

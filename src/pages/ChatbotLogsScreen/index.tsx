@@ -85,7 +85,7 @@ function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kin
       </div>
       <details className="text-xs text-gray-600">
         <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">payload</summary>
-        <pre className="mt-1 bg-gray-100 rounded p-2 overflow-x-auto text-xs leading-relaxed">
+        <pre className="mt-1 bg-gray-100 rounded p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
           {prettyJson(entry.data.payload)}
         </pre>
       </details>
@@ -124,15 +124,15 @@ function LlmCallCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { k
         </div>
       )}
       <div className="flex gap-3 flex-wrap">
-        <details className="text-xs flex-1">
+        <details className="text-xs flex-1 min-w-0">
           <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Prompt</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 overflow-x-auto text-xs leading-relaxed">
+          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
             {prettyJson(entry.data.prompt)}
           </pre>
         </details>
-        <details className="text-xs flex-1">
+        <details className="text-xs flex-1 min-w-0">
           <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Response</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 overflow-x-auto text-xs leading-relaxed">
+          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
             {prettyJson(entry.data.response)}
           </pre>
         </details>
@@ -168,21 +168,21 @@ function RetrievalCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, {
         )}
       </div>
       <div className="flex gap-3 flex-wrap">
-        <details className="text-xs flex-1">
+        <details className="text-xs flex-1 min-w-0">
           <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Retrieved top-K</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 overflow-x-auto text-xs leading-relaxed">
+          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
             {prettyJson(entry.data.retrievedTopK)}
           </pre>
         </details>
-        <details className="text-xs flex-1">
+        <details className="text-xs flex-1 min-w-0">
           <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Composer picks</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 overflow-x-auto text-xs leading-relaxed">
+          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
             {prettyJson(entry.data.composerPicks)}
           </pre>
         </details>
-        <details className="text-xs flex-1">
+        <details className="text-xs flex-1 min-w-0">
           <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Taxonomy snapshot</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 overflow-x-auto text-xs leading-relaxed">
+          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
             {prettyJson(entry.data.taxonomySnapshot)}
           </pre>
         </details>

@@ -43,20 +43,35 @@ function shortId(sessionId: string): string {
 
 // ─── JSON viewer ─────────────────────────────────────────────────────────────
 
+interface JsonViewControl {
+  version: number;
+  mode: 'expand-all' | 'reset';
+}
+
 function JsonView({
   value,
   name,
   depth = 0,
   defaultOpenDepth = 1,
+  control,
 }: {
   value: unknown;
   name?: string | number;
   depth?: number;
   defaultOpenDepth?: number;
+  control?: JsonViewControl;
 }) {
   const isObj = value !== null && typeof value === 'object';
   const isArr = Array.isArray(value);
   const [open, setOpen] = useState(depth <= defaultOpenDepth);
+
+  useEffect(() => {
+    if (!control) return;
+    if (control.mode === 'expand-all') setOpen(true);
+    else setOpen(depth <= defaultOpenDepth);
+    // re-run only when version changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [control?.version]);
 
   const labelEl =
     name !== undefined ? (
@@ -119,6 +134,7 @@ function JsonView({
                 value={v}
                 depth={depth + 1}
                 defaultOpenDepth={defaultOpenDepth}
+                control={control}
               />
             ))}
           </div>
@@ -139,6 +155,7 @@ function JsonModal({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [control, setControl] = useState<JsonViewControl>({ version: 0, mode: 'reset' });
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -176,6 +193,18 @@ function JsonModal({
           <h3 className="font-semibold text-gray-800">{title}</h3>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setControl(c => ({ version: c.version + 1, mode: 'expand-all' }))}
+              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+            >
+              Expand all
+            </button>
+            <button
+              onClick={() => setControl(c => ({ version: c.version + 1, mode: 'reset' }))}
+              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+            >
+              Collapse all
+            </button>
+            <button
               onClick={handleCopy}
               className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
             >
@@ -191,7 +220,7 @@ function JsonModal({
           </div>
         </div>
         <div className="overflow-auto p-5 flex-1 font-mono text-xs leading-relaxed">
-          <JsonView value={value} defaultOpenDepth={2} />
+          <JsonView value={value} defaultOpenDepth={2} control={control} />
         </div>
       </div>
     </div>
@@ -209,10 +238,11 @@ function JsonBlock({
 }) {
   const [open, setOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [control, setControl] = useState<JsonViewControl>({ version: 0, mode: 'reset' });
 
   return (
     <div className={`text-xs ${className}`}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
@@ -229,10 +259,28 @@ function JsonBlock({
         >
           ⛶ modal
         </button>
+        {open && (
+          <>
+            <button
+              type="button"
+              onClick={() => setControl(c => ({ version: c.version + 1, mode: 'expand-all' }))}
+              className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded border border-gray-200 hover:border-blue-300 bg-white"
+            >
+              Expand all
+            </button>
+            <button
+              type="button"
+              onClick={() => setControl(c => ({ version: c.version + 1, mode: 'reset' }))}
+              className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded border border-gray-200 hover:border-blue-300 bg-white"
+            >
+              Collapse all
+            </button>
+          </>
+        )}
       </div>
       {open && (
         <div className="mt-1 bg-white rounded border border-gray-200 p-2 font-mono text-xs leading-relaxed overflow-auto max-h-96">
-          <JsonView value={value} />
+          <JsonView value={value} control={control} />
         </div>
       )}
       {modalOpen && (

@@ -41,12 +41,205 @@ function shortId(sessionId: string): string {
   return sessionId.slice(0, 8) + '…';
 }
 
-function prettyJson(val: any): string {
-  try {
-    return JSON.stringify(val, null, 2);
-  } catch {
-    return String(val);
+// ─── JSON viewer ─────────────────────────────────────────────────────────────
+
+function JsonView({
+  value,
+  name,
+  depth = 0,
+  defaultOpenDepth = 1,
+}: {
+  value: unknown;
+  name?: string | number;
+  depth?: number;
+  defaultOpenDepth?: number;
+}) {
+  const isObj = value !== null && typeof value === 'object';
+  const isArr = Array.isArray(value);
+  const [open, setOpen] = useState(depth <= defaultOpenDepth);
+
+  const labelEl =
+    name !== undefined ? (
+      <span className="text-purple-700">{typeof name === 'number' ? name : `"${name}"`}: </span>
+    ) : null;
+
+  if (!isObj) {
+    let cls = 'text-gray-700';
+    let text: string;
+    if (value === null) { cls = 'text-gray-400'; text = 'null'; }
+    else if (typeof value === 'string') { cls = 'text-green-700'; text = `"${value}"`; }
+    else if (typeof value === 'number') { cls = 'text-blue-700'; text = String(value); }
+    else if (typeof value === 'boolean') { cls = 'text-orange-700'; text = String(value); }
+    else { text = String(value); }
+    return (
+      <div className="break-words">
+        {labelEl}
+        <span className={cls}>{text}</span>
+      </div>
+    );
   }
+
+  const entries: Array<[string | number, unknown]> = isArr
+    ? (value as unknown[]).map((v, i) => [i, v])
+    : Object.entries(value as Record<string, unknown>);
+
+  if (entries.length === 0) {
+    return (
+      <div>
+        {labelEl}
+        <span className="text-gray-400">{isArr ? '[ ]' : '{ }'}</span>
+      </div>
+    );
+  }
+
+  const summary = isArr ? `Array(${entries.length})` : `{${entries.length} ${entries.length === 1 ? 'key' : 'keys'}}`;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="text-left hover:bg-gray-100 rounded px-0.5"
+      >
+        <span className="text-gray-400 inline-block w-3">{open ? '▼' : '▶'}</span>{' '}
+        {labelEl}
+        {open ? (
+          <span className="text-gray-500">{isArr ? '[' : '{'}</span>
+        ) : (
+          <span className="text-gray-500">{isArr ? '[' : '{'} <span className="text-gray-400 italic">{summary}</span> {isArr ? ']' : '}'}</span>
+        )}
+      </button>
+      {open && (
+        <>
+          <div className="pl-4 border-l border-gray-200 ml-1.5">
+            {entries.map(([k, v]) => (
+              <JsonView
+                key={String(k)}
+                name={isArr ? (k as number) : (k as string)}
+                value={v}
+                depth={depth + 1}
+                defaultOpenDepth={defaultOpenDepth}
+              />
+            ))}
+          </div>
+          <div className="text-gray-500 pl-4">{isArr ? ']' : '}'}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function JsonModal({
+  title,
+  value,
+  onClose,
+}: {
+  title: string;
+  value: unknown;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handler);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  const handleCopy = () => {
+    try {
+      const text = JSON.stringify(value, null, 2);
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-800">{title}</h3>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+            >
+              {copied ? 'Copied!' : 'Copy JSON'}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className="overflow-auto p-5 flex-1 font-mono text-xs leading-relaxed">
+          <JsonView value={value} defaultOpenDepth={2} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JsonBlock({
+  label,
+  value,
+  className = '',
+}: {
+  label: string;
+  value: unknown;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  return (
+    <div className={`text-xs ${className}`}>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="cursor-pointer select-none text-gray-400 hover:text-gray-600 flex items-center gap-1"
+        >
+          <span className="inline-block w-3">{open ? '▼' : '▶'}</span>
+          <span>{label}</span>
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setModalOpen(true); }}
+          className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded border border-gray-200 hover:border-blue-300 bg-white"
+          title="Open in modal"
+        >
+          ⛶ modal
+        </button>
+      </div>
+      {open && (
+        <div className="mt-1 bg-white rounded border border-gray-200 p-2 font-mono text-xs leading-relaxed overflow-auto max-h-96">
+          <JsonView value={value} />
+        </div>
+      )}
+      {modalOpen && (
+        <JsonModal title={label} value={value} onClose={() => setModalOpen(false)} />
+      )}
+    </div>
+  );
 }
 
 // ─── Status badge ────────────────────────────────────────────────────────────
@@ -83,12 +276,7 @@ function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kin
         <span className="font-semibold text-sm text-gray-800">{entry.data.eventType}</span>
         <span className="ml-auto text-xs text-gray-400">event #{entry.data.id}</span>
       </div>
-      <details className="text-xs text-gray-600">
-        <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">payload</summary>
-        <pre className="mt-1 bg-gray-100 rounded p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
-          {prettyJson(entry.data.payload)}
-        </pre>
-      </details>
+      <JsonBlock label="payload" value={entry.data.payload} />
     </div>
   );
 }
@@ -124,18 +312,8 @@ function LlmCallCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { k
         </div>
       )}
       <div className="flex gap-3 flex-wrap">
-        <details className="text-xs flex-1 min-w-0">
-          <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Prompt</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
-            {prettyJson(entry.data.prompt)}
-          </pre>
-        </details>
-        <details className="text-xs flex-1 min-w-0">
-          <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Response</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
-            {prettyJson(entry.data.response)}
-          </pre>
-        </details>
+        <JsonBlock label="Prompt"   value={entry.data.prompt}   className="flex-1 min-w-0" />
+        <JsonBlock label="Response" value={entry.data.response} className="flex-1 min-w-0" />
       </div>
     </div>
   );
@@ -168,24 +346,9 @@ function RetrievalCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, {
         )}
       </div>
       <div className="flex gap-3 flex-wrap">
-        <details className="text-xs flex-1 min-w-0">
-          <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Retrieved top-K</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
-            {prettyJson(entry.data.retrievedTopK)}
-          </pre>
-        </details>
-        <details className="text-xs flex-1 min-w-0">
-          <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Composer picks</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
-            {prettyJson(entry.data.composerPicks)}
-          </pre>
-        </details>
-        <details className="text-xs flex-1 min-w-0">
-          <summary className="cursor-pointer select-none text-gray-400 hover:text-gray-600">Taxonomy snapshot</summary>
-          <pre className="mt-1 bg-white rounded border border-gray-200 p-2 whitespace-pre-wrap break-words text-xs leading-relaxed">
-            {prettyJson(entry.data.taxonomySnapshot)}
-          </pre>
-        </details>
+        <JsonBlock label="Retrieved top-K"   value={entry.data.retrievedTopK}    className="flex-1 min-w-0" />
+        <JsonBlock label="Composer picks"    value={entry.data.composerPicks}    className="flex-1 min-w-0" />
+        <JsonBlock label="Taxonomy snapshot" value={entry.data.taxonomySnapshot} className="flex-1 min-w-0" />
       </div>
     </div>
   );

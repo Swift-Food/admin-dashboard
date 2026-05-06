@@ -149,10 +149,12 @@ function JsonModal({
   title,
   value,
   onClose,
+  extras,
 }: {
   title: string;
   value: unknown;
   onClose: () => void;
+  extras?: React.ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
   const [control, setControl] = useState<JsonViewControl>({ version: 0, mode: 'reset' });
@@ -219,6 +221,11 @@ function JsonModal({
             </button>
           </div>
         </div>
+        {extras && (
+          <div className="px-5 py-2 border-b border-gray-100 bg-gray-50">
+            {extras}
+          </div>
+        )}
         <div className="overflow-auto p-5 flex-1 font-mono text-xs leading-relaxed">
           <JsonView value={value} defaultOpenDepth={2} control={control} />
         </div>
@@ -231,10 +238,12 @@ function JsonBlock({
   label,
   value,
   className = '',
+  modalExtras,
 }: {
   label: string;
   value: unknown;
   className?: string;
+  modalExtras?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -284,8 +293,84 @@ function JsonBlock({
         </div>
       )}
       {modalOpen && (
-        <JsonModal title={label} value={value} onClose={() => setModalOpen(false)} />
+        <JsonModal title={label} value={value} extras={modalExtras} onClose={() => setModalOpen(false)} />
       )}
+    </div>
+  );
+}
+
+// ─── Top-K block (with sort controls) ───────────────────────────────────────
+
+type TopKSortMode = 'final' | 'lexical' | 'vector';
+
+interface TopKItem {
+  id?: string;
+  name?: string;
+  restaurantId?: string;
+  restaurantName?: string;
+  score?: number;
+  lexicalRank?: number | null;
+  vectorRank?: number | null;
+}
+
+interface TopKGroup {
+  intent?: string;
+  category?: string | null;
+  restaurantScope?: string[] | null;
+  items?: TopKItem[];
+  [key: string]: unknown;
+}
+
+function sortTopK(value: unknown, mode: TopKSortMode): unknown {
+  if (!Array.isArray(value)) return value;
+
+  const cmpAsc = (a: number | null | undefined, b: number | null | undefined) =>
+    (a ?? Number.POSITIVE_INFINITY) - (b ?? Number.POSITIVE_INFINITY);
+
+  return (value as TopKGroup[]).map((group) => {
+    if (!group || !Array.isArray(group.items)) return group;
+    const items = [...group.items];
+    if (mode === 'lexical')   items.sort((a, b) => cmpAsc(a.lexicalRank, b.lexicalRank));
+    else if (mode === 'vector') items.sort((a, b) => cmpAsc(a.vectorRank, b.vectorRank));
+    else if (mode === 'final')  items.sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
+    return { ...group, items };
+  });
+}
+
+const TOPK_SORT_LABELS: Record<TopKSortMode, string> = {
+  final:   'Final score',
+  lexical: 'Lexical rank',
+  vector:  'Vector rank',
+};
+
+function TopKBlock({ value, className = '' }: { value: unknown; className?: string }) {
+  const [sortMode, setSortMode] = useState<TopKSortMode>('final');
+  const sorted = sortTopK(value, sortMode);
+
+  const renderSortRow = () => (
+    <div className="flex items-center gap-1 flex-wrap">
+      <span className="text-[10px] uppercase tracking-wide text-gray-500 mr-1">Sort items:</span>
+      {(Object.keys(TOPK_SORT_LABELS) as TopKSortMode[]).map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => setSortMode(m)}
+          className={`text-[10px] px-1.5 py-0.5 rounded font-semibold transition-colors ${
+            sortMode === m
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          {TOPK_SORT_LABELS[m]}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className={className}>
+      <div className="mb-1">{renderSortRow()}</div>
+      <JsonBlock label="Retrieved top-K" value={sorted} modalExtras={renderSortRow()} />
     </div>
   );
 }
@@ -394,7 +479,7 @@ function RetrievalCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, {
         )}
       </div>
       <div className="flex gap-3 flex-wrap">
-        <JsonBlock label="Retrieved top-K"   value={entry.data.retrievedTopK}    className="flex-1 min-w-0" />
+        <TopKBlock                            value={entry.data.retrievedTopK}    className="flex-1 min-w-0" />
         <JsonBlock label="Composer picks"    value={entry.data.composerPicks}    className="flex-1 min-w-0" />
         <JsonBlock label="Taxonomy snapshot" value={entry.data.taxonomySnapshot} className="flex-1 min-w-0" />
       </div>

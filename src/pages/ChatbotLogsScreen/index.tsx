@@ -417,7 +417,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
     setError(undefined);
 
     try {
-      const params: Parameters<typeof chatbotLogsService.listSessions>[0] = { limit: 50 };
+      const params: Parameters<typeof chatbotLogsService.listSessions>[0] = { limit: 12 };
       if (statusFilter)  params.status = statusFilter;
       if (debouncedQ)    params.q      = debouncedQ;
       const since = sinceIsoFromPreset(datePreset);

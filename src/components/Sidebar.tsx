@@ -22,6 +22,7 @@ import {
   faBuilding,
   faRightLeft,
   faHandshake,
+  faMessage,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
@@ -52,6 +53,7 @@ export type SidebarPage =
   | "coworking-spaces"
   | "pending-transfers"
   | "partner-spaces"
+  | "chatbot-logs"
   | "miscellaneous";
 
 interface NavItem {
@@ -141,6 +143,11 @@ const navSections: NavSection[] = [
         id: "catering-sessions",
         label: "Drivers",
         icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
+      },
+      {
+        id: "chatbot-logs" as SidebarPage,
+        label: "Chatbot Logs",
+        icon: <FontAwesomeIcon icon={faMessage} style={iconCommonStyle} />,
       },
       {
         id: "catering-financials",

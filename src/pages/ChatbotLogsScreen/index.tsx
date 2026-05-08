@@ -400,6 +400,12 @@ function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kin
   const isBot   = entry.data.eventType === 'bot_reply';
   const tint    = isUser ? 'border-blue-300 bg-blue-50' : isBot ? 'border-gray-300 bg-gray-50' : 'border-gray-200 bg-white';
 
+  const payload = entry.data.payload as unknown;
+  const userMessageText =
+    isUser && payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
+      ? (payload as { text: string }).text
+      : null;
+
   return (
     <div className={`rounded-lg border ${tint} p-3`}>
       <div className="flex items-center gap-2 mb-1">
@@ -409,6 +415,12 @@ function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kin
         <span className="font-semibold text-sm text-gray-800">{entry.data.eventType}</span>
         <span className="ml-auto text-xs text-gray-400">event #{entry.data.id}</span>
       </div>
+      {userMessageText !== null && (
+        <div className="mb-2 text-sm text-gray-900 whitespace-pre-wrap break-words">
+          <span className="font-mono text-xs text-gray-500">user_message: </span>
+          {userMessageText}
+        </div>
+      )}
       <JsonBlock label="payload" value={entry.data.payload} />
     </div>
   );

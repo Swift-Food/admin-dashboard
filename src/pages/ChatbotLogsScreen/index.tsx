@@ -7,6 +7,7 @@ import type {
   TimelineEntry,
 } from '../../types/chatbot-logs.types';
 import { SnapshotModal } from '../../features/chatbot-snapshot/SnapshotModal';
+import { FullSessionModal, type SessionTurn } from '../../features/chatbot-snapshot/FullSessionModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -607,6 +608,37 @@ function computePreviousUserMessages(timeline: TimelineEntry[]): Array<string | 
   return out;
 }
 
+/**
+ * Walk the timeline and pair every bot_reply with the most-recent prior
+ * user_message. Used to power the full-session preview modal.
+ */
+function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
+  const turns: SessionTurn[] = [];
+  let lastUserText: string | null = null;
+  for (const entry of timeline) {
+    if (entry.kind !== 'event') continue;
+    const payload = entry.data.payload as unknown;
+    const isObj = payload && typeof payload === 'object';
+    if (entry.data.eventType === 'user_message') {
+      if (isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
+        lastUserText = (payload as { text: string }).text;
+      }
+      continue;
+    }
+    if (entry.data.eventType === 'bot_reply') {
+      const botText =
+        isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
+          ? (payload as { text: string }).text
+          : '';
+      const rawBotParts =
+        isObj && 'parts' in payload ? (payload as { parts: unknown }).parts : null;
+      turns.push({ userText: lastUserText, botText, rawBotParts });
+      lastUserText = null;
+    }
+  }
+  return turns;
+}
+
 // ─── Detail view ─────────────────────────────────────────────────────────────
 
 function ChatbotSessionDetailView({
@@ -620,6 +652,7 @@ function ChatbotSessionDetailView({
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string>();
   const [copied, setCopied]   = useState(false);
+  const [showFullSession, setShowFullSession] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -683,12 +716,28 @@ function ChatbotSessionDetailView({
           </button>
           <StatusBadge status={detail.inferredStatus} />
         </div>
+        <button
+          onClick={() => setShowFullSession(true)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+          View full conversation
+        </button>
         <div className="ml-auto text-sm text-gray-500">
           <span>{formatAbsoluteDate(detail.firstSeenTs)}</span>
           <span className="mx-1">→</span>
           <span>{formatAbsoluteDate(detail.lastSeenTs)}</span>
         </div>
       </div>
+
+      {showFullSession && (
+        <FullSessionModal
+          turns={extractSessionTurns(detail.timeline)}
+          onClose={() => setShowFullSession(false)}
+        />
+      )}
 
       {/* Summary card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">

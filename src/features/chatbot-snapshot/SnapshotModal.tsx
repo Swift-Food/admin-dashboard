@@ -3,7 +3,9 @@ import { TextBubble } from './parts/TextBubble';
 import { IntentBlockCard } from './parts/IntentBlockCard';
 import { MealSessionCard } from './parts/MealSessionCard';
 import { MenuPreviewCard } from './parts/MenuPreviewCard';
+import { TurnInspectButtons } from './TurnInspectButtons';
 import { isRenderablePart, type RenderableMessagePart } from './types';
+import type { TurnEntry } from './FullSessionModal';
 import './snapshot.css';
 
 interface SnapshotModalProps {
@@ -13,6 +15,8 @@ interface SnapshotModalProps {
   botText: string;
   /** Raw `parts` from the bot_reply payload; filtered to renderable types. */
   rawBotParts: unknown;
+  /** Inter-turn timeline entries (between previous bot_reply and this one). */
+  turnEntries?: TurnEntry[];
   onClose: () => void;
 }
 
@@ -20,6 +24,7 @@ export function SnapshotModal({
   userText,
   botText,
   rawBotParts,
+  turnEntries = [],
   onClose,
 }: SnapshotModalProps) {
   useEffect(() => {
@@ -108,6 +113,8 @@ export function SnapshotModal({
           className="snapshot-design"
           style={{ flex: 1, overflow: 'auto', padding: 20 }}
         >
+          <TurnInspectButtons turnEntries={turnEntries} />
+
           {userText !== null && <TextBubble sender="user" text={userText} />}
 
           {!hasParts && botText && <TextBubble sender="bot" text={botText} />}

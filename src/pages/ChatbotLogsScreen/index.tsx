@@ -7,7 +7,12 @@ import type {
   TimelineEntry,
 } from '../../types/chatbot-logs.types';
 import { SnapshotModal } from '../../features/chatbot-snapshot/SnapshotModal';
-import { FullSessionModal, type SessionTurn } from '../../features/chatbot-snapshot/FullSessionModal';
+import {
+  FullSessionModal,
+  type SessionTurn,
+  type TurnEntry,
+} from '../../features/chatbot-snapshot/FullSessionModal';
+import { JsonView, JsonModal, type JsonViewControl } from '../../components/JsonModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -44,197 +49,8 @@ function shortId(sessionId: string): string {
 }
 
 // ─── JSON viewer ─────────────────────────────────────────────────────────────
-
-interface JsonViewControl {
-  version: number;
-  mode: 'expand-all' | 'reset';
-}
-
-function JsonView({
-  value,
-  name,
-  depth = 0,
-  defaultOpenDepth = 1,
-  control,
-}: {
-  value: unknown;
-  name?: string | number;
-  depth?: number;
-  defaultOpenDepth?: number;
-  control?: JsonViewControl;
-}) {
-  const isObj = value !== null && typeof value === 'object';
-  const isArr = Array.isArray(value);
-  const [open, setOpen] = useState(depth <= defaultOpenDepth);
-
-  useEffect(() => {
-    if (!control) return;
-    if (control.mode === 'expand-all') setOpen(true);
-    else setOpen(depth <= defaultOpenDepth);
-    // re-run only when version changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [control?.version]);
-
-  const labelEl =
-    name !== undefined ? (
-      <span className="text-purple-700">{typeof name === 'number' ? name : `"${name}"`}: </span>
-    ) : null;
-
-  if (!isObj) {
-    let cls = 'text-gray-700';
-    let text: string;
-    if (value === null) { cls = 'text-gray-400'; text = 'null'; }
-    else if (typeof value === 'string') { cls = 'text-green-700'; text = `"${value}"`; }
-    else if (typeof value === 'number') { cls = 'text-blue-700'; text = String(value); }
-    else if (typeof value === 'boolean') { cls = 'text-orange-700'; text = String(value); }
-    else { text = String(value); }
-    return (
-      <div className="break-words">
-        {labelEl}
-        <span className={cls}>{text}</span>
-      </div>
-    );
-  }
-
-  const entries: Array<[string | number, unknown]> = isArr
-    ? (value as unknown[]).map((v, i) => [i, v])
-    : Object.entries(value as Record<string, unknown>);
-
-  if (entries.length === 0) {
-    return (
-      <div>
-        {labelEl}
-        <span className="text-gray-400">{isArr ? '[ ]' : '{ }'}</span>
-      </div>
-    );
-  }
-
-  const summary = isArr ? `Array(${entries.length})` : `{${entries.length} ${entries.length === 1 ? 'key' : 'keys'}}`;
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="text-left hover:bg-gray-100 rounded px-0.5"
-      >
-        <span className="text-gray-400 inline-block w-3">{open ? '▼' : '▶'}</span>{' '}
-        {labelEl}
-        {open ? (
-          <span className="text-gray-500">{isArr ? '[' : '{'}</span>
-        ) : (
-          <span className="text-gray-500">{isArr ? '[' : '{'} <span className="text-gray-400 italic">{summary}</span> {isArr ? ']' : '}'}</span>
-        )}
-      </button>
-      {open && (
-        <>
-          <div className="pl-4 border-l border-gray-200 ml-1.5">
-            {entries.map(([k, v]) => (
-              <JsonView
-                key={String(k)}
-                name={isArr ? (k as number) : (k as string)}
-                value={v}
-                depth={depth + 1}
-                defaultOpenDepth={defaultOpenDepth}
-                control={control}
-              />
-            ))}
-          </div>
-          <div className="text-gray-500 pl-4">{isArr ? ']' : '}'}</div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function JsonModal({
-  title,
-  value,
-  onClose,
-  extras,
-}: {
-  title: string;
-  value: unknown;
-  onClose: () => void;
-  extras?: React.ReactNode;
-}) {
-  const [copied, setCopied] = useState(false);
-  const [control, setControl] = useState<JsonViewControl>({ version: 0, mode: 'reset' });
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', handler);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
-
-  const handleCopy = () => {
-    try {
-      const text = JSON.stringify(value, null, 2);
-      navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      });
-    } catch {
-      // ignore
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-800">{title}</h3>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setControl(c => ({ version: c.version + 1, mode: 'expand-all' }))}
-              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-            >
-              Expand all
-            </button>
-            <button
-              onClick={() => setControl(c => ({ version: c.version + 1, mode: 'reset' }))}
-              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-            >
-              Collapse all
-            </button>
-            <button
-              onClick={handleCopy}
-              className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-            >
-              {copied ? 'Copied!' : 'Copy JSON'}
-            </button>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        {extras && (
-          <div className="px-5 py-2 border-b border-gray-100 bg-gray-50">
-            {extras}
-          </div>
-        )}
-        <div className="overflow-auto p-5 flex-1 font-mono text-xs leading-relaxed">
-          <JsonView value={value} defaultOpenDepth={2} control={control} />
-        </div>
-      </div>
-    </div>
-  );
-}
+// JsonView, JsonModal, and JsonViewControl are imported from
+// '../../components/JsonModal' so the snapshot preview modals can reuse them.
 
 function JsonBlock({
   label,
@@ -401,10 +217,12 @@ function EventCard({
   entry,
   offsetLabel,
   previousUserMessage,
+  turnEntries,
 }: {
   entry: Extract<TimelineEntry, { kind: 'event' }>;
   offsetLabel: string;
   previousUserMessage?: string | null;
+  turnEntries?: TurnEntry[];
 }) {
   const isUser  = entry.data.eventType === 'user_message';
   const isBot   = entry.data.eventType === 'bot_reply';
@@ -460,6 +278,7 @@ function EventCard({
           userText={previousUserMessage ?? null}
           botText={botText}
           rawBotParts={botParts}
+          turnEntries={turnEntries}
           onClose={() => setShowSnapshot(false)}
         />
       )}
@@ -568,10 +387,12 @@ function TimelineEntryCard({
   entry,
   startTs,
   previousUserMessage,
+  turnEntries,
 }: {
   entry: TimelineEntry;
   startTs: string;
   previousUserMessage?: string | null;
+  turnEntries?: TurnEntry[];
 }) {
   const offsetLabel = formatOffsetMs(startTs, entry.ts);
   const hasError =
@@ -580,12 +401,69 @@ function TimelineEntryCard({
 
   return (
     <div className={`${leftBorder}`}>
-      {entry.kind === 'event'     && <EventCard     entry={entry} offsetLabel={offsetLabel} previousUserMessage={previousUserMessage} />}
+      {entry.kind === 'event'     && <EventCard     entry={entry} offsetLabel={offsetLabel} previousUserMessage={previousUserMessage} turnEntries={turnEntries} />}
       {entry.kind === 'llm_call'  && <LlmCallCard   entry={entry} offsetLabel={offsetLabel} />}
       {entry.kind === 'retrieval' && <RetrievalCard entry={entry} offsetLabel={offsetLabel} />}
       {entry.kind === 'feedback'  && <FeedbackCard  entry={entry} offsetLabel={offsetLabel} />}
     </div>
   );
+}
+
+/**
+ * Convert a single TimelineEntry into the lightweight TurnEntry pill
+ * shape (kind + label + payload).
+ */
+function toTurnEntry(entry: TimelineEntry): TurnEntry | null {
+  if (entry.kind === 'retrieval') {
+    return {
+      kind: 'retrieval',
+      label: `retrieval — "${entry.data.queryText}"`,
+      value: entry.data,
+    };
+  }
+  if (entry.kind === 'llm_call') {
+    const tokens =
+      entry.data.inputTokens != null || entry.data.outputTokens != null
+        ? ` · ${entry.data.inputTokens ?? '?'}→${entry.data.outputTokens ?? '?'} tok`
+        : '';
+    return {
+      kind: 'llm_call',
+      label: `${entry.data.caller} (${entry.data.model})${tokens}`,
+      value: entry.data,
+    };
+  }
+  if (entry.kind === 'event') {
+    if (entry.data.eventType === 'user_message' || entry.data.eventType === 'bot_reply') {
+      return null;
+    }
+    return {
+      kind: 'event',
+      label: entry.data.eventType,
+      value: entry.data,
+    };
+  }
+  return null;
+}
+
+/**
+ * For each bot_reply timeline index, collect the inter-turn entries
+ * (everything between the prior bot_reply and this one, excluding the
+ * user_message + the bot_reply itself).
+ */
+function computeTurnEntries(timeline: TimelineEntry[]): Array<TurnEntry[] | undefined> {
+  const out: Array<TurnEntry[] | undefined> = new Array(timeline.length);
+  let bucket: TurnEntry[] = [];
+  for (let i = 0; i < timeline.length; i++) {
+    const entry = timeline[i];
+    if (entry.kind === 'event' && entry.data.eventType === 'bot_reply') {
+      out[i] = bucket;
+      bucket = [];
+      continue;
+    }
+    const turnEntry = toTurnEntry(entry);
+    if (turnEntry) bucket.push(turnEntry);
+  }
+  return out;
 }
 
 /**
@@ -615,26 +493,37 @@ function computePreviousUserMessages(timeline: TimelineEntry[]): Array<string | 
 function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
   const turns: SessionTurn[] = [];
   let lastUserText: string | null = null;
+  let bucket: TurnEntry[] = [];
   for (const entry of timeline) {
-    if (entry.kind !== 'event') continue;
-    const payload = entry.data.payload as unknown;
-    const isObj = payload && typeof payload === 'object';
-    if (entry.data.eventType === 'user_message') {
-      if (isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
-        lastUserText = (payload as { text: string }).text;
+    if (entry.kind === 'event') {
+      const payload = entry.data.payload as unknown;
+      const isObj = payload && typeof payload === 'object';
+      if (entry.data.eventType === 'user_message') {
+        if (isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
+          lastUserText = (payload as { text: string }).text;
+        }
+        continue;
       }
-      continue;
+      if (entry.data.eventType === 'bot_reply') {
+        const botText =
+          isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
+            ? (payload as { text: string }).text
+            : '';
+        const rawBotParts =
+          isObj && 'parts' in payload ? (payload as { parts: unknown }).parts : null;
+        turns.push({
+          userText: lastUserText,
+          botText,
+          rawBotParts,
+          turnEntries: bucket,
+        });
+        lastUserText = null;
+        bucket = [];
+        continue;
+      }
     }
-    if (entry.data.eventType === 'bot_reply') {
-      const botText =
-        isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
-          ? (payload as { text: string }).text
-          : '';
-      const rawBotParts =
-        isObj && 'parts' in payload ? (payload as { parts: unknown }).parts : null;
-      turns.push({ userText: lastUserText, botText, rawBotParts });
-      lastUserText = null;
-    }
+    const turnEntry = toTurnEntry(entry);
+    if (turnEntry) bucket.push(turnEntry);
   }
   return turns;
 }
@@ -779,12 +668,14 @@ function ChatbotSessionDetailView({
           <div className="flex flex-col gap-2">
             {(() => {
               const prevUserMessages = computePreviousUserMessages(detail.timeline);
+              const turnEntriesByIndex = computeTurnEntries(detail.timeline);
               return detail.timeline.map((entry, i) => (
                 <TimelineEntryCard
                   key={i}
                   entry={entry}
                   startTs={detail.firstSeenTs}
                   previousUserMessage={prevUserMessages[i]}
+                  turnEntries={turnEntriesByIndex[i]}
                 />
               ));
             })()}

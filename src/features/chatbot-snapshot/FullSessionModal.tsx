@@ -3,13 +3,33 @@ import { TextBubble } from './parts/TextBubble';
 import { IntentBlockCard } from './parts/IntentBlockCard';
 import { MealSessionCard } from './parts/MealSessionCard';
 import { MenuPreviewCard } from './parts/MenuPreviewCard';
+import { TurnInspectButtons } from './TurnInspectButtons';
 import { isRenderablePart, type RenderableMessagePart } from './types';
 import './snapshot.css';
+
+/**
+ * One inter-turn timeline entry: an llm_call, retrieval, or side event
+ * that fired between the previous bot_reply and the current one. Each
+ * gets its own pill in the inspect bar; clicking opens a JsonModal.
+ */
+export interface TurnEntry {
+  kind: 'event' | 'llm_call' | 'retrieval';
+  /** Short label rendered on the pill, e.g. "intent_extracted" or "intent_extractor (gemini-2.5-flash)". */
+  label: string;
+  /** Full payload for the JsonModal. */
+  value: unknown;
+}
 
 export interface SessionTurn {
   userText: string | null;
   botText: string;
   rawBotParts: unknown;
+  /**
+   * Every timeline entry between the prior bot_reply and this one
+   * (excluding user_message + the bot_reply itself), in chronological
+   * order. Each entry becomes a pill in the inspect bar.
+   */
+  turnEntries: TurnEntry[];
 }
 
 interface FullSessionModalProps {
@@ -23,6 +43,7 @@ interface NormalisedTurn {
   textParts: string[];
   structuredParts: RenderableMessagePart[];
   hasSuggestions: boolean;
+  turnEntries: TurnEntry[];
 }
 
 export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
@@ -54,6 +75,7 @@ export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
           textParts: textParts.length > 0 ? textParts : fallbackText,
           structuredParts,
           hasSuggestions: structuredParts.length > 0,
+          turnEntries: turn.turnEntries,
         };
       }),
     [turns],
@@ -188,40 +210,39 @@ export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
 
 function SuggestionsPane({ turn }: { turn: NormalisedTurn | undefined }) {
   if (!turn) return null;
-  if (!turn.hasSuggestions) {
-    return (
-      <div
-        style={{
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--ink-faint)',
-          fontSize: '0.9rem',
-          textAlign: 'center',
-          padding: 24,
-        }}
-      >
-        No item suggestions for this reply.
-      </div>
-    );
-  }
   return (
     <>
-      {turn.structuredParts.map((part, i) => {
-        if (part.type === 'intent_block') {
-          return <IntentBlockCard key={`ib-${part.intentId}-${i}`} part={part} />;
-        }
-        if (part.type === 'meal_session') {
-          return (
-            <MealSessionCard key={`ms-${part.mealSessionIndex}-${i}`} part={part} />
-          );
-        }
-        if (part.type === 'menu_preview') {
-          return <MenuPreviewCard key={`mp-${i}`} preview={part.preview} />;
-        }
-        return null;
-      })}
+      <TurnInspectButtons turnEntries={turn.turnEntries} />
+      {!turn.hasSuggestions ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--ink-faint)',
+            fontSize: '0.9rem',
+            textAlign: 'center',
+            padding: '40px 24px',
+          }}
+        >
+          No item suggestions for this reply.
+        </div>
+      ) : (
+        turn.structuredParts.map((part, i) => {
+          if (part.type === 'intent_block') {
+            return <IntentBlockCard key={`ib-${part.intentId}-${i}`} part={part} />;
+          }
+          if (part.type === 'meal_session') {
+            return (
+              <MealSessionCard key={`ms-${part.mealSessionIndex}-${i}`} part={part} />
+            );
+          }
+          if (part.type === 'menu_preview') {
+            return <MenuPreviewCard key={`mp-${i}`} preview={part.preview} />;
+          }
+          return null;
+        })
+      )}
     </>
   );
 }

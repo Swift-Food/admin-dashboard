@@ -111,23 +111,33 @@ export function SnapshotModal({
 
           {!hasParts && botText && <TextBubble sender="bot" text={botText} />}
 
-          {parts.map((part, i) => {
-            if (part.type === 'text') {
-              return <TextBubble key={`text-${i}`} sender="bot" text={part.text} />;
-            }
-            if (part.type === 'intent_block') {
-              return <IntentBlockCard key={`ib-${part.intentId}-${i}`} part={part} />;
-            }
-            if (part.type === 'meal_session') {
-              return (
-                <MealSessionCard
-                  key={`ms-${part.mealSessionIndex}-${i}`}
-                  part={part}
-                />
-              );
-            }
-            return null;
-          })}
+          {/* Render all text parts first (directly under the user bubble), */}
+          {/* then the structured suggestion parts beneath. The backend may */}
+          {/* place its trailing prose at the end of `parts`, but in the */}
+          {/* preview we always want the bot's reply to read right after */}
+          {/* the user's message. */}
+          {parts
+            .filter((p) => p.type === 'text')
+            .map((part, i) => (
+              <TextBubble key={`text-${i}`} sender="bot" text={part.text} />
+            ))}
+
+          {parts
+            .filter((p) => p.type !== 'text')
+            .map((part, i) => {
+              if (part.type === 'intent_block') {
+                return <IntentBlockCard key={`ib-${part.intentId}-${i}`} part={part} />;
+              }
+              if (part.type === 'meal_session') {
+                return (
+                  <MealSessionCard
+                    key={`ms-${part.mealSessionIndex}-${i}`}
+                    part={part}
+                  />
+                );
+              }
+              return null;
+            })}
         </div>
       </div>
     </div>

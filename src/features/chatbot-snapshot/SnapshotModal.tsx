@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { TextBubble } from './parts/TextBubble';
 import { IntentBlockCard } from './parts/IntentBlockCard';
 import { MealSessionCard } from './parts/MealSessionCard';
+import { MenuPreviewCard } from './parts/MenuPreviewCard';
 import { isRenderablePart, type RenderableMessagePart } from './types';
 import './snapshot.css';
 
@@ -135,6 +136,9 @@ export function SnapshotModal({
                     part={part}
                   />
                 );
+              }
+              if (part.type === 'menu_preview') {
+                return <MenuPreviewCard key={`mp-${i}`} preview={part.preview} />;
               }
               return null;
             })}

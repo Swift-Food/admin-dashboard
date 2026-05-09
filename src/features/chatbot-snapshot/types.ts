@@ -145,8 +145,43 @@ export interface TextPart {
   text: string;
 }
 
+// ── Exploration-mode menu preview (no headcount) ───────────────────────
+
+export interface PreviewItem {
+  menuItemId: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  groupTitle: string | null;
+  mealCategory: MealCategory;
+  allergens: string[];
+  dietaryFilters: string[];
+  unitPrice: number;
+  feedsPerUnit: number;
+  restaurant: RestaurantSummary;
+  matchReason: string;
+}
+
+export interface PreviewSection {
+  intent: string;
+  items: PreviewItem[];
+}
+
+export interface MenuPreview {
+  sections: PreviewSection[];
+}
+
+export interface MenuPreviewPart {
+  type: 'menu_preview';
+  preview: MenuPreview;
+}
+
 /** Minimal union — we only render text + suggestion parts in snapshots. */
-export type RenderableMessagePart = TextPart | IntentBlockPart | MealSessionPart;
+export type RenderableMessagePart =
+  | TextPart
+  | IntentBlockPart
+  | MealSessionPart
+  | MenuPreviewPart;
 
 /**
  * Type guard for filtering raw bot_reply.parts (loosely typed as `any`)
@@ -155,5 +190,10 @@ export type RenderableMessagePart = TextPart | IntentBlockPart | MealSessionPart
 export function isRenderablePart(p: unknown): p is RenderableMessagePart {
   if (!p || typeof p !== 'object') return false;
   const type = (p as { type?: unknown }).type;
-  return type === 'text' || type === 'intent_block' || type === 'meal_session';
+  return (
+    type === 'text' ||
+    type === 'intent_block' ||
+    type === 'meal_session' ||
+    type === 'menu_preview'
+  );
 }

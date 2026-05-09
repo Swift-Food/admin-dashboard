@@ -1,5 +1,4 @@
 import { IntentBlockCard } from './IntentBlockCard';
-import { MenuDraftCard } from './MenuDraftCard';
 import type { MealSessionPart } from '../types';
 
 interface MealSessionCardProps {
@@ -9,8 +8,12 @@ interface MealSessionCardProps {
 /**
  * Read-only port of the website's MealSessionStepper, simplified: always
  * shows all intent blocks (no step mode), no cohesion across blocks (each
- * IntentBlockCard owns its own restaurant selection), and renders the
- * draft cart inline below the intent blocks when present.
+ * IntentBlockCard owns its own restaurant selection).
+ *
+ * Mirrors what /catering-AI renders for a meal_session part: header +
+ * intent blocks only. The `draft` field is intentionally NOT rendered —
+ * the website draws the cart on a separate surface (menu_plan part), not
+ * inline below intent blocks.
  */
 export function MealSessionCard({ part }: MealSessionCardProps) {
   const blocks = part.intentBlocks;
@@ -39,12 +42,6 @@ export function MealSessionCard({ part }: MealSessionCardProps) {
       {blocks.map((block) => (
         <IntentBlockCard key={block.intentId} part={block} />
       ))}
-
-      {part.draft && (
-        <div style={{ marginTop: 12 }}>
-          <MenuDraftCard draft={part.draft} />
-        </div>
-      )}
     </div>
   );
 }

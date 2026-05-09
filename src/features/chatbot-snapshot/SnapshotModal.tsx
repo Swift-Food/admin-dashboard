@@ -37,12 +37,11 @@ export function SnapshotModal({
     ? rawBotParts.filter(isRenderablePart)
     : [];
 
-  // The bot_reply.text is also surfaced as a TextPart at the head of
-  // response.parts, so deduplicate: if the first text part matches botText,
-  // skip the standalone botText bubble. Otherwise show both.
-  const firstPart = parts[0];
-  const firstIsLeadingText =
-    firstPart && firstPart.type === 'text' && firstPart.text === botText;
+  // The bot_reply text is always surfaced as a TextPart inside `parts`
+  // (sometimes at the head, sometimes after intent blocks). Render only
+  // from `parts` and fall back to `botText` only when there are no parts
+  // at all — otherwise we'd show the same prose twice.
+  const hasParts = parts.length > 0;
 
   return (
     <div
@@ -110,9 +109,7 @@ export function SnapshotModal({
         >
           {userText !== null && <TextBubble sender="user" text={userText} />}
 
-          {botText && !firstIsLeadingText && (
-            <TextBubble sender="bot" text={botText} />
-          )}
+          {!hasParts && botText && <TextBubble sender="bot" text={botText} />}
 
           {parts.map((part, i) => {
             if (part.type === 'text') {

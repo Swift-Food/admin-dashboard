@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { IntentBlockCard } from './IntentBlockCard';
 import type { MealSessionPart } from '../types';
 
@@ -6,17 +7,17 @@ interface MealSessionCardProps {
 }
 
 /**
- * Read-only port of the website's MealSessionStepper, simplified: always
- * shows all intent blocks (no step mode), no cohesion across blocks (each
- * IntentBlockCard owns its own restaurant selection).
- *
- * Mirrors what /catering-AI renders for a meal_session part: header +
- * intent blocks only. The `draft` field is intentionally NOT rendered —
- * the website draws the cart on a separate surface (menu_plan part), not
- * inline below intent blocks.
+ * Read-only meal-session view: header + a horizontal tab strip of
+ * intent pills, with the selected intent's block rendered below.
  */
 export function MealSessionCard({ part }: MealSessionCardProps) {
   const blocks = part.intentBlocks;
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  if (blocks.length === 0) return null;
+
+  const safeIdx = Math.min(activeIdx, blocks.length - 1);
+  const active = blocks[safeIdx];
 
   return (
     <div style={{ marginTop: 16, marginBottom: 16 }}>
@@ -39,9 +40,76 @@ export function MealSessionCard({ part }: MealSessionCardProps) {
         )}
       </header>
 
-      {blocks.map((block) => (
-        <IntentBlockCard key={block.intentId} part={block} />
-      ))}
+      {blocks.length > 1 && (
+        <IntentTabs
+          blocks={blocks}
+          activeIdx={safeIdx}
+          onSelect={setActiveIdx}
+        />
+      )}
+
+      {active && <IntentBlockCard key={active.intentId} part={active} />}
+    </div>
+  );
+}
+
+function IntentTabs({
+  blocks,
+  activeIdx,
+  onSelect,
+}: {
+  blocks: MealSessionPart['intentBlocks'];
+  activeIdx: number;
+  onSelect: (idx: number) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        padding: '0 4px',
+        marginBottom: 12,
+      }}
+    >
+      {blocks.map((block, idx) => {
+        const isActive = idx === activeIdx;
+        return (
+          <button
+            key={block.intentId}
+            type="button"
+            onClick={() => onSelect(idx)}
+            style={{
+              fontSize: '0.78rem',
+              fontWeight: isActive ? 600 : 500,
+              padding: '6px 12px',
+              borderRadius: 6,
+              border: '1px solid',
+              borderColor: isActive ? 'var(--ink)' : 'var(--rule)',
+              backgroundColor: isActive ? 'var(--ink)' : 'var(--paper)',
+              color: isActive ? 'var(--paper)' : 'var(--ink)',
+              cursor: 'pointer',
+              textTransform: 'capitalize',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {block.intent.phrase}
+            {block.intent.category && (
+              <span
+                style={{
+                  marginLeft: 6,
+                  fontSize: '0.65rem',
+                  opacity: 0.7,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {block.intent.category}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

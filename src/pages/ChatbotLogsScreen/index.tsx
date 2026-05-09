@@ -6,6 +6,7 @@ import type {
   ChatbotSessionDetail,
   TimelineEntry,
 } from '../../types/chatbot-logs.types';
+import { SnapshotModal } from '../../features/chatbot-snapshot/SnapshotModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -395,7 +396,15 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Timeline cards ──────────────────────────────────────────────────────────
 
-function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kind: 'event' }>; offsetLabel: string }) {
+function EventCard({
+  entry,
+  offsetLabel,
+  previousUserMessage,
+}: {
+  entry: Extract<TimelineEntry, { kind: 'event' }>;
+  offsetLabel: string;
+  previousUserMessage?: string | null;
+}) {
   const isUser  = entry.data.eventType === 'user_message';
   const isBot   = entry.data.eventType === 'bot_reply';
   const tint    = isUser ? 'border-blue-300 bg-blue-50' : isBot ? 'border-gray-300 bg-gray-50' : 'border-gray-200 bg-white';
@@ -406,6 +415,19 @@ function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kin
       ? (payload as { text: string }).text
       : null;
 
+  const [showSnapshot, setShowSnapshot] = useState(false);
+
+  // Pull text + parts off the bot_reply payload (loosely — these come from
+  // the backend untyped on the wire).
+  const botText =
+    isBot && payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
+      ? (payload as { text: string }).text
+      : '';
+  const botParts =
+    isBot && payload && typeof payload === 'object' && 'parts' in payload
+      ? (payload as { parts: unknown }).parts
+      : null;
+
   return (
     <div className={`rounded-lg border ${tint} p-3`}>
       <div className="flex items-center gap-2 mb-1">
@@ -413,6 +435,15 @@ function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kin
           {offsetLabel}
         </span>
         <span className="font-semibold text-sm text-gray-800">{entry.data.eventType}</span>
+        {isBot && (
+          <button
+            type="button"
+            onClick={() => setShowSnapshot(true)}
+            className="ml-2 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-0.5 hover:bg-indigo-100 transition-colors"
+          >
+            View preview
+          </button>
+        )}
         <span className="ml-auto text-xs text-gray-400">event #{entry.data.id}</span>
       </div>
       {userMessageText !== null && (
@@ -422,6 +453,15 @@ function EventCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kin
         </div>
       )}
       <JsonBlock label="payload" value={entry.data.payload} />
+
+      {isBot && showSnapshot && (
+        <SnapshotModal
+          userText={previousUserMessage ?? null}
+          botText={botText}
+          rawBotParts={botParts}
+          onClose={() => setShowSnapshot(false)}
+        />
+      )}
     </div>
   );
 }
@@ -523,7 +563,15 @@ function FeedbackCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { 
   );
 }
 
-function TimelineEntryCard({ entry, startTs }: { entry: TimelineEntry; startTs: string }) {
+function TimelineEntryCard({
+  entry,
+  startTs,
+  previousUserMessage,
+}: {
+  entry: TimelineEntry;
+  startTs: string;
+  previousUserMessage?: string | null;
+}) {
   const offsetLabel = formatOffsetMs(startTs, entry.ts);
   const hasError =
     entry.kind === 'llm_call' && !!entry.data.errorType;
@@ -531,12 +579,32 @@ function TimelineEntryCard({ entry, startTs }: { entry: TimelineEntry; startTs: 
 
   return (
     <div className={`${leftBorder}`}>
-      {entry.kind === 'event'     && <EventCard     entry={entry} offsetLabel={offsetLabel} />}
+      {entry.kind === 'event'     && <EventCard     entry={entry} offsetLabel={offsetLabel} previousUserMessage={previousUserMessage} />}
       {entry.kind === 'llm_call'  && <LlmCallCard   entry={entry} offsetLabel={offsetLabel} />}
       {entry.kind === 'retrieval' && <RetrievalCard entry={entry} offsetLabel={offsetLabel} />}
       {entry.kind === 'feedback'  && <FeedbackCard  entry={entry} offsetLabel={offsetLabel} />}
     </div>
   );
+}
+
+/**
+ * For each timeline entry, compute the most-recent prior user_message text
+ * (or null). Used to pair user messages with bot replies in the snapshot
+ * preview modal.
+ */
+function computePreviousUserMessages(timeline: TimelineEntry[]): Array<string | null> {
+  const out: Array<string | null> = [];
+  let lastUserText: string | null = null;
+  for (const entry of timeline) {
+    out.push(lastUserText);
+    if (entry.kind === 'event' && entry.data.eventType === 'user_message') {
+      const payload = entry.data.payload as unknown;
+      if (payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
+        lastUserText = (payload as { text: string }).text;
+      }
+    }
+  }
+  return out;
 }
 
 // ─── Detail view ─────────────────────────────────────────────────────────────
@@ -660,9 +728,17 @@ function ChatbotSessionDetailView({
           <p className="text-gray-400 text-sm">No timeline entries.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {detail.timeline.map((entry, i) => (
-              <TimelineEntryCard key={i} entry={entry} startTs={detail.firstSeenTs} />
-            ))}
+            {(() => {
+              const prevUserMessages = computePreviousUserMessages(detail.timeline);
+              return detail.timeline.map((entry, i) => (
+                <TimelineEntryCard
+                  key={i}
+                  entry={entry}
+                  startTs={detail.firstSeenTs}
+                  previousUserMessage={prevUserMessages[i]}
+                />
+              ));
+            })()}
           </div>
         )}
       </div>

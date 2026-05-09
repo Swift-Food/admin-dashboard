@@ -1,0 +1,94 @@
+/*
+ * Editorial Menu Card design tokens — ported from
+ * website/lib/components/chatbot/styles.css and scoped to the
+ * `.snapshot-design` wrapper used inside the chatbot-logs preview modal.
+ *
+ * Only the tokens, helper classes, and pill styles needed by the ported
+ * suggestion components (TextBubble, IntentBlockCard, MealSessionStepper,
+ * MenuDraftCard, DraftItemRow, Reason) are included.
+ */
+
+.snapshot-design {
+  --paper:        #FBF7F4;
+  --paper-deep:   #F4EFE8;
+  --ink:          #1A1A1A;
+  --ink-soft:     #4A4845;
+  --ink-faint:    #8A8580;
+  --rule:         #E8E2DA;
+  --brand:        #FA43AD;
+  --brand-soft:   #FFEAF4;
+  --brand-deep:   #C9277F;
+  --olive:        #6B7A4C;
+  --olive-soft:   #EDEFE3;
+  --ember:        #C8553D;
+  --ember-soft:   #F8E4DE;
+
+  --shadow-card:  0 1px 2px rgba(26,26,26,0.04), 0 8px 24px rgba(26,26,26,0.06);
+  --shadow-lift:  0 2px 6px rgba(26,26,26,0.06), 0 12px 36px rgba(26,26,26,0.1);
+
+  --font-display: Georgia, serif;
+  --font-body:    -apple-system, system-ui, sans-serif;
+
+  font-family: var(--font-body);
+  color: var(--ink);
+  background-color: var(--paper);
+}
+
+.snapshot-design .display {
+  font-family: var(--font-display);
+}
+
+.snapshot-design .display-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+.snapshot-design .small-caps {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.snapshot-design .reason {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--olive);
+  letter-spacing: 0.01em;
+}
+
+.snapshot-design .allergen-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ember-soft);
+  color: var(--ember);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.snapshot-design .dietary-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--olive-soft);
+  color: var(--olive);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.snapshot-design .item-restaurant-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}

@@ -316,6 +316,16 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               <p className="text-xl font-semibold text-gray-900">{order.customerName}</p>
               <p className="text-sm text-gray-600 mt-2">{order.customerEmail}</p>
               <p className="text-sm text-gray-600">{order.customerPhone}</p>
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Embed Partner</p>
+                {order.partnerSpace ? (
+                  <span className="inline-block mt-2 px-2.5 py-1 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
+                    {order.partnerSpace.name}
+                  </span>
+                ) : (
+                  <p className="text-sm text-gray-400 mt-1">Direct (no partner)</p>
+                )}
+              </div>
             </div>
             <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
@@ -1362,10 +1372,15 @@ const CateringOrdersScreen = () => {
                       <div className="text-xs text-gray-500 mt-1">{new Date(order.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <div className="text-sm font-semibold text-gray-900">{order.customerName}</div>
                         {!!(order as any).isCoworkingOrder && (
                           <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700 border border-purple-300 whitespace-nowrap">Coworking</span>
+                        )}
+                        {order.partnerSpace && (
+                          <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 whitespace-nowrap" title="Embed partner">
+                            {order.partnerSpace.name}
+                          </span>
                         )}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">{order.customerEmail}</div>

@@ -240,6 +240,14 @@ export interface CateringOrder {
   };
 
   // ============================================================
+  // PARTNER SPACE (embed partner that submitted the order, if any)
+  // ============================================================
+  partnerSpace?: {
+    id: string;
+    name: string;
+  } | null;
+
+  // ============================================================
   // TIMESTAMPS
   // ============================================================
   createdAt: string;

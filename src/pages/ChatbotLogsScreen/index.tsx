@@ -456,6 +456,7 @@ function computeTurnEntries(timeline: TimelineEntry[]): Array<TurnEntry[] | unde
   for (let i = 0; i < timeline.length; i++) {
     const entry = timeline[i];
     if (entry.kind === 'event' && entry.data.eventType === 'bot_reply') {
+      bucket.push({ kind: 'event', label: 'bot_reply', value: entry.data });
       out[i] = bucket;
       bucket = [];
       continue;
@@ -511,6 +512,7 @@ function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
             : '';
         const rawBotParts =
           isObj && 'parts' in payload ? (payload as { parts: unknown }).parts : null;
+        bucket.push({ kind: 'event', label: 'bot_reply', value: entry.data });
         turns.push({
           userText: lastUserText,
           botText,

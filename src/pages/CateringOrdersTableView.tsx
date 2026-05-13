@@ -1363,7 +1363,7 @@ const CateringOrdersScreen = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {sortedOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-blue-50 transition-colors border-b border-gray-100">
+                  <tr key={order.id} onClick={() => handleOrderClick(order)} className="hover:bg-blue-50 transition-colors border-b border-gray-100 cursor-pointer">
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-bold text-gray-900">#{order.id.slice(0, 8).toUpperCase()}</div>
                       <div className="text-xs text-gray-500 mt-1">{new Date(order.createdAt).toLocaleDateString()}</div>
@@ -1419,7 +1419,7 @@ const CateringOrdersScreen = () => {
                       )}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-sm">
-                      <button onClick={() => handleOrderClick(order)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
+                      <button onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
                         View Details
                       </button>
                     </td>

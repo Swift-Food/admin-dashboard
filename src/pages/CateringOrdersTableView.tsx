@@ -290,36 +290,36 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
   return (
     <Modal open={true} onClose={onClose} overlayOpacity={50}>
-      <div className="bg-white rounded-xl w-[70vw] max-w-[1000px] max-h-[90vh] overflow-y-auto shadow-2xl flex-shrink-0">
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-xl">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-3xl font-bold">Catering Order Details</h2>
-              <p className="text-purple-100 mt-2 text-lg">#{order.id.slice(0, 8).toUpperCase()}</p>
+      <div className="bg-white rounded-2xl w-[70vw] max-w-[1000px] max-h-[90vh] overflow-y-auto shadow-2xl flex-shrink-0">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-4 rounded-t-2xl">
+          <div className="flex justify-between items-center">
+            <div className="flex items-baseline gap-3">
+              <h2 className="text-xl font-bold tracking-tight">Catering Order Details</h2>
+              <span className="text-purple-200 text-sm font-mono">#{order.id.slice(0, 8).toUpperCase()}</span>
             </div>
-            <button onClick={onClose} className="text-white hover:text-purple-200 transition-colors">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={onClose} className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-5">
           {/* Customer & Event Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div className="bg-gray-50/70 p-4 rounded-xl border border-gray-200/80">
+              <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
                 Customer
               </h3>
-              <p className="text-xl font-semibold text-gray-900">{order.customerName}</p>
-              <p className="text-sm text-gray-600 mt-2">{order.customerEmail}</p>
+              <p className="text-base font-semibold text-gray-900">{order.customerName}</p>
+              <p className="text-sm text-gray-600 mt-1">{order.customerEmail}</p>
               <p className="text-sm text-gray-600">{order.customerPhone}</p>
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Embed Partner</p>
+              <div className="mt-3 pt-3 border-t border-gray-200/80">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Embed Partner</p>
                 {order.partnerSpace ? (
-                  <span className="inline-block mt-2 px-2.5 py-1 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
+                  <span className="inline-block mt-1.5 px-2 py-0.5 text-xs font-semibold rounded-md bg-indigo-100 text-indigo-700">
                     {order.partnerSpace.name}
                   </span>
                 ) : (
@@ -327,66 +327,63 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 )}
               </div>
             </div>
-            <div className="bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/></svg>
+            <div className="bg-gray-50/70 p-4 rounded-xl border border-gray-200/80">
+              <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/></svg>
                 Event Details
               </h3>
-              <p className="text-lg font-semibold text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</p>
-              <p className="text-sm text-gray-600 mt-1">{order.eventTime}</p>
-              <p className="text-sm text-gray-600 mt-2">{(order.restaurants || order.orderItems || []).reduce((total, item) => total + (item.menuItems || []).reduce((sum, mi) => sum + (mi?.quantity || 0), 0), 0)} portions</p>
-              {order.eventType && <p className="text-sm text-gray-600">{order.eventType}</p>}
+              <p className="text-base font-semibold text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</p>
+              <p className="text-sm text-gray-600 mt-1">{order.eventTime} · {(order.restaurants || order.orderItems || []).reduce((total, item) => total + (item.menuItems || []).reduce((sum, mi) => sum + (mi?.quantity || 0), 0), 0)} portions</p>
+              {order.eventType && <p className="text-sm text-gray-600 mt-0.5">{order.eventType}</p>}
             </div>
           </div>
 
           {/* Delivery Address */}
           {(typeof order.deliveryAddress === 'string' ? order.deliveryAddress : order.deliveryAddress && `${order.deliveryAddress.street}, ${order.deliveryAddress.city}, ${order.deliveryAddress.postcode}`) && (
-            <div className="bg-blue-50 p-6 rounded-xl mb-8 border-2 border-blue-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
-                Delivery Address
-              </h3>
-              <p className="text-base text-gray-700 leading-relaxed">
-                {typeof order.deliveryAddress === 'string'
-                  ? order.deliveryAddress
-                  : `${order.deliveryAddress?.street}, ${order.deliveryAddress?.city}, ${order.deliveryAddress?.postcode}`}
-              </p>
+            <div className="bg-blue-50/60 px-4 py-3 rounded-xl mb-3 border border-blue-200/70 flex items-start gap-2.5">
+              <svg className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
+              <div className="flex-1">
+                <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider mb-0.5">Delivery Address</p>
+                <p className="text-sm text-gray-800">
+                  {typeof order.deliveryAddress === 'string'
+                    ? order.deliveryAddress
+                    : `${order.deliveryAddress?.street}, ${order.deliveryAddress?.city}, ${order.deliveryAddress?.postcode}`}
+                </p>
+              </div>
             </div>
           )}
 
           {/* Financial Summary */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl mb-8 border-2 border-green-200">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Financial Summary</h3>
+          <div className="bg-gradient-to-br from-emerald-50 to-green-50/60 p-4 rounded-xl mb-3 border border-emerald-200/70">
+            <h3 className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider mb-3">Financial Summary</h3>
 
             {/* Promo Codes Display */}
             {order.promoCodes && order.promoCodes.length > 0 && (
-              <div className="mb-4 flex items-center gap-2">
-                <span className="text-sm font-semibold text-green-900">Promo Codes Applied:</span>
-                <div className="flex flex-wrap gap-2">
-                  {order.promoCodes.map((code, idx) => (
-                    <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-700 text-white">
-                      {code}
-                    </span>
-                  ))}
-                </div>
+              <div className="mb-3 flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-emerald-900">Promo Codes:</span>
+                {order.promoCodes.map((code, idx) => (
+                  <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-700 text-white">
+                    {code}
+                  </span>
+                ))}
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Customer Paid</p>
-                <p className="text-2xl font-bold text-green-900">
+                <p className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mb-0.5">Customer Paid</p>
+                <p className="text-xl font-bold text-emerald-900 tabular-nums">
                   {formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)}
                 </p>
                 {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
-                  <p className="text-xs text-green-600 mt-1">
-                    (Original: {formatCurrency((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0) + parseFloat(order.promoDiscount.toString()))})
+                  <p className="text-[11px] text-emerald-600 mt-0.5">
+                    Was {formatCurrency((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0) + parseFloat(order.promoDiscount.toString()))}
                   </p>
                 )}
               </div>
               <div>
-                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Net Commission</p>
-                <p className="text-2xl font-bold text-green-900">
+                <p className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mb-0.5">Net Commission</p>
+                <p className="text-xl font-bold text-emerald-900 tabular-nums">
                   {formatCurrency(
                     order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0
                       ? (parseFloat((order.platformCommissionRevenue || 0).toString()) - parseFloat(order.promoDiscount.toString()))
@@ -394,59 +391,59 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   )}
                 </p>
                 {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
-                  <p className="text-xs font-semibold text-red-600 mt-1">
-                    (Absorbed {formatCurrency(order.promoDiscount)} discount)
+                  <p className="text-[11px] font-semibold text-red-600 mt-0.5">
+                    Absorbed {formatCurrency(order.promoDiscount)}
                   </p>
                 )}
               </div>
               <div>
-                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Restaurant Gross</p>
-                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.restaurantsTotalGross)}</p>
+                <p className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mb-0.5">Restaurant Gross</p>
+                <p className="text-xl font-bold text-emerald-900 tabular-nums">{formatCurrency(order.restaurantsTotalGross)}</p>
               </div>
               <div>
-                <p className="text-xs text-green-700 font-semibold uppercase mb-1">Restaurant Net</p>
-                <p className="text-2xl font-bold text-green-900">{formatCurrency(order.restaurantsTotalNet)}</p>
+                <p className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mb-0.5">Restaurant Net</p>
+                <p className="text-xl font-bold text-emerald-900 tabular-nums">{formatCurrency(order.restaurantsTotalNet)}</p>
               </div>
             </div>
           </div>
 
           {/* Special Requirements */}
           {order.specialRequirements && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-r-xl mb-8">
-              <h3 className="font-bold text-yellow-900 mb-2 text-lg">⚠️ Special Requirements</h3>
-              <p className="text-base text-yellow-900 leading-relaxed">{order.specialRequirements}</p>
+            <div className="bg-amber-50/70 border-l-2 border-amber-500 px-4 py-3 rounded-r-lg mb-3">
+              <h3 className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider mb-1">⚠ Special Requirements</h3>
+              <p className="text-sm text-amber-900 leading-relaxed">{order.specialRequirements}</p>
             </div>
           )}
 
           {/* Admin Notes */}
           {order.adminNotes && (
-            <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-6 mb-8">
-              <h3 className="font-bold mb-3 text-gray-900 text-lg">📝 Admin Notes</h3>
-              <p className="text-base text-gray-800 leading-relaxed">{order.adminNotes}</p>
+            <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl px-4 py-3 mb-3">
+              <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Admin Notes</h3>
+              <p className="text-sm text-gray-800 leading-relaxed">{order.adminNotes}</p>
             </div>
           )}
 
           {/* Payment Link */}
           {order.paymentLinkUrl && (
-            <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-6 mb-8">
-              <h3 className="font-bold mb-3 text-blue-900 text-lg">💳 Payment Link</h3>
-              <div className="space-y-2">
-                <a
-                  href={order.paymentLinkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-700 hover:text-blue-900 font-medium text-base underline break-all"
-                >
-                  {order.paymentLinkUrl}
-                </a>
+            <div className="bg-blue-50/60 border border-blue-200/70 rounded-xl px-4 py-3 mb-3">
+              <h3 className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider mb-1.5">Payment Link</h3>
+              <a
+                href={order.paymentLinkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-700 hover:text-blue-900 text-sm underline break-all"
+              >
+                {order.paymentLinkUrl}
+              </a>
+              <div className="mt-1 space-y-0.5">
                 {order.paymentLinkSentAt && (
-                  <p className="text-sm text-gray-700">
-                    Sent: {new Date(order.paymentLinkSentAt).toLocaleString()}
+                  <p className="text-xs text-gray-600">
+                    Sent {new Date(order.paymentLinkSentAt).toLocaleString()}
                   </p>
                 )}
                 {order.paid && order.paidAt && (
-                  <p className="text-sm text-green-700 font-semibold">
-                    ✓ Paid: {new Date(order.paidAt).toLocaleString()}
+                  <p className="text-xs text-emerald-700 font-semibold">
+                    ✓ Paid {new Date(order.paidAt).toLocaleString()}
                   </p>
                 )}
               </div>
@@ -455,26 +452,26 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
           {/* Order Items — grouped by meal session if available */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Order Items</h3>
+            <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Order Items</h3>
             {order.mealSessions && order.mealSessions.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-3">
                 {order.mealSessions.map((session: any, sIdx: number) => (
-                  <div key={session.id || sIdx} className="border-2 border-gray-200 rounded-xl overflow-hidden">
-                    <div className="bg-purple-50 px-5 py-3 border-b border-gray-200">
+                  <div key={session.id || sIdx} className="border border-gray-200/80 rounded-xl overflow-hidden">
+                    <div className="bg-purple-50/70 px-4 py-2.5 border-b border-gray-200/80">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className="font-bold text-gray-900">{session.sessionName || `Session ${sIdx + 1}`}</h4>
+                          <h4 className="font-semibold text-gray-900 text-sm">{session.sessionName || `Session ${sIdx + 1}`}</h4>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {session.sessionDate ? new Date(session.sessionDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
                             {session.eventTime ? ` at ${session.eventTime}` : ''}
-                            {session.collectionTime ? ` — Collection: ${session.collectionTime}` : ''}
+                            {session.collectionTime ? ` · Collection ${session.collectionTime}` : ''}
                           </p>
                         </div>
                         <div className="text-right">
                           {session.deliveryFee != null && (
-                            <div className="text-xs text-gray-500">
-                              Delivery:{" "}
-                              <span className="font-semibold text-gray-700">
+                            <div className="text-[11px] text-gray-500">
+                              Delivery{" "}
+                              <span className="font-semibold text-gray-700 tabular-nums">
                                 {formatCurrency(session.deliveryFeeOverride ?? session.deliveryFee)}
                               </span>
                               {session.deliveryFeeOverride != null && (
@@ -483,15 +480,15 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                             </div>
                           )}
                           {session.subtotal != null && (
-                            <span className="text-sm font-bold text-gray-700">{formatCurrency(Number(session.subtotal))}</span>
+                            <span className="text-sm font-semibold text-gray-900 tabular-nums">{formatCurrency(Number(session.subtotal))}</span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="p-5 space-y-4">
+                    <div className="p-3 space-y-2">
                       {(session.orderItems || []).map((item: any, rIdx: number) => (
-                        <div key={rIdx} className="bg-white border border-gray-100 rounded-lg p-4">
-                          <h5 className="font-bold text-gray-900 mb-3">{item.restaurantName}</h5>
+                        <div key={rIdx} className="bg-white border border-gray-100 rounded-lg p-3">
+                          <h5 className="font-semibold text-gray-900 mb-2 text-sm">{item.restaurantName}</h5>
                           <div className="space-y-2">
                             {(item.menuItems || []).filter((m: any) => m != null).map((menuItem: any, mIdx: number) => {
                               const price = menuItem.customerTotalPrice ?? menuItem.totalPrice ?? 0;
@@ -528,10 +525,10 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               </div>
             ) : (
               /* Fallback for orders without meal sessions */
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {(order.restaurants || order.orderItems || []).map((item: any, idx: number) => (
-                  <div key={idx} className="bg-white border-2 border-gray-200 rounded-xl p-6">
-                    <h4 className="font-bold text-xl text-gray-900 mb-4">{item.restaurantName}</h4>
+                  <div key={idx} className="bg-white border border-gray-200/80 rounded-xl p-4">
+                    <h4 className="font-semibold text-base text-gray-900 mb-2">{item.restaurantName}</h4>
                     {item.menuItems && item.menuItems.length > 0 && (
                       <div className="space-y-2">
                         {item.menuItems.filter((menuItem: any) => menuItem != null).map((menuItem: any, menuIdx: number) => {
@@ -574,7 +571,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
+        <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 px-5 py-3 rounded-b-2xl">
           {/* Confirmation dialogs */}
           {/* Review Modal */}
           <Modal open={showConfirmReview} onClose={() => setShowConfirmReview(false)} overlayOpacity={60} closeOnOverlayClick={false}>
@@ -868,14 +865,14 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             {!["completed", "cancelled"].includes(order.status) && !showConfirmComplete && !showConfirmCancel && !showConfirmReview && (
               <>
                 {/* Approve/Review button - only for pending_review status */}
                 {order.status === "pending_review" && (
                   <button
                     onClick={() => setShowConfirmReview(true)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm"
                   >
                     Approve Order
                   </button>
@@ -885,7 +882,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 {(order.status === "paid" || order.status === "confirmed") && (
                   <button
                     onClick={() => setShowConfirmComplete(true)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm"
                   >
                     Mark as Completed
                   </button>
@@ -894,7 +891,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 {/* Cancel button - available for all non-completed orders */}
                 <button
                   onClick={() => setShowConfirmCancel(true)}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                  className="flex-1 bg-white border border-red-300 text-red-700 hover:bg-red-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
                 >
                   Cancel Order
                 </button>
@@ -912,7 +909,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                       });
                       setShowSendPaymentModal(true);
                     }}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm"
                   >
                     Send Payment Link
                   </button>
@@ -921,7 +918,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             )}
             <button
               onClick={onClose}
-              className={`${["completed", "cancelled"].includes(order.status) || showConfirmComplete || showConfirmCancel || showConfirmReview ? "w-full" : "flex-1"} bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-lg shadow-lg`}
+              className={`${["completed", "cancelled"].includes(order.status) || showConfirmComplete || showConfirmCancel || showConfirmReview ? "w-full" : "flex-1"} bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm`}
             >
               Close
             </button>

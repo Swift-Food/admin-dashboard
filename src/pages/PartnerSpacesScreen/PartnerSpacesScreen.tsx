@@ -203,6 +203,7 @@ const PartnerSpacesScreen = () => {
     webhookUrl: string;
     allowedOrigins: string[];
     isActive: boolean;
+    aiChatEnabled: boolean;
   }>({
     name: "",
     slug: "",
@@ -210,6 +211,7 @@ const PartnerSpacesScreen = () => {
     webhookUrl: "",
     allowedOrigins: [],
     isActive: true,
+    aiChatEnabled: false,
   });
   const [saving, setSaving] = useState(false);
   const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
@@ -241,6 +243,7 @@ const PartnerSpacesScreen = () => {
       webhookUrl: editForm.webhookUrl?.trim() || null,
       allowedOrigins: editForm.allowedOrigins,
       isActive: editForm.isActive,
+      aiChatEnabled: editForm.aiChatEnabled,
     };
 
     try {
@@ -270,6 +273,7 @@ const PartnerSpacesScreen = () => {
       webhookUrl: space.webhookUrl ?? "",
       allowedOrigins: space.allowedOrigins ?? [],
       isActive: space.isActive,
+      aiChatEnabled: space.aiChatEnabled ?? false,
     });
     setEditFieldErrors({});
     setEditGeneralError(null);
@@ -695,6 +699,15 @@ const PartnerSpacesScreen = () => {
                   type="checkbox"
                   checked={editForm.isActive}
                   onChange={(e) => setEditForm((p) => ({ ...p, isActive: e.target.checked }))}
+                />
+              </div>
+
+              <div className="ps-toggle-row">
+                <span className="ps-toggle-label">AI Chat enabled</span>
+                <input
+                  type="checkbox"
+                  checked={editForm.aiChatEnabled}
+                  onChange={(e) => setEditForm((p) => ({ ...p, aiChatEnabled: e.target.checked }))}
                 />
               </div>
 

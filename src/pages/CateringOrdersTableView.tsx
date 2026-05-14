@@ -1230,19 +1230,19 @@ const CateringOrdersScreen = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-8">
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Catering Orders</h1>
-          <p className="text-lg text-gray-600">Manage and track all catering event orders</p>
+      <div className="p-5">
+        <div className="mb-3">
+          <h1 className="text-2xl font-bold text-gray-900">Catering Orders</h1>
+          <p className="text-sm text-gray-600">Manage and track all catering event orders</p>
         </div>
 
         {/* Quick View Tabs */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-2 mb-3">
           <button
             onClick={() => { setViewMode("active"); setStatusFilter("ALL"); }}
-            className={`px-6 py-3 rounded-xl font-bold text-base transition-all ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
               viewMode === "active"
-                ? "bg-blue-600 text-white shadow-lg"
+                ? "bg-blue-600 text-white shadow-md"
                 : "bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-300"
             }`}
           >
@@ -1250,9 +1250,9 @@ const CateringOrdersScreen = () => {
           </button>
           <button
             onClick={() => { setViewMode("completed"); setStatusFilter("ALL"); }}
-            className={`px-6 py-3 rounded-xl font-bold text-base transition-all ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
               viewMode === "completed"
-                ? "bg-green-600 text-white shadow-lg"
+                ? "bg-green-600 text-white shadow-md"
                 : "bg-white text-gray-700 border-2 border-gray-200 hover:border-green-300"
             }`}
           >
@@ -1260,9 +1260,9 @@ const CateringOrdersScreen = () => {
           </button>
           <button
             onClick={() => { setViewMode("all"); setStatusFilter("ALL"); }}
-            className={`px-6 py-3 rounded-xl font-bold text-base transition-all ${
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
               viewMode === "all"
-                ? "bg-purple-600 text-white shadow-lg"
+                ? "bg-purple-600 text-white shadow-md"
                 : "bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-300"
             }`}
           >
@@ -1270,42 +1270,42 @@ const CateringOrdersScreen = () => {
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-8 p-8">
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200 shadow-sm">
-              <p className="text-sm text-blue-700 font-semibold uppercase tracking-wide mb-2">Total Orders</p>
-              <p className="text-4xl font-bold text-blue-900">{allOrders.length}</p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 p-4">
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-lg border border-blue-200 shadow-sm">
+              <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide mb-1">Total Orders</p>
+              <p className="text-2xl font-bold text-blue-900">{allOrders.length}</p>
             </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border border-green-200 shadow-sm">
-              <p className="text-sm text-green-700 font-semibold uppercase tracking-wide mb-2">Completed</p>
-              <p className="text-4xl font-bold text-green-900">{statusCounts["completed"] || 0}</p>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg border border-green-200 shadow-sm">
+              <p className="text-xs text-green-700 font-semibold uppercase tracking-wide mb-1">Completed</p>
+              <p className="text-2xl font-bold text-green-900">{statusCounts["completed"] || 0}</p>
             </div>
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl border border-orange-200 shadow-sm">
-              <p className="text-sm text-orange-700 font-semibold uppercase tracking-wide mb-2">Pending Review</p>
-              <p className="text-4xl font-bold text-orange-900">{statusCounts["pending_review"] || 0}</p>
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 rounded-lg border border-orange-200 shadow-sm">
+              <p className="text-xs text-orange-700 font-semibold uppercase tracking-wide mb-1">Pending Review</p>
+              <p className="text-2xl font-bold text-orange-900">{statusCounts["pending_review"] || 0}</p>
             </div>
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200 shadow-sm">
-              <p className="text-sm text-gray-700 font-semibold uppercase tracking-wide mb-2">Cancelled</p>
-              <p className="text-4xl font-bold text-gray-900">{statusCounts["cancelled"] || 0}</p>
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200 shadow-sm">
+              <p className="text-xs text-gray-700 font-semibold uppercase tracking-wide mb-1">Cancelled</p>
+              <p className="text-2xl font-bold text-gray-900">{statusCounts["cancelled"] || 0}</p>
             </div>
           </div>
 
-          <div className="flex gap-4 mb-6">
+          <div className="flex gap-3 mb-2">
             <div className="flex-1">
               <input
                 type="text"
                 placeholder="🔍 Search by customer name, email, order ID, or reference..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-5 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                className="w-full px-4 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 style={{ color: "#000" }}
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-5 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium transition-all"
-              style={{ color: "#000", minWidth: "200px" }}
+              className="px-4 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium transition-all"
+              style={{ color: "#000", minWidth: "180px" }}
             >
               <option value="ALL">All Statuses</option>
               {viewMode === "active" && (
@@ -1340,7 +1340,7 @@ const CateringOrdersScreen = () => {
           </div>
 
           {filteredOrders.length > 0 && (
-            <div className="text-sm text-gray-600">
+            <div className="text-xs text-gray-600 mt-2">
               Showing <span className="font-bold text-gray-900">{filteredOrders.length}</span> of <span className="font-bold text-gray-900">{allOrders.length}</span> orders
             </div>
           )}

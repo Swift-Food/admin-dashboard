@@ -4,6 +4,7 @@ export interface PartnerSpace {
   slug: string;
   publishableKey: string;
   isActive: boolean;
+  aiChatEnabled: boolean;
   contactEmail: string;
   webhookUrl: string | null;
   allowedOrigins: string[];
@@ -17,6 +18,7 @@ export interface CreatePartnerSpaceDto {
   contactEmail: string;
   webhookUrl?: string;
   allowedOrigins?: string[];
+  aiChatEnabled?: boolean;
 }
 
 export interface UpdatePartnerSpaceDto {
@@ -26,4 +28,5 @@ export interface UpdatePartnerSpaceDto {
   webhookUrl?: string | null;
   allowedOrigins?: string[];
   isActive?: boolean;
+  aiChatEnabled?: boolean;
 }

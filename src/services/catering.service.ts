@@ -53,10 +53,15 @@ const completeOrder = async (orderId: string): Promise<CateringOrder> => {
   return res.data;
 };
 
+const bulkUpdateAdminNotes = async (orders: Array<{ orderId: string; adminNotes?: string }>): Promise<void> => {
+  await http.patch("catering-orders/notes", { orders });
+};
+
 export default {
   getOrders,
   reviewOrder,
   sendPaymentLink,
   cancelOrder,
   completeOrder,
+  bulkUpdateAdminNotes,
 };

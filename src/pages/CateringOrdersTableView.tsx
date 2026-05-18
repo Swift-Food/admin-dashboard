@@ -1054,6 +1054,9 @@ const CateringOrdersScreen = () => {
   const [viewMode, setViewMode] = useState<"active" | "completed" | "all">("active");
   const [sortColumn, setSortColumn] = useState<SortColumn>("status");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+  const [notesSaved, setNotesSaved] = useState<Record<string, string>>({});
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -1100,6 +1103,52 @@ const CateringOrdersScreen = () => {
     const interval = setInterval(fetchAllOrders, 30000);
     return () => clearInterval(interval);
   }, [fetchAllOrders]);
+
+  useEffect(() => {
+    setNotesDraft(prev => {
+      const next = { ...prev };
+      allOrders.forEach(order => {
+        if (!(order.id in next)) {
+          next[order.id] = order.adminNotes || "";
+        }
+      });
+      return next;
+    });
+    setNotesSaved(prev => {
+      const next = { ...prev };
+      allOrders.forEach(order => {
+        next[order.id] = order.adminNotes || "";
+      });
+      return next;
+    });
+  }, [allOrders]);
+
+  const dirtyNoteOrders = allOrders.filter(
+    order => (notesDraft[order.id] ?? "") !== (notesSaved[order.id] ?? "")
+  );
+
+  const handleSaveNotes = async () => {
+    const ordersToUpdate = dirtyNoteOrders.map(order => {
+      const draft = notesDraft[order.id] ?? "";
+      return draft ? { orderId: order.id, adminNotes: draft } : { orderId: order.id };
+    });
+    if (ordersToUpdate.length === 0) return;
+    setIsSavingNotes(true);
+    try {
+      await cateringService.bulkUpdateAdminNotes(ordersToUpdate);
+      setNotesSaved(prev => {
+        const next = { ...prev };
+        ordersToUpdate.forEach(({ orderId, adminNotes }) => {
+          next[orderId] = adminNotes || "";
+        });
+        return next;
+      });
+    } catch (e: any) {
+      alert(e?.response?.data?.message || "Failed to save notes");
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
 
   const handleOrderClick = async (order: CateringOrder) => {
     setSelectedOrder(order);
@@ -1301,6 +1350,15 @@ const CateringOrdersScreen = () => {
                 style={{ color: "#000" }}
               />
             </div>
+            {dirtyNoteOrders.length > 0 && (
+              <button
+                onClick={handleSaveNotes}
+                disabled={isSavingNotes}
+                className="px-4 py-2 text-sm font-semibold bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg transition-colors shadow-sm whitespace-nowrap"
+              >
+                {isSavingNotes ? "Saving..." : `Save Notes (${dirtyNoteOrders.length})`}
+              </button>
+            )}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -1358,6 +1416,7 @@ const CateringOrdersScreen = () => {
                   <SortHeader column="total" label="Total" />
                   <SortHeader column="status" label="Status" />
                   <SortHeader column="payment" label="Payment" />
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Notes</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -1417,6 +1476,20 @@ const CateringOrdersScreen = () => {
                       ) : (
                         <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-full bg-gray-100 text-gray-700 border border-gray-300">⏳ UNPAID</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      <textarea
+                        value={notesDraft[order.id] ?? ""}
+                        onChange={e => setNotesDraft(prev => ({ ...prev, [order.id]: e.target.value }))}
+                        className={`w-full text-xs border rounded-lg px-2 py-1.5 resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 ${
+                          (notesDraft[order.id] ?? "") !== (notesSaved[order.id] ?? "")
+                            ? "border-amber-400 bg-amber-50"
+                            : "border-gray-200 bg-gray-50"
+                        }`}
+                        rows={2}
+                        placeholder="Add notes..."
+                        style={{ minWidth: "180px" }}
+                      />
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-sm">
                       <button onClick={(e) => { e.stopPropagation(); handleOrderClick(order); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm">

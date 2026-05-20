@@ -230,22 +230,21 @@ function EventCard({
 
   const payload = entry.data.payload as unknown;
   const userMessageText =
-    isUser && payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
-      ? (payload as { text: string }).text
+    isUser && payload && typeof payload === 'object' && 'message' in payload && typeof (payload as { message: unknown }).message === 'string'
+      ? (payload as { message: string }).message
       : null;
 
   const [showSnapshot, setShowSnapshot] = useState(false);
 
-  // Pull text + parts off the bot_reply payload (loosely — these come from
-  // the backend untyped on the wire).
-  const botText =
-    isBot && payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
-      ? (payload as { text: string }).text
-      : '';
-  const botParts =
-    isBot && payload && typeof payload === 'object' && 'parts' in payload
-      ? (payload as { parts: unknown }).parts
+  // Pull text + parts off the bot_reply payload. The backend nests the
+  // outgoing chat response under `payload.response` (untyped on the wire).
+  const botResponse =
+    isBot && payload && typeof payload === 'object' && 'response' in payload && (payload as { response: unknown }).response && typeof (payload as { response: unknown }).response === 'object'
+      ? ((payload as { response: Record<string, unknown> }).response)
       : null;
+  const botText =
+    botResponse && typeof botResponse.message === 'string' ? botResponse.message : '';
+  const botParts = botResponse && 'parts' in botResponse ? botResponse.parts : null;
 
   return (
     <div className={`rounded-lg border ${tint} p-3`}>
@@ -479,8 +478,8 @@ function computePreviousUserMessages(timeline: TimelineEntry[]): Array<string | 
     out.push(lastUserText);
     if (entry.kind === 'event' && entry.data.eventType === 'user_message') {
       const payload = entry.data.payload as unknown;
-      if (payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
-        lastUserText = (payload as { text: string }).text;
+      if (payload && typeof payload === 'object' && 'message' in payload && typeof (payload as { message: unknown }).message === 'string') {
+        lastUserText = (payload as { message: string }).message;
       }
     }
   }
@@ -500,18 +499,20 @@ function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
       const payload = entry.data.payload as unknown;
       const isObj = payload && typeof payload === 'object';
       if (entry.data.eventType === 'user_message') {
-        if (isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
-          lastUserText = (payload as { text: string }).text;
+        if (isObj && 'message' in payload && typeof (payload as { message: unknown }).message === 'string') {
+          lastUserText = (payload as { message: string }).message;
         }
         continue;
       }
       if (entry.data.eventType === 'bot_reply') {
+        const botResponse =
+          isObj && 'response' in payload && (payload as { response: unknown }).response && typeof (payload as { response: unknown }).response === 'object'
+            ? (payload as { response: Record<string, unknown> }).response
+            : null;
         const botText =
-          isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
-            ? (payload as { text: string }).text
-            : '';
+          botResponse && typeof botResponse.message === 'string' ? botResponse.message : '';
         const rawBotParts =
-          isObj && 'parts' in payload ? (payload as { parts: unknown }).parts : null;
+          botResponse && 'parts' in botResponse ? botResponse.parts : null;
         bucket.push({ kind: 'event', label: 'bot_reply', value: entry.data });
         turns.push({
           userText: lastUserText,

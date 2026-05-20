@@ -48,6 +48,21 @@ function shortId(sessionId: string): string {
   return sessionId.slice(0, 8) + '…';
 }
 
+// Extract the user-typed text from a `user_message` event payload.
+// New shape nests the request under `payload.input.message`; older rows
+// stored it at `payload.message`. Read either.
+function extractUserMessageText(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as Record<string, unknown>;
+  const input = p.input;
+  if (input && typeof input === 'object') {
+    const inputMsg = (input as Record<string, unknown>).message;
+    if (typeof inputMsg === 'string') return inputMsg;
+  }
+  if (typeof p.message === 'string') return p.message;
+  return null;
+}
+
 // ─── JSON viewer ─────────────────────────────────────────────────────────────
 // JsonView, JsonModal, and JsonViewControl are imported from
 // '../../components/JsonModal' so the snapshot preview modals can reuse them.
@@ -229,10 +244,7 @@ function EventCard({
   const tint    = isUser ? 'border-blue-300 bg-blue-50' : isBot ? 'border-gray-300 bg-gray-50' : 'border-gray-200 bg-white';
 
   const payload = entry.data.payload as unknown;
-  const userMessageText =
-    isUser && payload && typeof payload === 'object' && 'message' in payload && typeof (payload as { message: unknown }).message === 'string'
-      ? (payload as { message: string }).message
-      : null;
+  const userMessageText = isUser ? extractUserMessageText(payload) : null;
 
   const [showSnapshot, setShowSnapshot] = useState(false);
 
@@ -477,10 +489,8 @@ function computePreviousUserMessages(timeline: TimelineEntry[]): Array<string | 
   for (const entry of timeline) {
     out.push(lastUserText);
     if (entry.kind === 'event' && entry.data.eventType === 'user_message') {
-      const payload = entry.data.payload as unknown;
-      if (payload && typeof payload === 'object' && 'message' in payload && typeof (payload as { message: unknown }).message === 'string') {
-        lastUserText = (payload as { message: string }).message;
-      }
+      const t = extractUserMessageText(entry.data.payload);
+      if (t !== null) lastUserText = t;
     }
   }
   return out;
@@ -499,9 +509,8 @@ function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
       const payload = entry.data.payload as unknown;
       const isObj = payload && typeof payload === 'object';
       if (entry.data.eventType === 'user_message') {
-        if (isObj && 'message' in payload && typeof (payload as { message: unknown }).message === 'string') {
-          lastUserText = (payload as { message: string }).message;
-        }
+        const t = extractUserMessageText(payload);
+        if (t !== null) lastUserText = t;
         continue;
       }
       if (entry.data.eventType === 'bot_reply') {

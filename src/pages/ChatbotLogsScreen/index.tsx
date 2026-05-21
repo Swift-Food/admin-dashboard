@@ -736,6 +736,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
   const [debouncedQ, setDebouncedQ]   = useState('');
   const [datePreset, setDatePreset]   = useState('all');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -776,9 +777,19 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
     fetchSessions();
   }, [fetchSessions]);
 
-  const handleLoadMore = () => {
-    if (nextCursor) fetchSessions(nextCursor);
-  };
+  // Infinite scroll: auto-load the next page when the sentinel scrolls into view.
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !nextCursor || loading || loadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchSessions(nextCursor);
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [nextCursor, loading, loadingMore, fetchSessions]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -914,16 +925,13 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
             </table>
           </div>
 
-          {/* Load more */}
+          {/* Infinite scroll sentinel */}
           {nextCursor && (
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-center">
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                {loadingMore ? 'Loading…' : 'Load more'}
-              </button>
+            <div
+              ref={sentinelRef}
+              className="px-6 py-4 border-t border-gray-100 flex justify-center text-sm text-gray-400"
+            >
+              {loadingMore ? 'Loading more…' : ' '}
             </div>
           )}
         </div>

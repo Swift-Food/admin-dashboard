@@ -6,12 +6,23 @@ const CacheHandlingScreen: React.FC = () => {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleClearCache = async () => {
-    if (!window.confirm("Are you sure you want to clear the cache?")) return;
+    if (
+      !window.confirm(
+        "Wipe ALL catering chat sessions from Redis? Active users will lose their session and have to start over.",
+      )
+    )
+      return;
     setLoading(true);
     setMessage(null);
     try {
-      await http.delete("/cache-test/reset");
-      setMessage({ type: "success", text: "Cache cleared successfully." });
+      const res = await http.delete<{ deletedCount: number }>(
+        "/admin/chatbot-sessions/cache",
+      );
+      const count = res.data?.deletedCount ?? 0;
+      setMessage({
+        type: "success",
+        text: `Cleared ${count} chat session${count === 1 ? "" : "s"}.`,
+      });
     } catch (err) {
       const text = err instanceof Error ? err.message : "Failed to clear cache.";
       setMessage({ type: "error", text });
@@ -25,6 +36,11 @@ const CacheHandlingScreen: React.FC = () => {
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#051661", marginBottom: 16 }}>
         Cache Handling
       </h1>
+      <p style={{ fontSize: "0.9rem", color: "#4b5563", marginBottom: 16, maxWidth: 560 }}>
+        Wipes every catering-chat session from Redis (keys matching{" "}
+        <code>catering-chat:session:*</code>). Other caches — restaurant
+        availability, partner spaces, etc. — are not touched.
+      </p>
       <button
         onClick={handleClearCache}
         disabled={loading}
@@ -39,7 +55,7 @@ const CacheHandlingScreen: React.FC = () => {
           cursor: loading ? "not-allowed" : "pointer",
         }}
       >
-        {loading ? "Clearing…" : "Clear Cache"}
+        {loading ? "Clearing…" : "Clear chat sessions"}
       </button>
       {message && (
         <div

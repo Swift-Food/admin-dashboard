@@ -35,6 +35,7 @@ import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
 import CoworkingSpacesScreen from "./pages/CoworkingSpacesScreen/CoworkingSpacesScreen";
 import PendingTransfersScreen from "./pages/PendingTransfersScreen";
 import PartnerSpacesScreen from "./pages/PartnerSpacesScreen/PartnerSpacesScreen";
+import CacheHandlingScreen from "./pages/CacheHandlingScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -65,6 +66,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   spaces: "coworking-spaces",
   "pending-transfers": "pending-transfers",
   "partner-spaces": "partner-spaces",
+  cache: "cache",
 };
 
 // Map SidebarPage IDs to URL paths
@@ -94,6 +96,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "coworking-spaces": "spaces",
   "pending-transfers": "pending-transfers",
   "partner-spaces": "partner-spaces",
+  cache: "cache",
 };
 
 // Define which pages belong to which mode
@@ -117,6 +120,7 @@ const swiftPages: SidebarPage[] = [
   "catering-bundles",
   "pending-transfers",
   "partner-spaces",
+  "cache",
 ];
 
 const prismoPages: SidebarPage[] = [
@@ -220,6 +224,8 @@ function PageRenderer() {
         return <PendingTransfersScreen />;
       case "partner-spaces":
         return <PartnerSpacesScreen />;
+      case "cache":
+        return <CacheHandlingScreen />;
       case "home":
         if (adminMode === "coworking") return <CoworkingSpacesScreen />;
         if (adminMode === "prismo") return <PrismoDashboard />;

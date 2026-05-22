@@ -54,6 +54,8 @@ interface RestaurantResponse {
   updatedAt?: Date;
   images?: string[];
   showOnSite?: boolean;
+  priceRange?: string;
+  tags?: string[];
 }
 
 // CreateRestaurantDto
@@ -83,6 +85,8 @@ interface CreateRestaurantDto {
   fsa?: number;
   fsaLink?: string;
   autoAccept?: boolean;
+  priceRange?: string;
+  tags?: string[];
 }
 
 // RestaurantUser

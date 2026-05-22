@@ -78,6 +78,8 @@ const AddRestaurantModal = ({
     fsa: "",
     fsaLink: "",
     autoAccept: true,
+    priceRange: "",
+    tags: [] as string[],
   });
 
   // Fetch markets when modal opens
@@ -278,6 +280,8 @@ const AddRestaurantModal = ({
         fsa: formData.fsa ? parseFloat(formData.fsa) : undefined,
         fsaLink: formData.fsaLink || undefined,
         autoAccept: formData.autoAccept,
+        priceRange: formData.priceRange || undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
       });
 
       console.log("Created restaurant:", restaurant);
@@ -327,6 +331,8 @@ const AddRestaurantModal = ({
       fsa: "",
       fsaLink: "",
       autoAccept: true,
+      priceRange: "",
+      tags: [] as string[],
     });
     onClose();
   };
@@ -762,6 +768,58 @@ const AddRestaurantModal = ({
                     className="form-input"
                     placeholder="https://fsa.gov"
                   />
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-field">
+                  <label className="form-label">Price Range</label>
+                  <select
+                    value={formData.priceRange}
+                    onChange={(e) => handleInputChange("priceRange", e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="">Not Set</option>
+                    <option value="~£">~£</option>
+                    <option value="£-££">£-££</option>
+                    <option value="££-£££">££-£££</option>
+                    <option value="£££~">£££~</option>
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label">Tags <span className="form-label-hint">(up to 5)</span></label>
+                  <div className="tags-input-container">
+                    {formData.tags.map((tag, i) => (
+                      <span key={i} className="tag-chip">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange("tags", formData.tags.filter((_: string, idx: number) => idx !== i))}
+                          className="tag-chip-remove"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    {formData.tags.length < 5 && (
+                      <input
+                        type="text"
+                        className="tag-input"
+                        placeholder="Add tag, press Enter"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === ",") {
+                            e.preventDefault();
+                            const val = e.currentTarget.value.trim();
+                            if (val && formData.tags.length < 5) {
+                              handleInputChange("tags", [...formData.tags, val]);
+                              e.currentTarget.value = "";
+                            }
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 

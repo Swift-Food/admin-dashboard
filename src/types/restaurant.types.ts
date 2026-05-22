@@ -95,4 +95,6 @@ export interface UpdateRestaurantDto {
   email?: string;
   status?: "active" | "inactive" | "coming_soon";
   images?: string;
+  priceRange?: string;
+  tags?: string[];
 }

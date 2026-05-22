@@ -99,6 +99,8 @@ const RestaurantAdminDashboard = () => {
       fsaLink: restaurant.fsaLink || "",
       status: restaurant.status ?? "inactive",
       images: restaurant.images?.[0] || "",
+      priceRange: restaurant.priceRange || "",
+      tags: restaurant.tags || [],
     });
   };
 
@@ -430,6 +432,64 @@ const RestaurantAdminDashboard = () => {
                                     </div>
 
                                     <div className="form-field">
+                                      <label className="field-label">Price Range</label>
+                                      <select
+                                        value={editForm.priceRange ?? ""}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, priceRange: e.target.value || undefined })
+                                        }
+                                        className="form-input"
+                                      >
+                                        <option value="">Not Set</option>
+                                        <option value="~£">~£</option>
+                                        <option value="£-££">£-££</option>
+                                        <option value="££-£££">££-£££</option>
+                                        <option value="£££~">£££~</option>
+                                      </select>
+                                    </div>
+
+                                    <div className="form-field full-width">
+                                      <label className="field-label">
+                                        Tags
+                                        <span className="field-hint">Up to 5 tags</span>
+                                      </label>
+                                      <div className="tags-input-container">
+                                        {(editForm.tags || []).map((tag, i) => (
+                                          <span key={i} className="tag-chip">
+                                            {tag}
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const newTags = (editForm.tags || []).filter((_, idx) => idx !== i);
+                                                setEditForm({ ...editForm, tags: newTags });
+                                              }}
+                                              className="tag-chip-remove"
+                                            >
+                                              ×
+                                            </button>
+                                          </span>
+                                        ))}
+                                        {(editForm.tags || []).length < 5 && (
+                                          <input
+                                            type="text"
+                                            className="tag-input"
+                                            placeholder="Add tag, press Enter"
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter" || e.key === ",") {
+                                                e.preventDefault();
+                                                const val = e.currentTarget.value.trim();
+                                                if (val && (editForm.tags || []).length < 5) {
+                                                  setEditForm({ ...editForm, tags: [...(editForm.tags || []), val] });
+                                                  e.currentTarget.value = "";
+                                                }
+                                              }
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="form-field">
                                       <label className="field-label">Status</label>
                                       <select
                                         value={editForm.status ?? "inactive"}
@@ -535,6 +595,22 @@ const RestaurantAdminDashboard = () => {
                                         {restaurant.showOnSite ? "Yes" : "No"}
                                       </span>
                                     </div>
+                                    <div className="setting-item">
+                                      <span className="setting-label">Price Range</span>
+                                      <span className="setting-value">
+                                        {restaurant.priceRange || "N/A"}
+                                      </span>
+                                    </div>
+                                    {restaurant.tags && restaurant.tags.length > 0 && (
+                                      <div className="setting-item full-width">
+                                        <span className="setting-label">Tags</span>
+                                        <div className="tags-display">
+                                          {restaurant.tags.map((tag, i) => (
+                                            <span key={i} className="tag-chip tag-chip-readonly">{tag}</span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
 
                                   {restaurant.showOnSite && restaurant.images?.[0] && (

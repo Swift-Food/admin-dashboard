@@ -48,6 +48,21 @@ function shortId(sessionId: string): string {
   return sessionId.slice(0, 8) + '…';
 }
 
+// Extract the user-typed text from a `user_message` event payload.
+// New shape nests the request under `payload.input.message`; older rows
+// stored it at `payload.message`. Read either.
+function extractUserMessageText(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as Record<string, unknown>;
+  const input = p.input;
+  if (input && typeof input === 'object') {
+    const inputMsg = (input as Record<string, unknown>).message;
+    if (typeof inputMsg === 'string') return inputMsg;
+  }
+  if (typeof p.message === 'string') return p.message;
+  return null;
+}
+
 // ─── JSON viewer ─────────────────────────────────────────────────────────────
 // JsonView, JsonModal, and JsonViewControl are imported from
 // '../../components/JsonModal' so the snapshot preview modals can reuse them.
@@ -229,23 +244,19 @@ function EventCard({
   const tint    = isUser ? 'border-blue-300 bg-blue-50' : isBot ? 'border-gray-300 bg-gray-50' : 'border-gray-200 bg-white';
 
   const payload = entry.data.payload as unknown;
-  const userMessageText =
-    isUser && payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
-      ? (payload as { text: string }).text
-      : null;
+  const userMessageText = isUser ? extractUserMessageText(payload) : null;
 
   const [showSnapshot, setShowSnapshot] = useState(false);
 
-  // Pull text + parts off the bot_reply payload (loosely — these come from
-  // the backend untyped on the wire).
-  const botText =
-    isBot && payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
-      ? (payload as { text: string }).text
-      : '';
-  const botParts =
-    isBot && payload && typeof payload === 'object' && 'parts' in payload
-      ? (payload as { parts: unknown }).parts
+  // Pull text + parts off the bot_reply payload. The backend nests the
+  // outgoing chat response under `payload.response` (untyped on the wire).
+  const botResponse =
+    isBot && payload && typeof payload === 'object' && 'response' in payload && (payload as { response: unknown }).response && typeof (payload as { response: unknown }).response === 'object'
+      ? ((payload as { response: Record<string, unknown> }).response)
       : null;
+  const botText =
+    botResponse && typeof botResponse.message === 'string' ? botResponse.message : '';
+  const botParts = botResponse && 'parts' in botResponse ? botResponse.parts : null;
 
   return (
     <div className={`rounded-lg border ${tint} p-3`}>
@@ -478,10 +489,8 @@ function computePreviousUserMessages(timeline: TimelineEntry[]): Array<string | 
   for (const entry of timeline) {
     out.push(lastUserText);
     if (entry.kind === 'event' && entry.data.eventType === 'user_message') {
-      const payload = entry.data.payload as unknown;
-      if (payload && typeof payload === 'object' && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
-        lastUserText = (payload as { text: string }).text;
-      }
+      const t = extractUserMessageText(entry.data.payload);
+      if (t !== null) lastUserText = t;
     }
   }
   return out;
@@ -500,18 +509,19 @@ function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
       const payload = entry.data.payload as unknown;
       const isObj = payload && typeof payload === 'object';
       if (entry.data.eventType === 'user_message') {
-        if (isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string') {
-          lastUserText = (payload as { text: string }).text;
-        }
+        const t = extractUserMessageText(payload);
+        if (t !== null) lastUserText = t;
         continue;
       }
       if (entry.data.eventType === 'bot_reply') {
+        const botResponse =
+          isObj && 'response' in payload && (payload as { response: unknown }).response && typeof (payload as { response: unknown }).response === 'object'
+            ? (payload as { response: Record<string, unknown> }).response
+            : null;
         const botText =
-          isObj && 'text' in payload && typeof (payload as { text: unknown }).text === 'string'
-            ? (payload as { text: string }).text
-            : '';
+          botResponse && typeof botResponse.message === 'string' ? botResponse.message : '';
         const rawBotParts =
-          isObj && 'parts' in payload ? (payload as { parts: unknown }).parts : null;
+          botResponse && 'parts' in botResponse ? botResponse.parts : null;
         bucket.push({ kind: 'event', label: 'bot_reply', value: entry.data });
         turns.push({
           userText: lastUserText,
@@ -726,6 +736,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
   const [debouncedQ, setDebouncedQ]   = useState('');
   const [datePreset, setDatePreset]   = useState('all');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -766,9 +777,19 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
     fetchSessions();
   }, [fetchSessions]);
 
-  const handleLoadMore = () => {
-    if (nextCursor) fetchSessions(nextCursor);
-  };
+  // Infinite scroll: auto-load the next page when the sentinel scrolls into view.
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !nextCursor || loading || loadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchSessions(nextCursor);
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [nextCursor, loading, loadingMore, fetchSessions]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -904,16 +925,13 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
             </table>
           </div>
 
-          {/* Load more */}
+          {/* Infinite scroll sentinel */}
           {nextCursor && (
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-center">
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                {loadingMore ? 'Loading…' : 'Load more'}
-              </button>
+            <div
+              ref={sentinelRef}
+              className="px-6 py-4 border-t border-gray-100 flex justify-center text-sm text-gray-400"
+            >
+              {loadingMore ? 'Loading more…' : ' '}
             </div>
           )}
         </div>

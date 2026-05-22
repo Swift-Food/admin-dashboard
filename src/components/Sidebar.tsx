@@ -23,6 +23,7 @@ import {
   faRightLeft,
   faHandshake,
   faMessage,
+  faDatabase,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
@@ -45,6 +46,7 @@ export type SidebarPage =
   | "catering"
   | "catering-sessions"
   | "catering-financials"
+  | "order-financials"
   | "bundles"
   | "catering-bundles"
   | "payout"
@@ -54,7 +56,8 @@ export type SidebarPage =
   | "pending-transfers"
   | "partner-spaces"
   | "chatbot-logs"
-  | "miscellaneous";
+  | "miscellaneous"
+  | "cache";
 
 interface NavItem {
   id: SidebarPage;
@@ -152,6 +155,11 @@ const navSections: NavSection[] = [
       {
         id: "catering-financials",
         label: "Catering Financials",
+        icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
+      },
+      {
+        id: "order-financials",
+        label: "Order Financials",
         icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
       },
     ],
@@ -292,6 +300,18 @@ const navSections: NavSection[] = [
         id: "miscellaneous",
         label: "Miscellaneous",
         icon: <FontAwesomeIcon icon={faWrench} style={iconCommonStyle} />,
+      },
+    ],
+  },
+  {
+    id: "dev",
+    label: "Dev",
+    mode: "swift",
+    items: [
+      {
+        id: "cache",
+        label: "Cache Handling",
+        icon: <FontAwesomeIcon icon={faDatabase} style={iconCommonStyle} />,
       },
     ],
   },

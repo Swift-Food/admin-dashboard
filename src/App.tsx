@@ -21,6 +21,7 @@ import CategoriesScreen from "./pages/CategoriesScreen/CategoriesScreen";
 import BundlesScreen from "./pages/BundlesScreen/BundlesScreen";
 import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import CateringFinancialsScreen from "./pages/CateringFinancialsScreen";
+import OrderFinancialsScreen from "./pages/OrderFinancialsScreen";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
 import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import StripeAccountsScreen from "./pages/StripeAccountsScreen";
@@ -35,6 +36,7 @@ import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
 import CoworkingSpacesScreen from "./pages/CoworkingSpacesScreen/CoworkingSpacesScreen";
 import PendingTransfersScreen from "./pages/PendingTransfersScreen";
 import PartnerSpacesScreen from "./pages/PartnerSpacesScreen/PartnerSpacesScreen";
+import CacheHandlingScreen from "./pages/CacheHandlingScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -46,6 +48,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   "catering-sessions": "catering-sessions",
   "chatbot-logs": "chatbot-logs",
   "catering-financials": "catering-financials",
+  "order-financials": "order-financials",
   "corporate-orders": "corporate",
   restaurants: "restaurant",
   categories: "categories",
@@ -65,6 +68,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   spaces: "coworking-spaces",
   "pending-transfers": "pending-transfers",
   "partner-spaces": "partner-spaces",
+  cache: "cache",
 };
 
 // Map SidebarPage IDs to URL paths
@@ -75,6 +79,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "catering-sessions": "catering-sessions",
   "chatbot-logs": "chatbot-logs",
   "catering-financials": "catering-financials",
+  "order-financials": "order-financials",
   corporate: "corporate-orders",
   restaurant: "restaurants",
   categories: "categories",
@@ -94,6 +99,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "coworking-spaces": "spaces",
   "pending-transfers": "pending-transfers",
   "partner-spaces": "partner-spaces",
+  cache: "cache",
 };
 
 // Define which pages belong to which mode
@@ -104,6 +110,7 @@ const swiftPages: SidebarPage[] = [
   "catering-sessions",
   "chatbot-logs",
   "catering-financials",
+  "order-financials",
   "corporate",
   "restaurant",
   "categories",
@@ -117,6 +124,7 @@ const swiftPages: SidebarPage[] = [
   "catering-bundles",
   "pending-transfers",
   "partner-spaces",
+  "cache",
 ];
 
 const prismoPages: SidebarPage[] = [
@@ -184,6 +192,8 @@ function PageRenderer() {
         return <ChatbotLogsScreen />;
       case "catering-financials":
         return <CateringFinancialsScreen />;
+      case "order-financials":
+        return <OrderFinancialsScreen />;
       case "bundles":
         return <BundlesScreen bundleType="prismo" />;
       case "catering-bundles":
@@ -220,6 +230,8 @@ function PageRenderer() {
         return <PendingTransfersScreen />;
       case "partner-spaces":
         return <PartnerSpacesScreen />;
+      case "cache":
+        return <CacheHandlingScreen />;
       case "home":
         if (adminMode === "coworking") return <CoworkingSpacesScreen />;
         if (adminMode === "prismo") return <PrismoDashboard />;

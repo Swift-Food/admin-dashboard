@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
 import { TextBubble } from './parts/TextBubble';
-import { IntentBlockCard } from './parts/IntentBlockCard';
 import { MealSessionCard } from './parts/MealSessionCard';
 import { MenuPreviewCard } from './parts/MenuPreviewCard';
 import { TurnInspectButtons } from './TurnInspectButtons';
-import { isRenderablePart, type RenderableMessagePart } from './types';
+import { isRenderablePart, type RenderableMessagePart, type MealSessionView } from './types';
 import type { TurnEntry } from './FullSessionModal';
 import './snapshot.css';
 
@@ -15,6 +14,9 @@ interface SnapshotModalProps {
   botText: string;
   /** Raw `parts` from the bot_reply payload; filtered to renderable types. */
   rawBotParts: unknown;
+  /** Top-level `response.mealSessions` snapshot for this turn. Each meal
+   *  is rendered as a MealSessionCard beneath the bot bubble. */
+  mealSessions?: MealSessionView[];
   /** Inter-turn timeline entries (between previous bot_reply and this one). */
   turnEntries?: TurnEntry[];
   onClose: () => void;
@@ -24,6 +26,7 @@ export function SnapshotModal({
   userText,
   botText,
   rawBotParts,
+  mealSessions = [],
   turnEntries = [],
   onClose,
 }: SnapshotModalProps) {
@@ -133,22 +136,17 @@ export function SnapshotModal({
           {parts
             .filter((p) => p.type !== 'text')
             .map((part, i) => {
-              if (part.type === 'intent_block') {
-                return <IntentBlockCard key={`ib-${part.intentId}-${i}`} part={part} />;
-              }
-              if (part.type === 'meal_session') {
-                return (
-                  <MealSessionCard
-                    key={`ms-${part.mealSessionIndex}-${i}`}
-                    part={part}
-                  />
-                );
-              }
               if (part.type === 'menu_preview') {
                 return <MenuPreviewCard key={`mp-${i}`} preview={part.preview} />;
               }
               return null;
             })}
+
+          {/* Meal sessions live on `response.mealSessions`, not in `parts`,
+              post backend consolidation. Render one card per meal. */}
+          {mealSessions.map((meal, i) => (
+            <MealSessionCard key={`ms-${meal.id ?? i}`} part={meal} />
+          ))}
         </div>
       </div>
     </div>

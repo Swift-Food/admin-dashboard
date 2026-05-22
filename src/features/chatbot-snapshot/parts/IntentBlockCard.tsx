@@ -3,11 +3,11 @@ import type {
   RestaurantPick,
   GroupSection,
   IntentBlockItem,
-  IntentBlockPart,
+  IntentBlockView,
 } from '../types';
 
 interface IntentBlockCardProps {
-  part: IntentBlockPart;
+  part: IntentBlockView;
 }
 
 /**

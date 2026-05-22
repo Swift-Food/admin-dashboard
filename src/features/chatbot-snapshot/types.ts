@@ -16,6 +16,10 @@ export interface IntentLite {
   count: number | null;
   restaurantScope: string[] | null;
   excludes: string[] | null;
+  /** Pack-count of a single dish. Present in the post-consolidation backend Intent. */
+  quantity?: number | null;
+  /** Number of different items to pick within this intent. Present in the post-consolidation backend Intent. */
+  variety?: number | null;
 }
 
 export interface IntentBlockItem {
@@ -55,10 +59,17 @@ export interface RestaurantPick {
   pickedReason: string | null;
 }
 
-export interface IntentBlockPart {
-  type: 'intent_block';
+/**
+ * One picker row inside a meal session: top-ranked restaurants for a
+ * single Intent. Post-consolidation the backend ships this inline on
+ * `ChatMealSessionView.intentBlocks[]`, with no `type` discriminator and
+ * no `mealSessionIndex` (positional within its meal).
+ *
+ * Source of truth: backend/src/features/catering-chat/types/message-part.types.ts
+ * (`IntentBlock`).
+ */
+export interface IntentBlockView {
   intentId: string;
-  mealSessionIndex: number;
   intent: IntentLite;
   restaurantPicks: RestaurantPick[];
 }
@@ -129,14 +140,27 @@ export interface MenuDraft {
   retrievalEventId?: string;
 }
 
-export interface MealSessionPart {
-  type: 'meal_session';
-  mealSessionIndex: number;
+/**
+ * Read-only copy of backend `ChatMealSessionView`. Post-consolidation
+ * the chat response ships meal sessions as a top-level
+ * `response.mealSessions: MealSessionView[]` field — they no longer
+ * travel through `MessagePart[]`.
+ *
+ * Source of truth:
+ * backend/src/features/catering-chat/services/datetime-format.helper.ts
+ * (`ChatMealSessionView`).
+ */
+export interface MealSessionView {
+  /** Stable meal-session identity (UUID). */
+  id: string;
   sessionName: string;
-  sessionDate: string | null;
-  eventTime: string | null;
+  /** Friendly display form (e.g. "Friday 28 May"). Empty string when unset. */
+  sessionDate: string;
+  /** Friendly display form (e.g. "12:30 PM"). Empty string when unset. */
+  eventTime: string;
   guestCount: number | null;
-  intentBlocks: IntentBlockPart[];
+  mealTime: string | null;
+  intentBlocks: IntentBlockView[];
   draft: MenuDraft | null;
 }
 
@@ -176,12 +200,12 @@ export interface MenuPreviewPart {
   preview: MenuPreview;
 }
 
-/** Minimal union — we only render text + suggestion parts in snapshots. */
-export type RenderableMessagePart =
-  | TextPart
-  | IntentBlockPart
-  | MealSessionPart
-  | MenuPreviewPart;
+/**
+ * Minimal union — we only render text + browse-mode menu previews from
+ * `MessagePart[]`. Meal sessions (and their nested intent blocks) now
+ * arrive on `response.mealSessions`, not in `parts`.
+ */
+export type RenderableMessagePart = TextPart | MenuPreviewPart;
 
 /**
  * Type guard for filtering raw bot_reply.parts (loosely typed as `any`)
@@ -190,10 +214,18 @@ export type RenderableMessagePart =
 export function isRenderablePart(p: unknown): p is RenderableMessagePart {
   if (!p || typeof p !== 'object') return false;
   const type = (p as { type?: unknown }).type;
+  return type === 'text' || type === 'menu_preview';
+}
+
+/**
+ * Type guard for the top-level `response.mealSessions` field. Verifies
+ * the minimum shape we need to render (intentBlocks array present).
+ */
+export function isMealSessionView(p: unknown): p is MealSessionView {
+  if (!p || typeof p !== 'object') return false;
+  const r = p as Record<string, unknown>;
   return (
-    type === 'text' ||
-    type === 'intent_block' ||
-    type === 'meal_session' ||
-    type === 'menu_preview'
+    typeof r.sessionName === 'string' &&
+    Array.isArray(r.intentBlocks)
   );
 }

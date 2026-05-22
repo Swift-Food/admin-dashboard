@@ -12,6 +12,10 @@ import {
   type SessionTurn,
   type TurnEntry,
 } from '../../features/chatbot-snapshot/FullSessionModal';
+import {
+  isMealSessionView,
+  type MealSessionView,
+} from '../../features/chatbot-snapshot/types';
 import { JsonView, JsonModal, type JsonViewControl } from '../../components/JsonModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -61,6 +65,27 @@ function extractUserMessageText(payload: unknown): string | null {
   }
   if (typeof p.message === 'string') return p.message;
   return null;
+}
+
+// Pull the nested `response` object off a bot_reply / action_reply
+// payload. Returns null if missing or the wrong shape.
+function extractBotResponse(payload: unknown): Record<string, unknown> | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as Record<string, unknown>;
+  const r = p.response;
+  if (!r || typeof r !== 'object') return null;
+  return r as Record<string, unknown>;
+}
+
+// Pull `response.mealSessions` off a bot_reply payload. Post-
+// consolidation this is where meal-session picker data lives — meal
+// sessions are no longer ferried through `MessagePart[]`.
+function extractMealSessions(payload: unknown): MealSessionView[] {
+  const response = extractBotResponse(payload);
+  if (!response) return [];
+  const ms = response.mealSessions;
+  if (!Array.isArray(ms)) return [];
+  return ms.filter(isMealSessionView);
 }
 
 // ─── JSON viewer ─────────────────────────────────────────────────────────────
@@ -248,15 +273,14 @@ function EventCard({
 
   const [showSnapshot, setShowSnapshot] = useState(false);
 
-  // Pull text + parts off the bot_reply payload. The backend nests the
-  // outgoing chat response under `payload.response` (untyped on the wire).
-  const botResponse =
-    isBot && payload && typeof payload === 'object' && 'response' in payload && (payload as { response: unknown }).response && typeof (payload as { response: unknown }).response === 'object'
-      ? ((payload as { response: Record<string, unknown> }).response)
-      : null;
+  // Pull text + parts + mealSessions off the bot_reply payload. The
+  // backend nests the outgoing chat response under `payload.response`
+  // (untyped on the wire).
+  const botResponse = isBot ? extractBotResponse(payload) : null;
   const botText =
     botResponse && typeof botResponse.message === 'string' ? botResponse.message : '';
   const botParts = botResponse && 'parts' in botResponse ? botResponse.parts : null;
+  const botMealSessions = isBot ? extractMealSessions(payload) : [];
 
   return (
     <div className={`rounded-lg border ${tint} p-3`}>
@@ -289,6 +313,7 @@ function EventCard({
           userText={previousUserMessage ?? null}
           botText={botText}
           rawBotParts={botParts}
+          mealSessions={botMealSessions}
           turnEntries={turnEntries}
           onClose={() => setShowSnapshot(false)}
         />
@@ -507,26 +532,24 @@ function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
   for (const entry of timeline) {
     if (entry.kind === 'event') {
       const payload = entry.data.payload as unknown;
-      const isObj = payload && typeof payload === 'object';
       if (entry.data.eventType === 'user_message') {
         const t = extractUserMessageText(payload);
         if (t !== null) lastUserText = t;
         continue;
       }
       if (entry.data.eventType === 'bot_reply') {
-        const botResponse =
-          isObj && 'response' in payload && (payload as { response: unknown }).response && typeof (payload as { response: unknown }).response === 'object'
-            ? (payload as { response: Record<string, unknown> }).response
-            : null;
+        const botResponse = extractBotResponse(payload);
         const botText =
           botResponse && typeof botResponse.message === 'string' ? botResponse.message : '';
         const rawBotParts =
           botResponse && 'parts' in botResponse ? botResponse.parts : null;
+        const mealSessions = extractMealSessions(payload);
         bucket.push({ kind: 'event', label: 'bot_reply', value: entry.data });
         turns.push({
           userText: lastUserText,
           botText,
           rawBotParts,
+          mealSessions,
           turnEntries: bucket,
         });
         lastUserText = null;

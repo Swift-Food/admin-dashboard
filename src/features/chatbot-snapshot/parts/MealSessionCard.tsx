@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { IntentBlockCard } from './IntentBlockCard';
-import type { MealSessionPart } from '../types';
+import type { MealSessionView } from '../types';
 
 interface MealSessionCardProps {
-  part: MealSessionPart;
+  part: MealSessionView;
 }
 
 /**
@@ -58,7 +58,7 @@ function IntentTabs({
   activeIdx,
   onSelect,
 }: {
-  blocks: MealSessionPart['intentBlocks'];
+  blocks: MealSessionView['intentBlocks'];
   activeIdx: number;
   onSelect: (idx: number) => void;
 }) {

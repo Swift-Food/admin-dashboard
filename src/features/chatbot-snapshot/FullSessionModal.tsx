@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { TextBubble } from './parts/TextBubble';
-import { IntentBlockCard } from './parts/IntentBlockCard';
 import { MealSessionCard } from './parts/MealSessionCard';
 import { MenuPreviewCard } from './parts/MenuPreviewCard';
 import { TurnInspectButtons } from './TurnInspectButtons';
-import { isRenderablePart, type RenderableMessagePart } from './types';
+import { isRenderablePart, type RenderableMessagePart, type MealSessionView } from './types';
 import './snapshot.css';
 
 /**
@@ -25,6 +24,12 @@ export interface SessionTurn {
   botText: string;
   rawBotParts: unknown;
   /**
+   * Top-level `response.mealSessions` snapshot at the moment of this
+   * bot_reply. Post-consolidation the backend ships meal sessions here
+   * rather than inside `parts`.
+   */
+  mealSessions: MealSessionView[];
+  /**
    * Every timeline entry between the prior bot_reply and this one
    * (excluding user_message + the bot_reply itself), in chronological
    * order. Each entry becomes a pill in the inspect bar.
@@ -42,6 +47,7 @@ interface NormalisedTurn {
   userText: string | null;
   textParts: string[];
   structuredParts: RenderableMessagePart[];
+  mealSessions: MealSessionView[];
   hasSuggestions: boolean;
   turnEntries: TurnEntry[];
 }
@@ -74,7 +80,9 @@ export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
           userText: turn.userText,
           textParts: textParts.length > 0 ? textParts : fallbackText,
           structuredParts,
-          hasSuggestions: structuredParts.length > 0,
+          mealSessions: turn.mealSessions,
+          hasSuggestions:
+            structuredParts.length > 0 || turn.mealSessions.length > 0,
           turnEntries: turn.turnEntries,
         };
       }),
@@ -228,20 +236,17 @@ function SuggestionsPane({ turn }: { turn: NormalisedTurn | undefined }) {
           No item suggestions for this reply.
         </div>
       ) : (
-        turn.structuredParts.map((part, i) => {
-          if (part.type === 'intent_block') {
-            return <IntentBlockCard key={`ib-${part.intentId}-${i}`} part={part} />;
-          }
-          if (part.type === 'meal_session') {
-            return (
-              <MealSessionCard key={`ms-${part.mealSessionIndex}-${i}`} part={part} />
-            );
-          }
-          if (part.type === 'menu_preview') {
-            return <MenuPreviewCard key={`mp-${i}`} preview={part.preview} />;
-          }
-          return null;
-        })
+        <>
+          {turn.structuredParts.map((part, i) => {
+            if (part.type === 'menu_preview') {
+              return <MenuPreviewCard key={`mp-${i}`} preview={part.preview} />;
+            }
+            return null;
+          })}
+          {turn.mealSessions.map((meal, i) => (
+            <MealSessionCard key={`ms-${meal.id ?? i}`} part={meal} />
+          ))}
+        </>
       )}
     </>
   );
@@ -280,20 +285,22 @@ function TurnRow({
       {turn.textParts.map((text, i) => (
         <TextBubble key={`bt-${i}`} sender="bot" text={text} />
       ))}
-      {turn.hasSuggestions && (
-        <div
-          style={{
-            marginTop: 6,
-            fontSize: '0.7rem',
-            color: 'var(--ink-faint)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-          }}
-        >
-          {turn.structuredParts.length}{' '}
-          {turn.structuredParts.length === 1 ? 'suggestion' : 'suggestions'} — click to view
-        </div>
-      )}
+      {turn.hasSuggestions && (() => {
+        const count = turn.structuredParts.length + turn.mealSessions.length;
+        return (
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: '0.7rem',
+              color: 'var(--ink-faint)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            {count} {count === 1 ? 'suggestion' : 'suggestions'} — click to view
+          </div>
+        );
+      })()}
     </button>
   );
 }

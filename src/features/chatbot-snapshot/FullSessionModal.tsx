@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { TextBubble } from './parts/TextBubble';
 import { MealSessionCard } from './parts/MealSessionCard';
 import { MenuPreviewCard } from './parts/MenuPreviewCard';
@@ -186,7 +186,7 @@ export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
                 padding: 20,
               }}
             >
-              <SuggestionsPane turn={selectedTurn} />
+              <SuggestionsPane key={selectedTurn?.index ?? 0} turn={selectedTurn} />
             </div>
 
             {/* Right: chat thread of clickable turns */}
@@ -217,7 +217,13 @@ export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
 }
 
 function SuggestionsPane({ turn }: { turn: NormalisedTurn | undefined }) {
+  const [activeMealIdx, setActiveMealIdx] = useState(0);
   if (!turn) return null;
+
+  const meals = turn.mealSessions;
+  const safeMealIdx = Math.min(Math.max(0, activeMealIdx), meals.length - 1);
+  const activeMeal = meals[safeMealIdx];
+
   return (
     <>
       <TurnInspectButtons turnEntries={turn.turnEntries} />
@@ -243,12 +249,226 @@ function SuggestionsPane({ turn }: { turn: NormalisedTurn | undefined }) {
             }
             return null;
           })}
-          {turn.mealSessions.map((meal, i) => (
-            <MealSessionCard key={`ms-${meal.id ?? i}`} part={meal} />
-          ))}
+          {meals.length > 1 && (
+            <MealPicker
+              meals={meals}
+              activeIdx={safeMealIdx}
+              onSelect={setActiveMealIdx}
+            />
+          )}
+          {activeMeal && (
+            <MealSessionCard
+              key={`ms-${activeMeal.id ?? safeMealIdx}`}
+              part={activeMeal}
+              hideHeader={meals.length > 1}
+            />
+          )}
         </>
       )}
     </>
+  );
+}
+
+function formatMealMeta(meal: MealSessionView): string {
+  const parts: string[] = [];
+  if (meal.sessionDate) parts.push(meal.sessionDate);
+  if (meal.eventTime) parts.push(meal.eventTime);
+  if (meal.guestCount !== null) parts.push(`${meal.guestCount} guests`);
+  return parts.length > 0 ? parts.join(' · ') : 'Time not set';
+}
+
+function MealPicker({
+  meals,
+  activeIdx,
+  onSelect,
+}: {
+  meals: MealSessionView[];
+  activeIdx: number;
+  onSelect: (idx: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const activeMeal = meals[activeIdx];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocDown = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  if (!activeMeal) return null;
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ position: 'relative', marginBottom: 16 }}
+    >
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          width: '100%',
+          padding: '10px 14px',
+          borderRadius: 10,
+          border: '1px solid var(--rule)',
+          backgroundColor: 'var(--paper)',
+          color: 'var(--ink)',
+          cursor: 'pointer',
+          textAlign: 'left',
+          font: 'inherit',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <span
+            className="display"
+            style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--ink)' }}
+          >
+            {activeMeal.sessionName}
+          </span>
+          <span
+            style={{
+              fontSize: '0.75rem',
+              color: 'var(--ink-faint)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatMealMeta(activeMeal)}
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          style={{
+            fontSize: '0.7rem',
+            color: 'var(--ink-faint)',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 120ms ease',
+          }}
+        >
+          ▾
+        </span>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          role="listbox"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            background: 'var(--paper)',
+            border: '1px solid var(--rule)',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 14px',
+              borderBottom: '1px solid var(--rule)',
+              background: 'var(--paper-deep)',
+              fontSize: '0.75rem',
+              color: 'var(--ink-faint)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            <span>Meal sessions</span>
+            <span>{meals.length} {meals.length === 1 ? 'session' : 'sessions'}</span>
+          </div>
+          {meals.map((meal, idx) => {
+            const isActive = idx === activeIdx;
+            return (
+              <button
+                key={meal.id ?? idx}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                onClick={() => {
+                  onSelect(idx);
+                  setOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: 0,
+                  borderTop: idx === 0 ? 0 : '1px solid var(--rule)',
+                  background: isActive ? 'var(--paper-deep)' : 'transparent',
+                  color: 'var(--ink)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  font: 'inherit',
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    flex: '0 0 auto',
+                    width: 16,
+                    color: isActive ? 'var(--ink)' : 'transparent',
+                    fontWeight: 700,
+                  }}
+                >
+                  ✓
+                </span>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                  <span
+                    className="display"
+                    style={{
+                      fontSize: '0.95rem',
+                      fontWeight: isActive ? 700 : 600,
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    {meal.sessionName}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--ink-faint)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {formatMealMeta(meal)}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -4,13 +4,17 @@ import type { MealSessionView } from '../types';
 
 interface MealSessionCardProps {
   part: MealSessionView;
+  /** Suppress the meal name + date/time/headcount header. Used when the
+   *  containing surface (e.g. FullSessionModal's meal tabs) already
+   *  displays those details. */
+  hideHeader?: boolean;
 }
 
 /**
  * Read-only meal-session view: header + a horizontal tab strip of
  * intent pills, with the selected intent's block rendered below.
  */
-export function MealSessionCard({ part }: MealSessionCardProps) {
+export function MealSessionCard({ part, hideHeader = false }: MealSessionCardProps) {
   const blocks = part.intentBlocks;
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -21,24 +25,26 @@ export function MealSessionCard({ part }: MealSessionCardProps) {
 
   return (
     <div style={{ marginTop: 16, marginBottom: 16 }}>
-      <header style={{ marginBottom: 8, padding: '0 4px' }}>
-        <div className="display" style={{ fontSize: '1.1rem', color: 'var(--ink)' }}>
-          {part.sessionName}
-        </div>
-        {(part.sessionDate || part.guestCount !== null) && (
-          <div
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--ink-faint)',
-              marginTop: 2,
-            }}
-          >
-            {part.sessionDate}
-            {part.eventTime && ` · ${part.eventTime}`}
-            {part.guestCount !== null && ` · ${part.guestCount} guests`}
+      {!hideHeader && (
+        <header style={{ marginBottom: 8, padding: '0 4px' }}>
+          <div className="display" style={{ fontSize: '1.1rem', color: 'var(--ink)' }}>
+            {part.sessionName}
           </div>
-        )}
-      </header>
+          {(part.sessionDate || part.guestCount !== null) && (
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--ink-faint)',
+                marginTop: 2,
+              }}
+            >
+              {part.sessionDate}
+              {part.eventTime && ` · ${part.eventTime}`}
+              {part.guestCount !== null && ` · ${part.guestCount} guests`}
+            </div>
+          )}
+        </header>
+      )}
 
       {blocks.length > 1 && (
         <IntentTabs

@@ -35,10 +35,18 @@ export interface SessionTurn {
    * order. Each entry becomes a pill in the inspect bar.
    */
   turnEntries: TurnEntry[];
+  feedback?: Array<{
+    id: number;
+    rating: number;
+    note: string | null;
+    source: string;
+    isAddressed: boolean;
+  }>;
 }
 
 interface FullSessionModalProps {
   turns: SessionTurn[];
+  generalFeedback?: SessionTurn['feedback'];
   onClose: () => void;
 }
 
@@ -50,9 +58,10 @@ interface NormalisedTurn {
   mealSessions: MealSessionView[];
   hasSuggestions: boolean;
   turnEntries: TurnEntry[];
+  feedback: NonNullable<SessionTurn['feedback']>;
 }
 
-export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
+export function FullSessionModal({ turns, generalFeedback, onClose }: FullSessionModalProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -84,6 +93,7 @@ export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
           hasSuggestions:
             structuredParts.length > 0 || turn.mealSessions.length > 0,
           turnEntries: turn.turnEntries,
+          feedback: turn.feedback ?? [],
         };
       }),
     [turns],
@@ -200,6 +210,29 @@ export function FullSessionModal({ turns, onClose }: FullSessionModalProps) {
                 background: 'var(--paper)',
               }}
             >
+              {generalFeedback && generalFeedback.length > 0 && (
+                <div style={{
+                  marginBottom: 12,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #e9d5ff',
+                  background: '#faf5ff',
+                }}>
+                  <div style={{
+                    fontSize: '0.7rem',
+                    color: '#7c3aed',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    fontWeight: 600,
+                    marginBottom: 6,
+                  }}>
+                    General feedback ({generalFeedback.length})
+                  </div>
+                  {generalFeedback.map((fb) => (
+                    <FeedbackPill key={fb.id} fb={fb} />
+                  ))}
+                </div>
+              )}
               {normalised.map((turn) => (
                 <TurnRow
                   key={turn.index}
@@ -472,6 +505,56 @@ function MealPicker({
   );
 }
 
+function FeedbackPill({ fb }: { fb: NonNullable<SessionTurn['feedback']>[number] }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '4px 8px',
+      borderRadius: 6,
+      border: '1px solid #e9d5ff',
+      background: '#faf5ff',
+      marginBottom: 4,
+      flexWrap: 'wrap',
+    }}>
+      <span style={{ fontSize: '0.8rem' }} title={`${fb.rating}/5`}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <span key={n} style={{ color: n <= fb.rating ? '#fbbf24' : '#d1d5db' }}>★</span>
+        ))}
+      </span>
+      <span style={{
+        fontSize: '0.6rem',
+        fontWeight: 600,
+        padding: '1px 5px',
+        borderRadius: 4,
+        background: '#e9d5ff',
+        color: '#6b21a8',
+        textTransform: 'uppercase',
+      }}>
+        {fb.source}
+      </span>
+      {fb.isAddressed && (
+        <span style={{
+          fontSize: '0.6rem',
+          fontWeight: 600,
+          padding: '1px 5px',
+          borderRadius: 4,
+          background: '#d1fae5',
+          color: '#047857',
+        }}>
+          addressed
+        </span>
+      )}
+      {fb.note && (
+        <span style={{ fontSize: '0.75rem', color: '#374151', fontStyle: 'italic' }}>
+          &ldquo;{fb.note}&rdquo;
+        </span>
+      )}
+    </div>
+  );
+}
+
 function TurnRow({
   turn,
   isSelected,
@@ -521,6 +604,13 @@ function TurnRow({
           </div>
         );
       })()}
+      {turn.feedback.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          {turn.feedback.map((fb) => (
+            <FeedbackPill key={fb.id} fb={fb} />
+          ))}
+        </div>
+      )}
     </button>
   );
 }

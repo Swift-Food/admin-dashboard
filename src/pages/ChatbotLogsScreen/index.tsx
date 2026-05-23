@@ -355,6 +355,95 @@ function InlineFeedback({ feedback, startTs, highlightId, highlightRef, onToggle
   );
 }
 
+function FeedbackOverviewRow({
+  fb,
+  isGeneral,
+  userMsg,
+  isHighlighted,
+  highlightRef,
+  startTs,
+  onScrollTo,
+  onToggleAddressed,
+}: {
+  fb: FeedbackTimelineEntry;
+  isGeneral: boolean;
+  userMsg: string | null;
+  isHighlighted: boolean;
+  highlightRef?: React.RefObject<HTMLDivElement | null>;
+  startTs: string;
+  onScrollTo?: () => void;
+  onToggleAddressed: (feedbackId: number, isAddressed: boolean) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBusy(true);
+    try {
+      await chatbotLogsService.updateFeedback(String(fb.data.id), !fb.data.isAddressed);
+      onToggleAddressed(fb.data.id, !fb.data.isAddressed);
+    } catch {
+      // ignore
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      ref={highlightRef}
+      onClick={onScrollTo}
+      className={`rounded-md border px-3 py-2 flex items-center gap-2 flex-wrap transition-colors ${
+        isGeneral
+          ? 'border-purple-200 bg-purple-50'
+          : 'border-blue-200 bg-blue-50 cursor-pointer hover:bg-blue-100'
+      } ${isHighlighted ? 'ring-2 ring-purple-400 ring-offset-1' : ''}`}
+    >
+      <StarRating value={fb.data.rating} />
+      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-200 text-purple-800">
+        {fb.data.source}
+      </span>
+      {isGeneral && (
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-200 text-gray-600">
+          general
+        </span>
+      )}
+      {fb.data.isAddressed && (
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+          addressed
+        </span>
+      )}
+      {fb.data.note && (
+        <span className="text-xs text-gray-700 italic">&ldquo;{fb.data.note}&rdquo;</span>
+      )}
+      {userMsg && (
+        <span className="text-xs text-gray-500 truncate max-w-[200px]" title={userMsg}>
+          &rarr; &ldquo;{userMsg}&rdquo;
+        </span>
+      )}
+      <span className="ml-auto flex items-center gap-2 text-xs text-gray-400">
+        {formatOffsetMs(startTs, fb.ts)}
+        {onScrollTo && (
+          <svg className="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
+      </span>
+      <button
+        onClick={handleToggle}
+        disabled={busy}
+        className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+          fb.data.isAddressed
+            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            : 'bg-emerald-600 text-white hover:bg-emerald-700'
+        }`}
+      >
+        {busy ? '…' : fb.data.isAddressed ? 'Reopen' : 'Mark done'}
+      </button>
+    </div>
+  );
+}
+
 function EventCard({
   entry,
   offsetLabel,
@@ -657,7 +746,10 @@ function computePreviousUserMessages(timeline: TimelineEntry[]): Array<string | 
  * Walk the timeline and pair every bot_reply with the most-recent prior
  * user_message. Used to power the full-session preview modal.
  */
-function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
+function extractSessionTurns(
+  timeline: TimelineEntry[],
+  feedbackByEventId?: Map<number, FeedbackTimelineEntry[]>,
+): SessionTurn[] {
   const turns: SessionTurn[] = [];
   let lastUserText: string | null = null;
   let bucket: TurnEntry[] = [];
@@ -677,12 +769,20 @@ function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
           botResponse && 'parts' in botResponse ? botResponse.parts : null;
         const mealSessions = extractMealSessions(payload);
         bucket.push({ kind: 'event', label: 'bot_reply', value: entry.data });
+        const fb = feedbackByEventId?.get(entry.data.id) ?? [];
         turns.push({
           userText: lastUserText,
           botText,
           rawBotParts,
           mealSessions,
           turnEntries: bucket,
+          feedback: fb.map(f => ({
+            id: f.data.id,
+            rating: f.data.rating,
+            note: f.data.note,
+            source: f.data.source,
+            isAddressed: f.data.isAddressed,
+          })),
         });
         lastUserText = null;
         bucket = [];
@@ -713,6 +813,17 @@ function ChatbotSessionDetailView({
   const [showFullSession, setShowFullSession] = useState(false);
   const highlightRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
+  const timelineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [highlightedEventId, setHighlightedEventId] = useState<number | null>(null);
+
+  const scrollToEvent = useCallback((eventId: number) => {
+    const el = timelineRefs.current.get(eventId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedEventId(eventId);
+      setTimeout(() => setHighlightedEventId(null), 2000);
+    }
+  }, []);
 
   const handleToggleFeedback = useCallback((feedbackId: number, isAddressed: boolean) => {
     setDetail((prev) => {
@@ -791,6 +902,21 @@ function ChatbotSessionDetailView({
     }
   }
 
+  const userMessageByBotReplyId = (() => {
+    const map = new Map<number, string>();
+    let lastUserText: string | null = null;
+    for (const entry of detail.timeline) {
+      if (entry.kind === 'event' && entry.data.eventType === 'user_message') {
+        const t = extractUserMessageText(entry.data.payload);
+        if (t !== null) lastUserText = t;
+      }
+      if (entry.kind === 'event' && entry.data.eventType === 'bot_reply' && lastUserText) {
+        map.set(entry.data.id, lastUserText);
+      }
+    }
+    return map;
+  })();
+
   const timelineWithoutFeedback = detail.timeline.filter((e) => e.kind !== 'feedback');
 
   const llmEntries = detail.timeline.filter(
@@ -850,25 +976,16 @@ function ChatbotSessionDetailView({
 
       {showFullSession && (
         <FullSessionModal
-          turns={extractSessionTurns(detail.timeline)}
+          turns={extractSessionTurns(detail.timeline, feedbackByEventId)}
+          generalFeedback={generalFeedback.map(fb => ({
+            id: fb.data.id,
+            rating: fb.data.rating,
+            note: fb.data.note,
+            source: fb.data.source,
+            isAddressed: fb.data.isAddressed,
+          }))}
           onClose={() => setShowFullSession(false)}
         />
-      )}
-
-      {/* General feedback (not tied to a specific bot reply) */}
-      {generalFeedback.length > 0 && (
-        <div className="bg-white rounded-xl border border-purple-200 shadow-sm p-5 mb-6">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            General Feedback ({generalFeedback.length})
-          </h2>
-          <InlineFeedback
-            feedback={generalFeedback}
-            startTs={detail.firstSeenTs}
-            highlightId={highlightFeedbackId}
-            highlightRef={highlightRef}
-            onToggleAddressed={handleToggleFeedback}
-          />
-        </div>
       )}
 
       {/* Summary card */}
@@ -915,6 +1032,37 @@ function ChatbotSessionDetailView({
         </div>
       </div>
 
+      {/* Feedback overview */}
+      {allFeedback.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Feedback ({allFeedback.length})
+          </h2>
+          <div className="flex flex-col gap-1.5">
+            {allFeedback.map((fb) => {
+              const isGeneral = fb.data.botReplyEventId == null;
+              const userMsg = fb.data.botReplyEventId != null
+                ? userMessageByBotReplyId.get(fb.data.botReplyEventId) ?? null
+                : null;
+              const isHighlighted = !!(highlightFeedbackId && String(fb.data.id) === highlightFeedbackId);
+              return (
+                <FeedbackOverviewRow
+                  key={fb.data.id}
+                  fb={fb}
+                  isGeneral={isGeneral}
+                  userMsg={userMsg}
+                  isHighlighted={isHighlighted}
+                  highlightRef={isHighlighted ? highlightRef : undefined}
+                  startTs={detail.firstSeenTs}
+                  onScrollTo={!isGeneral && fb.data.botReplyEventId != null ? () => scrollToEvent(fb.data.botReplyEventId!) : undefined}
+                  onToggleAddressed={handleToggleFeedback}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Timeline */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
@@ -933,13 +1081,15 @@ function ChatbotSessionDetailView({
                 return (
                   <TimelineEntryCard
                     key={i}
+                    ref={(el: HTMLDivElement | null) => {
+                      if (el && eventId != null) timelineRefs.current.set(eventId, el);
+                    }}
                     entry={entry}
                     startTs={detail.firstSeenTs}
                     previousUserMessage={prevUserMessages[i]}
                     turnEntries={turnEntriesByIndex[i]}
+                    highlight={eventId != null && eventId === highlightedEventId}
                     attachedFeedback={attached}
-                    highlightFeedbackId={highlightFeedbackId}
-                    feedbackHighlightRef={highlightRef}
                     onToggleAddressed={handleToggleFeedback}
                   />
                 );

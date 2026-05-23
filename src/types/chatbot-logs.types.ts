@@ -104,6 +104,9 @@ export interface CostPeriodItem {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalThinkingTokens: number;
+  inputCostUsd: number;
+  outputCostUsd: number;
+  thinkingCostUsd: number;
   callCount: number;
 }
 

@@ -49,10 +49,35 @@ function formatOffsetMs(startIso: string, entryIso: string): string {
   return `+${diffMs}ms`;
 }
 
-function formatCost(usd: number): string {
-  if (usd === 0) return '$0';
+function formatCost(usd: number | null | undefined): string {
+  if (usd == null || usd === 0) return '$0';
   if (usd < 0.01) return `$${usd.toFixed(4)}`;
   return `$${usd.toFixed(2)}`;
+}
+
+const MODEL_RATES: Record<string, { input: number; output: number }> = {
+  'gemini-2.5-flash': { input: 0.30, output: 2.50 },
+  'gemini-2.5-flash-lite': { input: 0.075, output: 0.30 },
+  'gemini-2.5-pro': { input: 1.25, output: 10.0 },
+};
+
+function tokenCost(tokens: number, ratePerMillion: number): number {
+  return (tokens * ratePerMillion) / 1_000_000;
+}
+
+function formatTokenCostBreakdown(
+  model: string,
+  inputTokens: number | null,
+  outputTokens: number | null,
+  thinkingTokens: number | null,
+): { inputCost: string; outputCost: string; thinkingCost: string } | null {
+  const rates = MODEL_RATES[model];
+  if (!rates || inputTokens == null) return null;
+  return {
+    inputCost: formatCost(tokenCost(inputTokens, rates.input)),
+    outputCost: formatCost(tokenCost(outputTokens ?? 0, rates.output)),
+    thinkingCost: formatCost(tokenCost(thinkingTokens ?? 0, rates.output)),
+  };
 }
 
 function shortId(sessionId: string): string {
@@ -346,18 +371,31 @@ function LlmCallCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { k
         )}
         <span className="ml-auto text-xs text-gray-400">llm #{entry.data.id}</span>
       </div>
-      {(entry.data.inputTokens != null || entry.data.outputTokens != null) && (
-        <p className="text-xs text-gray-600 mb-1">
-          {entry.data.inputTokens ?? '?'} in · {entry.data.outputTokens ?? '?'} out
-          {entry.data.thinkingTokens ? ` · ${entry.data.thinkingTokens} thinking` : ''}
-          {entry.data.costUsd != null && (
-            <span className="ml-2 font-semibold text-emerald-700">{formatCost(entry.data.costUsd)}</span>
-          )}
-          {entry.data.turnId && (
-            <span className="ml-2 text-gray-400" title={entry.data.turnId}>turn {entry.data.turnId.slice(0, 8)}</span>
-          )}
-        </p>
-      )}
+      {(entry.data.inputTokens != null || entry.data.outputTokens != null) && (() => {
+        const breakdown = formatTokenCostBreakdown(
+          entry.data.model, entry.data.inputTokens, entry.data.outputTokens, entry.data.thinkingTokens,
+        );
+        return (
+          <div className="text-xs text-gray-600 mb-1">
+            <span>{entry.data.inputTokens ?? '?'} in</span>
+            {breakdown && <span className="text-emerald-600"> ({breakdown.inputCost})</span>}
+            <span> · {entry.data.outputTokens ?? '?'} out</span>
+            {breakdown && <span className="text-emerald-600"> ({breakdown.outputCost})</span>}
+            {entry.data.thinkingTokens ? (
+              <>
+                <span> · {entry.data.thinkingTokens} thinking</span>
+                {breakdown && <span className="text-emerald-600"> ({breakdown.thinkingCost})</span>}
+              </>
+            ) : null}
+            {entry.data.costUsd != null && (
+              <span className="ml-2 font-semibold text-emerald-700">= {formatCost(entry.data.costUsd)}</span>
+            )}
+            {entry.data.turnId && (
+              <span className="ml-2 text-gray-400" title={entry.data.turnId}>turn {entry.data.turnId.slice(0, 8)}</span>
+            )}
+          </div>
+        );
+      })()}
       {hasError && (
         <div className="mb-2">
           <p className="text-xs font-bold text-red-700">{entry.data.errorType}</p>
@@ -632,6 +670,22 @@ function ChatbotSessionDetailView({
   const { totals } = detail;
   const totalTokens = totals.inputTokens + totals.outputTokens;
 
+  const llmEntries = detail.timeline.filter(
+    (e): e is Extract<TimelineEntry, { kind: 'llm_call' }> => e.kind === 'llm_call',
+  );
+  const sessionCostBreakdown = llmEntries.reduce(
+    (acc, e) => {
+      const rates = MODEL_RATES[e.data.model];
+      if (!rates) return acc;
+      acc.inputCost += tokenCost(e.data.inputTokens ?? 0, rates.input);
+      acc.outputCost += tokenCost(e.data.outputTokens ?? 0, rates.output);
+      acc.thinkingCost += tokenCost(e.data.thinkingTokens ?? 0, rates.output);
+      acc.thinkingTokens += e.data.thinkingTokens ?? 0;
+      return acc;
+    },
+    { inputCost: 0, outputCost: 0, thinkingCost: 0, thinkingTokens: 0 },
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Top bar */}
@@ -683,9 +737,13 @@ function ChatbotSessionDetailView({
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Summary</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div>
-            <p className="text-xs text-gray-400 mb-1">Cost</p>
+            <p className="text-xs text-gray-400 mb-1">Total cost</p>
             <p className="text-lg font-bold text-emerald-700">
               {formatCost(totals.costUsd)}
+            </p>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              in {formatCost(sessionCostBreakdown.inputCost)} · out {formatCost(sessionCostBreakdown.outputCost)}
+              {sessionCostBreakdown.thinkingTokens > 0 && ` · think ${formatCost(sessionCostBreakdown.thinkingCost)}`}
             </p>
           </div>
           <div>
@@ -693,6 +751,11 @@ function ChatbotSessionDetailView({
             <p className="text-lg font-bold text-gray-900">
               {totals.inputTokens.toLocaleString()} / {totals.outputTokens.toLocaleString()} / {totalTokens.toLocaleString()}
             </p>
+            {sessionCostBreakdown.thinkingTokens > 0 && (
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                + {sessionCostBreakdown.thinkingTokens.toLocaleString()} thinking
+              </p>
+            )}
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-1">Total latency</p>
@@ -777,6 +840,9 @@ const EMPTY_ITEM: Omit<CostItem, 'period'> = {
   totalInputTokens: 0,
   totalOutputTokens: 0,
   totalThinkingTokens: 0,
+  inputCostUsd: 0,
+  outputCostUsd: 0,
+  thinkingCostUsd: 0,
   callCount: 0,
 };
 
@@ -960,23 +1026,59 @@ function UsageLineChart({
       </svg>
 
       {/* Tooltip */}
-      {hover && hoverItem && (
-        <div
-          className="absolute z-10 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-3 py-2 text-xs"
-          style={{
-            left: `${(hoverPoint!.x / svgW) * 100}%`,
-            top: -80,
-            transform: 'translateX(-50%)',
-          }}
-        >
-          <p className="font-semibold mb-1">{formatDateLabel(hoverItem.period, period)}</p>
-          <p className="text-emerald-300">Cost: {formatCost(hoverItem.totalCostUsd)}</p>
-          <p className="text-indigo-300">
-            Tokens: {(hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens).toLocaleString()}
-          </p>
-          <p className="text-gray-400">{hoverItem.callCount} calls</p>
-        </div>
-      )}
+      {hover && hoverItem && (() => {
+        const totalTok = hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens;
+        const leftPct = (hoverPoint!.x / svgW) * 100;
+        const clampedLeft = Math.max(12, Math.min(88, leftPct));
+        return (
+          <div
+            className="absolute z-10 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-4 py-3 text-xs w-56"
+            style={{
+              left: `${clampedLeft}%`,
+              bottom: `calc(100% + 8px)`,
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <p className="font-semibold text-sm mb-2">{formatDateLabel(hoverItem.period, period)}</p>
+
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-gray-400">
+                  <th className="text-left font-normal pb-1"></th>
+                  <th className="text-right font-normal pb-1">Tokens</th>
+                  <th className="text-right font-normal pb-1">Cost</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-200">
+                <tr>
+                  <td className="pr-2">Input</td>
+                  <td className="text-right tabular-nums">{hoverItem.totalInputTokens.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{formatCost(hoverItem.inputCostUsd)}</td>
+                </tr>
+                <tr>
+                  <td className="pr-2">Output</td>
+                  <td className="text-right tabular-nums">{hoverItem.totalOutputTokens.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{formatCost(hoverItem.outputCostUsd)}</td>
+                </tr>
+                {hoverItem.totalThinkingTokens > 0 && (
+                  <tr>
+                    <td className="pr-2">Thinking</td>
+                    <td className="text-right tabular-nums">{hoverItem.totalThinkingTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-300">{formatCost(hoverItem.thinkingCostUsd)}</td>
+                  </tr>
+                )}
+                <tr className="border-t border-gray-700">
+                  <td className="pr-2 pt-1 font-semibold">Total</td>
+                  <td className="text-right pt-1 font-semibold tabular-nums">{totalTok.toLocaleString()}</td>
+                  <td className="text-right pt-1 font-semibold tabular-nums text-emerald-300">{formatCost(hoverItem.totalCostUsd)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p className="text-gray-400 mt-2 text-[10px]">{hoverItem.callCount} calls</p>
+          </div>
+        );
+      })()}
     </div>
   );
 }

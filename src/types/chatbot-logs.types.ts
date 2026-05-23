@@ -9,6 +9,7 @@ export interface ChatbotSessionSummary {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalLatencyMs: number;
+  totalCostUsd: number;
   errorCount: number;
   inferredStatus: 'active' | 'completed' | 'abandoned' | 'errored';
 }
@@ -38,7 +39,10 @@ export type TimelineEntry =
         model: string;
         inputTokens: number | null;
         outputTokens: number | null;
+        thinkingTokens: number | null;
         latencyMs: number | null;
+        costUsd: number | null;
+        turnId: string | null;
         errorType: string | null;
         errorMessage: string | null;
         prompt: any;
@@ -84,6 +88,7 @@ export interface ChatbotSessionDetail {
     inputTokens: number;
     outputTokens: number;
     latencyMs: number;
+    costUsd: number;
     eventCount: number;
     llmCallCount: number;
     retrievalCount: number;
@@ -91,4 +96,21 @@ export interface ChatbotSessionDetail {
     errorCount: number;
   };
   timeline: TimelineEntry[];
+}
+
+export interface CostPeriodItem {
+  period: string;
+  totalCostUsd: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalThinkingTokens: number;
+  callCount: number;
+}
+
+export interface CostsResponse {
+  items: CostPeriodItem[];
+  totalCostUsd: number;
+  totalCalls: number;
+  period: 'daily' | 'monthly';
+  days: number;
 }

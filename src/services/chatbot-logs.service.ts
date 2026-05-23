@@ -1,6 +1,6 @@
 import http from './http';
 import type { AxiosResponse } from 'axios';
-import type { ChatbotSessionsListResponse, ChatbotSessionDetail } from '../types/chatbot-logs.types';
+import type { ChatbotSessionsListResponse, ChatbotSessionDetail, CostsResponse } from '../types/chatbot-logs.types';
 
 class ChatbotLogsService {
   async listSessions(params: {
@@ -16,6 +16,14 @@ class ChatbotLogsService {
 
   async getSession(sessionId: string): Promise<ChatbotSessionDetail> {
     const response: AxiosResponse<ChatbotSessionDetail> = await http.get(`/admin/chatbot-sessions/${sessionId}`);
+    return response.data;
+  }
+
+  async getCosts(params: {
+    period?: 'daily' | 'monthly';
+    days?: number;
+  } = {}): Promise<CostsResponse> {
+    const response: AxiosResponse<CostsResponse> = await http.get('/admin/chatbot-sessions/costs', { params });
     return response.data;
   }
 }

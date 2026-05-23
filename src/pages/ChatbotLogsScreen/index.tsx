@@ -5,6 +5,7 @@ import type {
   ChatbotSessionSummary,
   ChatbotSessionDetail,
   TimelineEntry,
+  CostsResponse,
 } from '../../types/chatbot-logs.types';
 import { SnapshotModal } from '../../features/chatbot-snapshot/SnapshotModal';
 import {
@@ -46,6 +47,12 @@ function formatOffsetMs(startIso: string, entryIso: string): string {
   if (diffMs < 0) return '+0ms';
   if (diffMs >= 1000) return `+${(diffMs / 1000).toFixed(1)}s`;
   return `+${diffMs}ms`;
+}
+
+function formatCost(usd: number): string {
+  if (usd === 0) return '$0';
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  return `$${usd.toFixed(2)}`;
 }
 
 function shortId(sessionId: string): string {
@@ -342,6 +349,13 @@ function LlmCallCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { k
       {(entry.data.inputTokens != null || entry.data.outputTokens != null) && (
         <p className="text-xs text-gray-600 mb-1">
           {entry.data.inputTokens ?? '?'} in · {entry.data.outputTokens ?? '?'} out
+          {entry.data.thinkingTokens ? ` · ${entry.data.thinkingTokens} thinking` : ''}
+          {entry.data.costUsd != null && (
+            <span className="ml-2 font-semibold text-emerald-700">{formatCost(entry.data.costUsd)}</span>
+          )}
+          {entry.data.turnId && (
+            <span className="ml-2 text-gray-400" title={entry.data.turnId}>turn {entry.data.turnId.slice(0, 8)}</span>
+          )}
         </p>
       )}
       {hasError && (
@@ -462,9 +476,10 @@ function toTurnEntry(entry: TimelineEntry): TurnEntry | null {
       entry.data.inputTokens != null || entry.data.outputTokens != null
         ? ` · ${entry.data.inputTokens ?? '?'}→${entry.data.outputTokens ?? '?'} tok`
         : '';
+    const cost = entry.data.costUsd != null ? ` · ${formatCost(entry.data.costUsd)}` : '';
     return {
       kind: 'llm_call',
-      label: `${entry.data.caller} (${entry.data.model})${tokens}`,
+      label: `${entry.data.caller} (${entry.data.model})${tokens}${cost}`,
       value: entry.data,
     };
   }
@@ -666,7 +681,13 @@ function ChatbotSessionDetailView({
       {/* Summary card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Summary</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Cost</p>
+            <p className="text-lg font-bold text-emerald-700">
+              {formatCost(totals.costUsd)}
+            </p>
+          </div>
           <div>
             <p className="text-xs text-gray-400 mb-1">Tokens (in / out / total)</p>
             <p className="text-lg font-bold text-gray-900">
@@ -746,6 +767,308 @@ const STATUS_FILTERS = [
   { label: 'Abandoned', value: 'abandoned' },
   { label: 'Errored',   value: 'errored' },
 ] as const;
+
+type ChartMetric = 'cost' | 'tokens';
+
+type CostItem = CostsResponse['items'][number];
+
+const EMPTY_ITEM: Omit<CostItem, 'period'> = {
+  totalCostUsd: 0,
+  totalInputTokens: 0,
+  totalOutputTokens: 0,
+  totalThinkingTokens: 0,
+  callCount: 0,
+};
+
+function fillGaps(items: CostItem[], period: 'daily' | 'monthly', days: number): CostItem[] {
+  const byKey = new Map<string, CostItem>();
+  for (const item of items) byKey.set(item.period.slice(0, 10), item);
+
+  const filled: CostItem[] = [];
+  const now = new Date();
+
+  if (period === 'daily') {
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
+      const key = d.toISOString().slice(0, 10);
+      filled.push(byKey.get(key) ?? { ...EMPTY_ITEM, period: d.toISOString() });
+    }
+  } else {
+    const months = Math.min(Math.ceil(days / 30), 12);
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const key = d.toISOString().slice(0, 10);
+      filled.push(byKey.get(key) ?? { ...EMPTY_ITEM, period: d.toISOString() });
+    }
+  }
+  return filled;
+}
+
+function formatDateLabel(iso: string, mode: 'daily' | 'monthly'): string {
+  const d = new Date(iso);
+  return mode === 'monthly'
+    ? d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+    : d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+}
+
+function UsageLineChart({
+  items,
+  metric,
+  period,
+}: {
+  items: CostsResponse['items'];
+  metric: ChartMetric;
+  period: 'daily' | 'monthly';
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [hover, setHover] = useState<{ idx: number; mouseX: number; mouseY: number } | null>(null);
+
+  const chartH = 160;
+  const padL = 4;
+  const padR = 4;
+  const padTop = 12;
+  const padBot = 28;
+
+  const getValue = (item: CostsResponse['items'][number]) =>
+    metric === 'cost'
+      ? item.totalCostUsd
+      : item.totalInputTokens + item.totalOutputTokens + item.totalThinkingTokens;
+
+  const values = items.map(getValue);
+  const maxVal = Math.max(...values, metric === 'cost' ? 0.001 : 1);
+
+  const svgW = 800;
+  const plotW = svgW - padL - padR;
+  const plotH = chartH - padTop - padBot;
+
+  const points = items.map((item, i) => {
+    const x = padL + (items.length === 1 ? plotW / 2 : (i / (items.length - 1)) * plotW);
+    const y = padTop + plotH - (getValue(item) / maxVal) * plotH;
+    return { x, y, item, idx: i };
+  });
+
+  const polyline = points.map((p) => `${p.x},${p.y}`).join(' ');
+  const baseline = padTop + plotH;
+  const areaPath = points.length > 0
+    ? `M ${points[0].x},${baseline} ${points.map((p) => `L ${p.x},${p.y}`).join(' ')} L ${points[points.length - 1].x},${baseline} Z`
+    : '';
+
+  const lineColor = metric === 'cost' ? '#059669' : '#6366f1';
+  const fillColor = metric === 'cost' ? '#d1fae580' : '#e0e7ff80';
+  const dotColor = metric === 'cost' ? '#047857' : '#4f46e5';
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = e.currentTarget;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const svgX = (e.clientX - ctm.e) / ctm.a;
+
+    let closest = 0;
+    let closestDist = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const dist = Math.abs(points[i].x - svgX);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = i;
+      }
+    }
+    setHover({ idx: closest, mouseX: e.clientX, mouseY: e.clientY });
+  };
+
+  const hoverItem = hover ? items[hover.idx] : null;
+  const hoverPoint = hover ? points[hover.idx] : null;
+
+  const labelIndices: number[] = [];
+  if (items.length <= 10) {
+    items.forEach((_, i) => labelIndices.push(i));
+  } else {
+    const step = Math.ceil(items.length / 8);
+    for (let i = 0; i < items.length; i += step) labelIndices.push(i);
+    if (labelIndices[labelIndices.length - 1] !== items.length - 1) labelIndices.push(items.length - 1);
+  }
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <svg
+        viewBox={`0 0 ${svgW} ${chartH}`}
+        className="w-full"
+        style={{ height: chartH }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        {/* Grid lines */}
+        {[0.25, 0.5, 0.75, 1].map((frac) => (
+          <line
+            key={frac}
+            x1={padL} x2={svgW - padR}
+            y1={padTop + plotH - frac * plotH}
+            y2={padTop + plotH - frac * plotH}
+            stroke="#f3f4f6" strokeWidth="1"
+          />
+        ))}
+        <line
+          x1={padL} x2={svgW - padR}
+          y1={baseline} y2={baseline}
+          stroke="#e5e7eb" strokeWidth="1"
+        />
+
+        {/* Area fill */}
+        {areaPath && <path d={areaPath} fill={fillColor} />}
+
+        {/* Line */}
+        <polyline
+          points={polyline}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Data points */}
+        {points.map((p) => (
+          <circle
+            key={p.idx}
+            cx={p.x} cy={p.y} r={hover?.idx === p.idx ? 5 : 3}
+            fill={hover?.idx === p.idx ? dotColor : lineColor}
+            stroke="white" strokeWidth="1.5"
+          />
+        ))}
+
+        {/* Hover crosshair */}
+        {hoverPoint && (
+          <line
+            x1={hoverPoint.x} x2={hoverPoint.x}
+            y1={padTop} y2={baseline}
+            stroke="#9ca3af" strokeWidth="1" strokeDasharray="4 3"
+          />
+        )}
+
+        {/* X-axis labels */}
+        {labelIndices.map((i) => (
+          <text
+            key={i}
+            x={points[i].x}
+            y={chartH - 4}
+            textAnchor="middle"
+            className="fill-gray-400"
+            style={{ fontSize: 10 }}
+          >
+            {formatDateLabel(items[i].period, period)}
+          </text>
+        ))}
+      </svg>
+
+      {/* Tooltip */}
+      {hover && hoverItem && (
+        <div
+          className="absolute z-10 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-3 py-2 text-xs"
+          style={{
+            left: `${(hoverPoint!.x / svgW) * 100}%`,
+            top: -80,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <p className="font-semibold mb-1">{formatDateLabel(hoverItem.period, period)}</p>
+          <p className="text-emerald-300">Cost: {formatCost(hoverItem.totalCostUsd)}</p>
+          <p className="text-indigo-300">
+            Tokens: {(hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens).toLocaleString()}
+          </p>
+          <p className="text-gray-400">{hoverItem.callCount} calls</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CostOverview() {
+  const [costs, setCosts] = useState<CostsResponse | null>(null);
+  const [period, setPeriod] = useState<'daily' | 'monthly'>('daily');
+  const [metric, setMetric] = useState<ChartMetric>('cost');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    chatbotLogsService
+      .getCosts({ period, days: period === 'monthly' ? 365 : 30 })
+      .then(setCosts)
+      .catch(() => setCosts(null))
+      .finally(() => setLoading(false));
+  }, [period]);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
+        <div className="text-gray-400 text-sm">Loading costs...</div>
+      </div>
+    );
+  }
+
+  if (!costs || costs.items.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
+        <div className="text-gray-400 text-sm">No cost data yet.</div>
+      </div>
+    );
+  }
+
+  const totalTokens = costs.items.reduce(
+    (s, i) => s + i.totalInputTokens + i.totalOutputTokens + i.totalThinkingTokens,
+    0,
+  );
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Gemini Usage</h2>
+          <div className="flex items-baseline gap-3 mt-1">
+            <p className="text-2xl font-bold text-emerald-700">{formatCost(costs.totalCostUsd)}</p>
+            <p className="text-sm text-gray-500">{totalTokens.toLocaleString()} tokens</p>
+          </div>
+          <p className="text-xs text-gray-400">{costs.totalCalls.toLocaleString()} calls over {costs.days}d</p>
+        </div>
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex gap-1">
+            {(['daily', 'monthly'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  period === p
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {p === 'daily' ? 'Daily' : 'Monthly'}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1">
+            {([
+              { key: 'cost' as const, label: 'Cost' },
+              { key: 'tokens' as const, label: 'Tokens' },
+            ]).map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMetric(m.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  metric === m.key
+                    ? m.key === 'cost' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <UsageLineChart items={fillGaps(costs.items, period, costs.days)} metric={metric} period={period} />
+    </div>
+  );
+}
 
 function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void }) {
   const [items, setItems]           = useState<ChatbotSessionSummary[]>([]);
@@ -827,6 +1150,8 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
         )}
       </div>
 
+      <CostOverview />
+
       {/* Filters bar */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-5 flex flex-wrap gap-3 items-center">
         {/* Status chips */}
@@ -893,6 +1218,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Last seen</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Events / LLM / Retrieval / Feedback</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Errors</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cost</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tokens in/out</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Latency</th>
                 </tr>
@@ -900,7 +1226,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
               <tbody className="divide-y divide-gray-100">
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center text-gray-400 text-sm">
+                    <td colSpan={8} className="px-6 py-16 text-center text-gray-400 text-sm">
                       No sessions found.
                     </td>
                   </tr>
@@ -935,6 +1261,9 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
                       ) : (
                         <span className="text-sm text-gray-400">0</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-emerald-700">
+                      {formatCost(item.totalCostUsd)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                       {item.totalInputTokens.toLocaleString()} / {item.totalOutputTokens.toLocaleString()}

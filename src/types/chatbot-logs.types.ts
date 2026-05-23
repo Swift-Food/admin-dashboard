@@ -6,6 +6,8 @@ export interface ChatbotSessionSummary {
   llmCallCount: number;
   retrievalCount: number;
   feedbackCount: number;
+  /** Unaddressed feedback rows for this session. Drives the open-issue badge. */
+  openFeedbackCount: number;
   totalInputTokens: number;
   totalOutputTokens: number;
   totalLatencyMs: number;
@@ -70,14 +72,33 @@ export type TimelineEntry =
       ts: string;
       data: {
         id: number;
-        kind: string;
-        retrievalEventId: number | null;
-        itemId: string | null;
-        restaurantId: string | null;
-        reasonText: string | null;
-        reasonBuckets: string[] | null;
+        botReplyEventId: number | null;
+        rating: number;
+        note: string | null;
+        source: string;
+        isAddressed: boolean;
+        addressedAt: string | null;
       };
     };
+
+/** A row in the feedback / issue tracker. */
+export interface ChatFeedbackItem {
+  id: string;
+  sessionId: string;
+  botReplyEventId: number | null;
+  rating: number;
+  note: string | null;
+  source: 'user' | 'internal' | string;
+  isAddressed: boolean;
+  createdAt: string;
+  addressedAt: string | null;
+}
+
+export interface FeedbackListResponse {
+  items: ChatFeedbackItem[];
+  status: 'open' | 'addressed' | 'all';
+  count: number;
+}
 
 export interface ChatbotSessionDetail {
   sessionId: string;

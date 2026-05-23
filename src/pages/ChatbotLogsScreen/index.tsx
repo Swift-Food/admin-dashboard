@@ -1144,7 +1144,13 @@ const EMPTY_ITEM: Omit<CostItem, 'period'> = {
   sessionCount: 0,
 };
 
-type Period = 'hourly' | 'daily' | 'monthly';
+type Period = 'hourly' | 'daily' | 'weekly' | 'monthly';
+
+function getWeekStart(d: Date): Date {
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+}
 
 function fillGaps(items: CostItem[], period: Period, days: number): CostItem[] {
   // Key precision varies by bucket: 13 chars for hourly ('YYYY-MM-DDTHH'),
@@ -1173,6 +1179,36 @@ function fillGaps(items: CostItem[], period: Period, days: number): CostItem[] {
       const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
       const key = d.toISOString().slice(0, 10);
       filled.push(byKey.get(key) ?? { ...EMPTY_ITEM, period: d.toISOString() });
+    }
+  } else if (period === 'weekly') {
+    const weeklyMap = new Map<string, CostItem>();
+    for (const item of items) {
+      const ws = getWeekStart(new Date(item.period));
+      const key = ws.toISOString().slice(0, 10);
+      const existing = weeklyMap.get(key);
+      if (existing) {
+        weeklyMap.set(key, {
+          period: ws.toISOString(),
+          totalCostUsd: existing.totalCostUsd + item.totalCostUsd,
+          totalInputTokens: existing.totalInputTokens + item.totalInputTokens,
+          totalOutputTokens: existing.totalOutputTokens + item.totalOutputTokens,
+          totalThinkingTokens: existing.totalThinkingTokens + item.totalThinkingTokens,
+          inputCostUsd: existing.inputCostUsd + item.inputCostUsd,
+          outputCostUsd: existing.outputCostUsd + item.outputCostUsd,
+          thinkingCostUsd: existing.thinkingCostUsd + item.thinkingCostUsd,
+          callCount: existing.callCount + item.callCount,
+          sessionCount: existing.sessionCount + item.sessionCount,
+        });
+      } else {
+        weeklyMap.set(key, { ...item, period: ws.toISOString() });
+      }
+    }
+    const weeks = Math.min(Math.ceil(days / 7), 13);
+    const nowWS = getWeekStart(now);
+    for (let i = weeks - 1; i >= 0; i--) {
+      const ws = new Date(Date.UTC(nowWS.getUTCFullYear(), nowWS.getUTCMonth(), nowWS.getUTCDate() - i * 7));
+      const key = ws.toISOString().slice(0, 10);
+      filled.push(weeklyMap.get(key) ?? { ...EMPTY_ITEM, period: ws.toISOString() });
     }
   } else {
     const months = Math.min(Math.ceil(days / 30), 12);
@@ -1359,7 +1395,14 @@ function UsageLineChart({
               transform: 'translateX(-50%)',
             }}
           >
-            <p className="font-semibold text-sm mb-2">{formatDateLabel(hoverItem.period, period)}</p>
+            <p className="font-semibold text-sm mb-2">
+              {period === 'weekly' ? (() => {
+                const start = new Date(hoverItem.period);
+                const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 6));
+                const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                return `${fmt(start)} – ${fmt(end)}`;
+              })() : formatDateLabel(hoverItem.period, period)}
+            </p>
 
             <table className="w-full text-[11px]">
               <thead>
@@ -1418,11 +1461,10 @@ function CostOverview() {
 
   useEffect(() => {
     setLoading(true);
-    // Window scales with bucket granularity to keep the chart legible:
-    // hourly → last 24h, daily → last 30d, monthly → last 12mo.
-    const days = period === 'hourly' ? 1 : period === 'monthly' ? 365 : 30;
+    const apiPeriod: 'hourly' | 'daily' | 'monthly' = period === 'weekly' ? 'daily' : period;
+    const days = period === 'hourly' ? 1 : period === 'weekly' ? 90 : period === 'monthly' ? 365 : 30;
     chatbotLogsService
-      .getCosts({ period, days })
+      .getCosts({ period: apiPeriod, days })
       .then(setCosts)
       .catch(() => setCosts(null))
       .finally(() => setLoading(false));
@@ -1469,7 +1511,7 @@ function CostOverview() {
         </div>
         <div className="flex flex-col gap-2 items-end">
           <div className="flex gap-1">
-            {(['hourly', 'daily', 'monthly'] as const).map((p) => (
+            {(['hourly', 'daily', 'weekly', 'monthly'] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
@@ -1479,7 +1521,7 @@ function CostOverview() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {p === 'hourly' ? 'Hourly' : p === 'daily' ? 'Daily' : 'Monthly'}
+                {p === 'hourly' ? 'Hourly' : p === 'daily' ? 'Daily' : p === 'weekly' ? 'Weekly' : 'Monthly'}
               </button>
             ))}
           </div>

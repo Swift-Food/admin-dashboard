@@ -47,6 +47,8 @@ export default function FeedbackIssuesScreen() {
   const [filter, setFilter] = useState<FeedbackFilter>('open');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  const [ratingFilterMode, setRatingFilterMode] = useState<'only' | 'exclude'>('only');
   type SortKey = { field: 'rating' | 'date'; dir: 'asc' | 'desc' };
   const [sortKeys, setSortKeys] = useState<SortKey[]>([{ field: 'rating', dir: 'asc' }]);
 
@@ -65,9 +67,16 @@ export default function FeedbackIssuesScreen() {
     });
   };
 
+  const filteredItems = useMemo(() => {
+    if (ratingFilter === null) return items;
+    return items.filter((item) =>
+      ratingFilterMode === 'only' ? item.rating === ratingFilter : item.rating !== ratingFilter,
+    );
+  }, [items, ratingFilter, ratingFilterMode]);
+
   const sortedItems = useMemo(() => {
-    if (sortKeys.length === 0) return items;
-    return [...items].sort((a, b) => {
+    if (sortKeys.length === 0) return filteredItems;
+    return [...filteredItems].sort((a, b) => {
       for (const { field, dir } of sortKeys) {
         let cmp = 0;
         if (field === 'rating') cmp = a.rating - b.rating;
@@ -76,7 +85,7 @@ export default function FeedbackIssuesScreen() {
       }
       return 0;
     });
-  }, [items, sortKeys]);
+  }, [filteredItems, sortKeys]);
 
   const fetchFeedback = useCallback(() => {
     setLoading(true);
@@ -123,8 +132,33 @@ export default function FeedbackIssuesScreen() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <p className="text-sm text-gray-500">
-              {loading ? 'Loading…' : `${items.length} ${filter === 'all' ? 'total' : filter}`}
+              {loading ? 'Loading…' : `${sortedItems.length}${ratingFilter !== null ? ` of ${items.length}` : ''} ${filter === 'all' ? 'total' : filter}`}
             </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setRatingFilterMode((prev) => prev === 'only' ? 'exclude' : 'only')}
+                className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  ratingFilterMode === 'only'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                    : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                }`}
+              >
+                {ratingFilterMode === 'only' ? 'Only' : 'Exclude'}
+              </button>
+              {[1, 2, 3, 4, 5].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRatingFilter((prev) => prev === r ? null : r)}
+                  className={`px-2 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    ratingFilter === r
+                      ? ratingFilterMode === 'only' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {r}★
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-gray-400">Sort:</span>
               <button

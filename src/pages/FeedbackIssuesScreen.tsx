@@ -47,14 +47,36 @@ export default function FeedbackIssuesScreen() {
   const [filter, setFilter] = useState<FeedbackFilter>('open');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [sortRating, setSortRating] = useState<'asc' | 'desc' | null>(null);
+  type SortKey = { field: 'rating' | 'date'; dir: 'asc' | 'desc' };
+  const [sortKeys, setSortKeys] = useState<SortKey[]>([{ field: 'rating', dir: 'asc' }]);
+
+  const sortRating = sortKeys.find((s) => s.field === 'rating')?.dir ?? null;
+  const sortDate = sortKeys.find((s) => s.field === 'date')?.dir ?? null;
+  const ratingPriority = sortKeys.findIndex((s) => s.field === 'rating');
+  const datePriority = sortKeys.findIndex((s) => s.field === 'date');
+
+  const toggleSort = (field: 'rating' | 'date') => {
+    setSortKeys((prev) => {
+      const existing = prev.find((s) => s.field === field);
+      const others = prev.filter((s) => s.field !== field);
+      if (!existing) return [...others, { field, dir: 'asc' as const }];
+      if (existing.dir === 'asc') return [...others, { field, dir: 'desc' as const }];
+      return others;
+    });
+  };
 
   const sortedItems = useMemo(() => {
-    if (!sortRating) return items;
-    return [...items].sort((a, b) =>
-      sortRating === 'asc' ? a.rating - b.rating : b.rating - a.rating,
-    );
-  }, [items, sortRating]);
+    if (sortKeys.length === 0) return items;
+    return [...items].sort((a, b) => {
+      for (const { field, dir } of sortKeys) {
+        let cmp = 0;
+        if (field === 'rating') cmp = a.rating - b.rating;
+        else cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (cmp !== 0) return dir === 'asc' ? cmp : -cmp;
+      }
+      return 0;
+    });
+  }, [items, sortKeys]);
 
   const fetchFeedback = useCallback(() => {
     setLoading(true);
@@ -106,15 +128,34 @@ export default function FeedbackIssuesScreen() {
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-gray-400">Sort:</span>
               <button
-                onClick={() => setSortRating((prev) => prev === null ? 'asc' : prev === 'asc' ? 'desc' : null)}
+                onClick={() => toggleSort('rating')}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   sortRating
                     ? 'bg-amber-100 text-amber-800'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Rating {sortRating === 'asc' ? '↑' : sortRating === 'desc' ? '↓' : ''}
+                {sortKeys.length > 1 && ratingPriority >= 0 ? `${ratingPriority + 1}. ` : ''}Rating {sortRating === 'asc' ? '↑' : sortRating === 'desc' ? '↓' : ''}
               </button>
+              <button
+                onClick={() => toggleSort('date')}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  sortDate
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {sortKeys.length > 1 && datePriority >= 0 ? `${datePriority + 1}. ` : ''}Date {sortDate === 'desc' ? '↓' : sortDate === 'asc' ? '↑' : ''}
+              </button>
+              {sortKeys.length > 0 && (
+                <button
+                  onClick={() => setSortKeys([])}
+                  className="px-2 py-1.5 rounded-full text-xs font-semibold text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  title="Clear all sorting"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
           <div className="flex gap-1">
@@ -162,8 +203,12 @@ export default function FeedbackIssuesScreen() {
                   <span className="font-mono text-xs text-indigo-600">
                     {shortId(item.sessionId)}
                   </span>
-                  <span className="text-xs text-gray-400" title={formatAbsoluteDate(item.createdAt)}>
+                  <span className="text-xs text-gray-400">
                     {formatRelativeTime(item.createdAt)}
+                  </span>
+                  <span className="text-xs text-gray-300">·</span>
+                  <span className="text-xs text-gray-400">
+                    {formatAbsoluteDate(item.createdAt)}
                   </span>
                 </div>
                 {item.note && (

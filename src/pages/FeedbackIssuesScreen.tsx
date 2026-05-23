@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import chatbotLogsService from '../services/chatbot-logs.service';
 import type { ChatFeedbackItem } from '../types/chatbot-logs.types';
@@ -47,6 +47,14 @@ export default function FeedbackIssuesScreen() {
   const [filter, setFilter] = useState<FeedbackFilter>('open');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [sortRating, setSortRating] = useState<'asc' | 'desc' | null>(null);
+
+  const sortedItems = useMemo(() => {
+    if (!sortRating) return items;
+    return [...items].sort((a, b) =>
+      sortRating === 'asc' ? a.rating - b.rating : b.rating - a.rating,
+    );
+  }, [items, sortRating]);
 
   const fetchFeedback = useCallback(() => {
     setLoading(true);
@@ -91,9 +99,24 @@ export default function FeedbackIssuesScreen() {
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-gray-500">
-            {loading ? 'Loading…' : `${items.length} ${filter === 'all' ? 'total' : filter}`}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-gray-500">
+              {loading ? 'Loading…' : `${items.length} ${filter === 'all' ? 'total' : filter}`}
+            </p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400">Sort:</span>
+              <button
+                onClick={() => setSortRating((prev) => prev === null ? 'asc' : prev === 'asc' ? 'desc' : null)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  sortRating
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Rating {sortRating === 'asc' ? '↑' : sortRating === 'desc' ? '↓' : ''}
+              </button>
+            </div>
+          </div>
           <div className="flex gap-1">
             {FEEDBACK_FILTERS.map((f) => (
               <button
@@ -118,7 +141,7 @@ export default function FeedbackIssuesScreen() {
         )}
 
         <div className="flex flex-col gap-2">
-          {items.map((item) => (
+          {sortedItems.map((item) => (
             <div
               key={item.id}
               onClick={() => openFeedback(item)}

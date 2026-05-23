@@ -1,6 +1,6 @@
 import http from "./http";
 
-import type { CreateAddressDto } from "../types/address.types";
+import type { CreateAddressDto, UpdateAddressDto, Address } from "../types/address.types";
 
 const createAddress = async (
   dto: CreateAddressDto
@@ -9,4 +9,12 @@ const createAddress = async (
   return res.data;
 };
 
-export { createAddress };
+const updateAddress = async (
+  id: string,
+  dto: UpdateAddressDto
+): Promise<Address> => {
+  const res = await http.patch<Address>(`/address/${id}`, dto);
+  return res.data;
+};
+
+export { createAddress, updateAddress };

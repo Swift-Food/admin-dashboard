@@ -40,5 +40,17 @@ const createAddress = async (
   return res.data;
 };
 
-export type { Address, CreateAddressDto };
+interface UpdateAddressDto {
+  name?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  zipcode?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export type { Address, CreateAddressDto, UpdateAddressDto };
 export { createAddress };

@@ -18,11 +18,14 @@ import {
   uploadRestaurantImage,
 } from "../../services/restaurant.service";
 import type { RestaurantResponse, UpdateRestaurantDto } from "../../services/restaurant.service";
+import { updateAddress } from "../../services/address.service";
 
 import { AddRestaurantModal } from "../../components/AddRestaurantModal";
 import ImageCropper from "../../components/ImageCropper/ImageCropper";
 import DeleteConfirmModal from "../../components/DeleteConfirmModal";
 import CateringImageUpload from "../../components/CateringImageUpload";
+import GooglePlacesAutocomplete from "../../components/GooglePlacesAutocomplete/GooglePlacesAutocomplete";
+import type { PlaceResult } from "../../components/GooglePlacesAutocomplete/GooglePlacesAutocomplete";
 import "./RestaurantScreen.css";
 
 const RestaurantAdminDashboard = () => {
@@ -41,6 +44,9 @@ const RestaurantAdminDashboard = () => {
   // Delete modal state
   const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Address edit state
+  const [pendingAddress, setPendingAddress] = useState<PlaceResult | null>(null);
 
   // Image upload state
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
@@ -152,11 +158,26 @@ const RestaurantAdminDashboard = () => {
   const cancelEditing = () => {
     setEditingId(null);
     setEditForm({});
+    setPendingAddress(null);
   };
 
   const saveChanges = async (restaurantId: string) => {
     try {
       setSavingId(restaurantId);
+
+      // Save address if changed
+      if (pendingAddress) {
+        const restaurant = restaurants.find((r) => r.id === restaurantId);
+        if (restaurant?.address?.id) {
+          await updateAddress(restaurant.address.id, {
+            addressLine1: pendingAddress.addressLine1,
+            addressLine2: pendingAddress.addressLine2,
+            city: pendingAddress.city,
+            zipcode: pendingAddress.zipcode,
+            location: pendingAddress.location,
+          });
+        }
+      }
 
       // Prepare payload - convert images string to array for API
       const { images: imageStr, ...restForm } = editForm;
@@ -173,8 +194,19 @@ const RestaurantAdminDashboard = () => {
             ? {
                 ...r,
                 ...restForm,
-                // Convert images string back to array for local state
                 images: imageStr ? [imageStr] : [],
+                ...(pendingAddress && r.address
+                  ? {
+                      address: {
+                        ...r.address,
+                        addressLine1: pendingAddress.addressLine1,
+                        addressLine2: pendingAddress.addressLine2,
+                        city: pendingAddress.city,
+                        zipcode: pendingAddress.zipcode,
+                        location: pendingAddress.location,
+                      },
+                    }
+                  : {}),
               }
             : r
         )
@@ -182,6 +214,7 @@ const RestaurantAdminDashboard = () => {
 
       setEditingId(null);
       setEditForm({});
+      setPendingAddress(null);
     } catch (err) {
       alert(`Error: ${err instanceof Error ? err.message : "Failed to update restaurant"}`);
     } finally {
@@ -540,6 +573,76 @@ const RestaurantAdminDashboard = () => {
                                         rows={3}
                                         placeholder="Restaurant description..."
                                       />
+                                    </div>
+
+                                    <div className="form-field full-width">
+                                      <label className="field-label">
+                                        Delivery Address
+                                        <span className="field-hint">
+                                          Used for delivery price calculations. Search to update.
+                                        </span>
+                                      </label>
+                                      <GooglePlacesAutocomplete
+                                        onPlaceSelect={(place) => setPendingAddress(place)}
+                                        defaultValue={
+                                          restaurant.address
+                                            ? [
+                                                restaurant.address.addressLine1,
+                                                restaurant.address.city,
+                                                restaurant.address.zipcode,
+                                              ]
+                                                .filter(Boolean)
+                                                .join(", ")
+                                            : ""
+                                        }
+                                      />
+                                      {(pendingAddress || restaurant.address) && (
+                                        <div className="address-preview">
+                                          <div className="address-preview-grid">
+                                            <div className="address-preview-item">
+                                              <span className="address-preview-label">Street</span>
+                                              <span className="address-preview-value">
+                                                {pendingAddress?.addressLine1 ||
+                                                  restaurant.address?.addressLine1 ||
+                                                  "—"}
+                                              </span>
+                                            </div>
+                                            <div className="address-preview-item">
+                                              <span className="address-preview-label">City</span>
+                                              <span className="address-preview-value">
+                                                {pendingAddress?.city ||
+                                                  restaurant.address?.city ||
+                                                  "—"}
+                                              </span>
+                                            </div>
+                                            <div className="address-preview-item">
+                                              <span className="address-preview-label">Postcode</span>
+                                              <span className="address-preview-value">
+                                                {pendingAddress?.zipcode ||
+                                                  restaurant.address?.zipcode ||
+                                                  "—"}
+                                              </span>
+                                            </div>
+                                            <div className="address-preview-item">
+                                              <span className="address-preview-label">Coordinates</span>
+                                              <span className="address-preview-value">
+                                                {(
+                                                  pendingAddress?.location ||
+                                                  restaurant.address?.location
+                                                )
+                                                  ? `${(pendingAddress?.location?.latitude ?? restaurant.address?.location?.latitude)?.toFixed(6)}, ${(pendingAddress?.location?.longitude ?? restaurant.address?.location?.longitude)?.toFixed(6)}`
+                                                  : "—"}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          {pendingAddress && (
+                                            <div className="address-changed-badge">
+                                              <MapPin size={12} />
+                                              Address updated — save to apply
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
 
                                     {isEditingShowOnSite && (

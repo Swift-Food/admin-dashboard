@@ -116,6 +116,6 @@ export interface CostsResponse {
   totalCostUsd: number;
   totalCalls: number;
   totalSessions: number;
-  period: 'daily' | 'monthly';
+  period: 'hourly' | 'daily' | 'monthly';
   days: number;
 }

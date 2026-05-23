@@ -20,7 +20,7 @@ class ChatbotLogsService {
   }
 
   async getCosts(params: {
-    period?: 'daily' | 'monthly';
+    period?: 'hourly' | 'daily' | 'monthly';
     days?: number;
   } = {}): Promise<CostsResponse> {
     const response: AxiosResponse<CostsResponse> = await http.get('/admin/chatbot-sessions/costs', { params });

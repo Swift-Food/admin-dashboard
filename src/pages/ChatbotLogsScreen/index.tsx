@@ -847,14 +847,31 @@ const EMPTY_ITEM: Omit<CostItem, 'period'> = {
   sessionCount: 0,
 };
 
-function fillGaps(items: CostItem[], period: 'daily' | 'monthly', days: number): CostItem[] {
+type Period = 'hourly' | 'daily' | 'monthly';
+
+function fillGaps(items: CostItem[], period: Period, days: number): CostItem[] {
+  // Key precision varies by bucket: 13 chars for hourly ('YYYY-MM-DDTHH'),
+  // 10 chars for daily/monthly ('YYYY-MM-DD' / 'YYYY-MM-01').
+  const keyLen = period === 'hourly' ? 13 : 10;
   const byKey = new Map<string, CostItem>();
-  for (const item of items) byKey.set(item.period.slice(0, 10), item);
+  for (const item of items) byKey.set(item.period.slice(0, keyLen), item);
 
   const filled: CostItem[] = [];
   const now = new Date();
 
-  if (period === 'daily') {
+  if (period === 'hourly') {
+    // 24 hours per day of `days`. Capped at 168 (1 week) so the chart
+    // stays readable.
+    const hours = Math.min(days * 24, 168);
+    for (let i = hours - 1; i >= 0; i--) {
+      const d = new Date(Date.UTC(
+        now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+        now.getUTCHours() - i,
+      ));
+      const key = d.toISOString().slice(0, 13);
+      filled.push(byKey.get(key) ?? { ...EMPTY_ITEM, period: d.toISOString() });
+    }
+  } else if (period === 'daily') {
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
       const key = d.toISOString().slice(0, 10);
@@ -871,11 +888,16 @@ function fillGaps(items: CostItem[], period: 'daily' | 'monthly', days: number):
   return filled;
 }
 
-function formatDateLabel(iso: string, mode: 'daily' | 'monthly'): string {
+function formatDateLabel(iso: string, mode: Period): string {
   const d = new Date(iso);
-  return mode === 'monthly'
-    ? d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
-    : d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+  if (mode === 'monthly') {
+    return d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+  }
+  if (mode === 'hourly') {
+    // "14:00" — compact for an hourly axis. The bucket span is implicit.
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  return d.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
 }
 
 function UsageLineChart({
@@ -885,7 +907,7 @@ function UsageLineChart({
 }: {
   items: CostsResponse['items'];
   metric: ChartMetric;
-  period: 'daily' | 'monthly';
+  period: Period;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [hover, setHover] = useState<{ idx: number; mouseX: number; mouseY: number } | null>(null);
@@ -1093,14 +1115,17 @@ function UsageLineChart({
 
 function CostOverview() {
   const [costs, setCosts] = useState<CostsResponse | null>(null);
-  const [period, setPeriod] = useState<'daily' | 'monthly'>('daily');
+  const [period, setPeriod] = useState<Period>('daily');
   const [metric, setMetric] = useState<ChartMetric>('cost');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
+    // Window scales with bucket granularity to keep the chart legible:
+    // hourly → last 24h, daily → last 30d, monthly → last 12mo.
+    const days = period === 'hourly' ? 1 : period === 'monthly' ? 365 : 30;
     chatbotLogsService
-      .getCosts({ period, days: period === 'monthly' ? 365 : 30 })
+      .getCosts({ period, days })
       .then(setCosts)
       .catch(() => setCosts(null))
       .finally(() => setLoading(false));
@@ -1147,7 +1172,7 @@ function CostOverview() {
         </div>
         <div className="flex flex-col gap-2 items-end">
           <div className="flex gap-1">
-            {(['daily', 'monthly'] as const).map((p) => (
+            {(['hourly', 'daily', 'monthly'] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
@@ -1157,7 +1182,7 @@ function CostOverview() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {p === 'daily' ? 'Daily' : 'Monthly'}
+                {p === 'hourly' ? 'Hourly' : p === 'daily' ? 'Daily' : 'Monthly'}
               </button>
             ))}
           </div>

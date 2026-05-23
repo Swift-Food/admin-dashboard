@@ -56,6 +56,7 @@ export type SidebarPage =
   | "pending-transfers"
   | "partner-spaces"
   | "chatbot-logs"
+  | "feedback-issues"
   | "miscellaneous"
   | "cache";
 
@@ -167,6 +168,11 @@ const navSections: NavSection[] = [
       {
         id: "chatbot-logs" as SidebarPage,
         label: "Chatbot Logs",
+        icon: <FontAwesomeIcon icon={faMessage} style={iconCommonStyle} />,
+      },
+      {
+        id: "feedback-issues" as SidebarPage,
+        label: "Feedback & Issues",
         icon: <FontAwesomeIcon icon={faMessage} style={iconCommonStyle} />,
       },
     ],

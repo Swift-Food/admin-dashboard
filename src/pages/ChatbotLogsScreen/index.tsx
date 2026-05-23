@@ -4,7 +4,6 @@ import chatbotLogsService from '../../services/chatbot-logs.service';
 import type {
   ChatbotSessionSummary,
   ChatbotSessionDetail,
-  ChatFeedbackItem,
   TimelineEntry,
   CostsResponse,
 } from '../../types/chatbot-logs.types';
@@ -1222,146 +1221,6 @@ function CostOverview() {
   );
 }
 
-type FeedbackFilter = 'open' | 'addressed' | 'all';
-
-const FEEDBACK_FILTERS: { value: FeedbackFilter; label: string }[] = [
-  { value: 'open', label: 'Open' },
-  { value: 'addressed', label: 'Addressed' },
-  { value: 'all', label: 'All' },
-];
-
-/**
- * Issue tracker — lists user feedback / reports newest-first, filtered
- * by resolution status. Each row shows rating, note, source, and a
- * resolve/reopen toggle. Clicking opens the originating session.
- */
-function FeedbackOverview({ onSelect }: { onSelect: (id: string) => void }) {
-  const [items, setItems] = useState<ChatFeedbackItem[]>([]);
-  const [filter, setFilter] = useState<FeedbackFilter>('open');
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
-
-  const fetchFeedback = useCallback(() => {
-    setLoading(true);
-    chatbotLogsService
-      .listFeedback({ status: filter, limit: 100 })
-      .then((res) => setItems(res.items))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, [filter]);
-
-  useEffect(() => {
-    fetchFeedback();
-  }, [fetchFeedback]);
-
-  const toggleAddressed = async (item: ChatFeedbackItem) => {
-    setBusyId(item.id);
-    try {
-      await chatbotLogsService.updateFeedback(item.id, !item.isAddressed);
-      // Optimistic: drop it from an open/addressed-filtered list, or flip in place for 'all'.
-      setItems((prev) =>
-        filter === 'all'
-          ? prev.map((f) =>
-              f.id === item.id ? { ...f, isAddressed: !f.isAddressed } : f,
-            )
-          : prev.filter((f) => f.id !== item.id),
-      );
-    } catch {
-      // leave as-is; a refetch on filter change will reconcile
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-            Feedback &amp; Issues
-          </h2>
-          <p className="text-xs text-gray-400 mt-1">
-            {loading ? 'Loading…' : `${items.length} ${filter === 'all' ? 'total' : filter}`}
-          </p>
-        </div>
-        <div className="flex gap-1">
-          {FEEDBACK_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                filter === f.value
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {!loading && items.length === 0 && (
-        <div className="text-gray-400 text-sm py-4 text-center">
-          {filter === 'open' ? 'No open issues 🎉' : 'Nothing here.'}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-2">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3"
-          >
-            <StarRating value={item.rating} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${
-                    item.source === 'internal'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  {item.source}
-                </span>
-                <button
-                  onClick={() => onSelect(item.sessionId)}
-                  className="font-mono text-xs text-indigo-600 hover:underline"
-                  title="Open session"
-                >
-                  {shortId(item.sessionId)}
-                </button>
-                <span className="text-xs text-gray-400" title={formatAbsoluteDate(item.createdAt)}>
-                  {formatRelativeTime(item.createdAt)}
-                </span>
-              </div>
-              {item.note && (
-                <p className="mt-1 text-sm text-gray-700 break-words">{item.note}</p>
-              )}
-            </div>
-            <button
-              onClick={() => toggleAddressed(item)}
-              disabled={busyId === item.id}
-              className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors disabled:opacity-50 ${
-                item.isAddressed
-                  ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
-              }`}
-            >
-              {busyId === item.id
-                ? '…'
-                : item.isAddressed
-                  ? 'Reopen'
-                  : 'Mark done'}
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void }) {
   const [items, setItems]           = useState<ChatbotSessionSummary[]>([]);
   const [total, setTotal]           = useState(0);
@@ -1471,8 +1330,6 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
       </div>
 
       <CostOverview />
-
-      <FeedbackOverview onSelect={onSelect} />
 
       {/* Filters bar */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-5 flex flex-wrap gap-3 items-center">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import chatbotLogsService from '../../services/chatbot-logs.service';
 import type {
@@ -1223,6 +1223,8 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
   const [searchInput, setSearchInput] = useState('');
   const [debouncedQ, setDebouncedQ]   = useState('');
   const [datePreset, setDatePreset]   = useState('all');
+  const [sortBy, setSortBy]           = useState<'lastSeen' | 'created' | 'cost'>('created');
+  const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -1278,6 +1280,32 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
     observer.observe(node);
     return () => observer.disconnect();
   }, [nextCursor, loading, loadingMore, fetchSessions]);
+
+  type SortCol = 'lastSeen' | 'created' | 'cost';
+
+  const sortedItems = useMemo(() => {
+    const sorted = [...items].sort((a, b) => {
+      if (sortBy === 'cost') return (a.totalCostUsd ?? 0) - (b.totalCostUsd ?? 0);
+      const tsA = sortBy === 'lastSeen' ? a.lastSeenTs : a.firstSeenTs;
+      const tsB = sortBy === 'lastSeen' ? b.lastSeenTs : b.firstSeenTs;
+      return new Date(tsA).getTime() - new Date(tsB).getTime();
+    });
+    return sortDir === 'desc' ? sorted.reverse() : sorted;
+  }, [items, sortBy, sortDir]);
+
+  const handleSort = (col: SortCol) => {
+    if (sortBy === col) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(col);
+      setSortDir('desc');
+    }
+  };
+
+  const SortIndicator = ({ col }: { col: SortCol }) => {
+    if (sortBy !== col) return <span className="ml-1 text-gray-300">↕</span>;
+    return <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -1357,10 +1385,17 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Session ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Last seen</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer select-none hover:text-blue-600 transition-colors" onClick={() => handleSort('created')}>
+                    Created<SortIndicator col="created" />
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer select-none hover:text-blue-600 transition-colors" onClick={() => handleSort('lastSeen')}>
+                    Last seen<SortIndicator col="lastSeen" />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Events / LLM / Retrieval / Feedback</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Errors</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cost</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer select-none hover:text-blue-600 transition-colors" onClick={() => handleSort('cost')}>
+                    Cost<SortIndicator col="cost" />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tokens in/out</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Latency</th>
                 </tr>
@@ -1368,12 +1403,12 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
               <tbody className="divide-y divide-gray-100">
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-16 text-center text-gray-400 text-sm">
+                    <td colSpan={9} className="px-6 py-16 text-center text-gray-400 text-sm">
                       No sessions found.
                     </td>
                   </tr>
                 )}
-                {items.map(item => (
+                {sortedItems.map(item => (
                   <tr
                     key={item.sessionId}
                     onClick={() => onSelect(item.sessionId)}
@@ -1391,8 +1426,11 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-800">{formatAbsoluteDate(item.firstSeenTs)}</div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-800">{formatRelativeTime(item.lastSeenTs)}</div>
-                      <div className="text-xs text-gray-400">{formatAbsoluteDate(item.firstSeenTs)}</div>
+                      <div className="text-xs text-gray-400">{formatAbsoluteDate(item.lastSeenTs)}</div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                       {item.eventCount} / {item.llmCallCount} / {item.retrievalCount} / {item.feedbackCount}

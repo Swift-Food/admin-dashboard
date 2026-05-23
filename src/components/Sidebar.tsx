@@ -148,11 +148,6 @@ const navSections: NavSection[] = [
         icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
       },
       {
-        id: "chatbot-logs" as SidebarPage,
-        label: "Chatbot Logs",
-        icon: <FontAwesomeIcon icon={faMessage} style={iconCommonStyle} />,
-      },
-      {
         id: "catering-financials",
         label: "Catering Financials",
         icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
@@ -161,6 +156,18 @@ const navSections: NavSection[] = [
         id: "order-financials",
         label: "Order Financials",
         icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
+      },
+    ],
+  },
+  {
+    id: "catering-ai",
+    label: "Catering AI",
+    mode: "swift",
+    items: [
+      {
+        id: "chatbot-logs" as SidebarPage,
+        label: "Chatbot Logs",
+        icon: <FontAwesomeIcon icon={faMessage} style={iconCommonStyle} />,
       },
     ],
   },

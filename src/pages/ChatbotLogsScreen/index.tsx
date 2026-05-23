@@ -844,6 +844,7 @@ const EMPTY_ITEM: Omit<CostItem, 'period'> = {
   outputCostUsd: 0,
   thinkingCostUsd: 0,
   callCount: 0,
+  sessionCount: 0,
 };
 
 function fillGaps(items: CostItem[], period: 'daily' | 'monthly', days: number): CostItem[] {
@@ -1072,10 +1073,17 @@ function UsageLineChart({
                   <td className="text-right pt-1 font-semibold tabular-nums">{totalTok.toLocaleString()}</td>
                   <td className="text-right pt-1 font-semibold tabular-nums text-emerald-300">{formatCost(hoverItem.totalCostUsd)}</td>
                 </tr>
+                {hoverItem.sessionCount > 0 && (
+                  <tr className="text-gray-400">
+                    <td className="pr-2 pt-1">Avg/session</td>
+                    <td className="text-right pt-1 tabular-nums">{Math.round(totalTok / hoverItem.sessionCount).toLocaleString()}</td>
+                    <td className="text-right pt-1 tabular-nums">{formatCost(hoverItem.totalCostUsd / hoverItem.sessionCount)}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
 
-            <p className="text-gray-400 mt-2 text-[10px]">{hoverItem.callCount} calls</p>
+            <p className="text-gray-400 mt-2 text-[10px]">{hoverItem.sessionCount} sessions · {hoverItem.callCount} calls</p>
           </div>
         );
       })()}
@@ -1128,7 +1136,14 @@ function CostOverview() {
             <p className="text-2xl font-bold text-emerald-700">{formatCost(costs.totalCostUsd)}</p>
             <p className="text-sm text-gray-500">{totalTokens.toLocaleString()} tokens</p>
           </div>
-          <p className="text-xs text-gray-400">{costs.totalCalls.toLocaleString()} calls over {costs.days}d</p>
+          <p className="text-xs text-gray-400">
+            {(costs.totalSessions ?? 0).toLocaleString()} sessions · {costs.totalCalls.toLocaleString()} calls · {costs.days}d
+          </p>
+          {(costs.totalSessions ?? 0) > 0 && (
+            <p className="text-xs text-gray-400">
+              avg {formatCost(costs.totalCostUsd / costs.totalSessions)}/session · {(costs.totalCalls / costs.totalSessions).toFixed(1)} calls/session · {Math.round(totalTokens / costs.totalSessions).toLocaleString()} tokens/session
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-2 items-end">
           <div className="flex gap-1">

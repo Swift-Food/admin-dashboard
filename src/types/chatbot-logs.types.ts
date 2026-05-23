@@ -108,12 +108,14 @@ export interface CostPeriodItem {
   outputCostUsd: number;
   thinkingCostUsd: number;
   callCount: number;
+  sessionCount: number;
 }
 
 export interface CostsResponse {
   items: CostPeriodItem[];
   totalCostUsd: number;
   totalCalls: number;
+  totalSessions: number;
   period: 'daily' | 'monthly';
   days: number;
 }

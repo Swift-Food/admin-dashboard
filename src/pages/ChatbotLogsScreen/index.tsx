@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import chatbotLogsService from '../../services/chatbot-logs.service';
 import type {
@@ -480,31 +480,31 @@ function FeedbackCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { 
   );
 }
 
-function TimelineEntryCard({
-  entry,
-  startTs,
-  previousUserMessage,
-  turnEntries,
-}: {
-  entry: TimelineEntry;
-  startTs: string;
-  previousUserMessage?: string | null;
-  turnEntries?: TurnEntry[];
-}) {
+const TimelineEntryCard = React.forwardRef<
+  HTMLDivElement,
+  {
+    entry: TimelineEntry;
+    startTs: string;
+    previousUserMessage?: string | null;
+    turnEntries?: TurnEntry[];
+    highlight?: boolean;
+  }
+>(function TimelineEntryCard({ entry, startTs, previousUserMessage, turnEntries, highlight }, ref) {
   const offsetLabel = formatOffsetMs(startTs, entry.ts);
   const hasError =
     entry.kind === 'llm_call' && !!entry.data.errorType;
   const leftBorder = hasError ? 'border-l-4 border-l-red-500' : '';
+  const highlightRing = highlight ? 'ring-2 ring-purple-400 ring-offset-2 rounded-lg' : '';
 
   return (
-    <div className={`${leftBorder}`}>
+    <div ref={ref} className={`${leftBorder} ${highlightRing}`}>
       {entry.kind === 'event'     && <EventCard     entry={entry} offsetLabel={offsetLabel} previousUserMessage={previousUserMessage} turnEntries={turnEntries} />}
       {entry.kind === 'llm_call'  && <LlmCallCard   entry={entry} offsetLabel={offsetLabel} />}
       {entry.kind === 'retrieval' && <RetrievalCard entry={entry} offsetLabel={offsetLabel} />}
       {entry.kind === 'feedback'  && <FeedbackCard  entry={entry} offsetLabel={offsetLabel} />}
     </div>
   );
-}
+});
 
 /**
  * Convert a single TimelineEntry into the lightweight TurnEntry pill
@@ -630,15 +630,19 @@ function extractSessionTurns(timeline: TimelineEntry[]): SessionTurn[] {
 function ChatbotSessionDetailView({
   sessionId,
   onBack,
+  highlightFeedbackId,
 }: {
   sessionId: string;
   onBack: () => void;
+  highlightFeedbackId?: string | null;
 }) {
   const [detail, setDetail]   = useState<ChatbotSessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string>();
   const [copied, setCopied]   = useState(false);
   const [showFullSession, setShowFullSession] = useState(false);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const hasScrolled = useRef(false);
 
   useEffect(() => {
     setLoading(true);
@@ -649,6 +653,15 @@ function ChatbotSessionDetailView({
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load session'))
       .finally(() => setLoading(false));
   }, [sessionId]);
+
+  useEffect(() => {
+    if (highlightFeedbackId && detail && !hasScrolled.current && highlightRef.current) {
+      hasScrolled.current = true;
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [highlightFeedbackId, detail]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(sessionId).then(() => {
@@ -797,15 +810,24 @@ function ChatbotSessionDetailView({
             {(() => {
               const prevUserMessages = computePreviousUserMessages(detail.timeline);
               const turnEntriesByIndex = computeTurnEntries(detail.timeline);
-              return detail.timeline.map((entry, i) => (
-                <TimelineEntryCard
-                  key={i}
-                  entry={entry}
-                  startTs={detail.firstSeenTs}
-                  previousUserMessage={prevUserMessages[i]}
-                  turnEntries={turnEntriesByIndex[i]}
-                />
-              ));
+              return detail.timeline.map((entry, i) => {
+                const isHighlighted = !!(
+                  highlightFeedbackId &&
+                  entry.kind === 'feedback' &&
+                  String(entry.data.id) === highlightFeedbackId
+                );
+                return (
+                  <TimelineEntryCard
+                    key={i}
+                    ref={isHighlighted ? highlightRef : undefined}
+                    entry={entry}
+                    startTs={detail.firstSeenTs}
+                    previousUserMessage={prevUserMessages[i]}
+                    turnEntries={turnEntriesByIndex[i]}
+                    highlight={isHighlighted}
+                  />
+                );
+              });
             })()}
           </div>
         )}
@@ -1496,6 +1518,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
 const ChatbotLogsScreen = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const sessionIdParam = searchParams.get('sessionId');
+  const feedbackIdParam = searchParams.get('feedbackId');
 
   const handleSelect = (id: string) => {
     setSearchParams({ sessionId: id });
@@ -1510,6 +1533,7 @@ const ChatbotLogsScreen = () => {
       <ChatbotSessionDetailView
         sessionId={sessionIdParam}
         onBack={handleBack}
+        highlightFeedbackId={feedbackIdParam}
       />
     );
   }

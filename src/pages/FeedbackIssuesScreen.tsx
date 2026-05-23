@@ -79,8 +79,8 @@ export default function FeedbackIssuesScreen() {
     }
   };
 
-  const openSession = (sessionId: string) => {
-    navigate(`/swift/chatbot-logs?session=${sessionId}`);
+  const openFeedback = (item: ChatFeedbackItem) => {
+    navigate(`/swift/chatbot-logs?sessionId=${item.sessionId}&feedbackId=${item.id}`);
   };
 
   return (
@@ -121,7 +121,8 @@ export default function FeedbackIssuesScreen() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3"
+              onClick={() => openFeedback(item)}
+              className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 cursor-pointer hover:bg-gray-100 transition-colors"
             >
               <StarRating value={item.rating} />
               <div className="min-w-0 flex-1">
@@ -135,13 +136,9 @@ export default function FeedbackIssuesScreen() {
                   >
                     {item.source}
                   </span>
-                  <button
-                    onClick={() => openSession(item.sessionId)}
-                    className="font-mono text-xs text-indigo-600 hover:underline"
-                    title="Open session"
-                  >
+                  <span className="font-mono text-xs text-indigo-600">
                     {shortId(item.sessionId)}
-                  </button>
+                  </span>
                   <span className="text-xs text-gray-400" title={formatAbsoluteDate(item.createdAt)}>
                     {formatRelativeTime(item.createdAt)}
                   </span>
@@ -151,7 +148,7 @@ export default function FeedbackIssuesScreen() {
                 )}
               </div>
               <button
-                onClick={() => toggleAddressed(item)}
+                onClick={(e) => { e.stopPropagation(); toggleAddressed(item); }}
                 disabled={busyId === item.id}
                 className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors disabled:opacity-50 ${
                   item.isAddressed

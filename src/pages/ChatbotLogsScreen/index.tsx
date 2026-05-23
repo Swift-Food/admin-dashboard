@@ -285,16 +285,67 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Timeline cards ──────────────────────────────────────────────────────────
 
+type FeedbackTimelineEntry = Extract<TimelineEntry, { kind: 'feedback' }>;
+
+function InlineFeedback({ feedback, startTs, highlightId, highlightRef }: {
+  feedback: FeedbackTimelineEntry[];
+  startTs: string;
+  highlightId?: string | null;
+  highlightRef?: React.RefObject<HTMLDivElement | null>;
+}) {
+  if (feedback.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-col gap-1.5">
+      {feedback.map((fb) => {
+        const isHighlighted = !!(highlightId && String(fb.data.id) === highlightId);
+        return (
+          <div
+            key={fb.data.id}
+            ref={isHighlighted ? highlightRef : undefined}
+            className={`rounded-md border border-purple-200 bg-purple-50 px-3 py-2 flex items-center gap-2 flex-wrap ${
+              isHighlighted ? 'ring-2 ring-purple-400 ring-offset-1' : ''
+            }`}
+          >
+            <StarRating value={fb.data.rating} />
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-200 text-purple-800">
+              {fb.data.source}
+            </span>
+            {fb.data.isAddressed && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                addressed
+              </span>
+            )}
+            {fb.data.note && (
+              <span className="text-xs text-gray-700 italic">"{fb.data.note}"</span>
+            )}
+            <span className="ml-auto text-xs text-gray-400">
+              {formatOffsetMs(startTs, fb.ts)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function EventCard({
   entry,
   offsetLabel,
   previousUserMessage,
   turnEntries,
+  attachedFeedback,
+  startTs,
+  highlightFeedbackId,
+  highlightRef,
 }: {
   entry: Extract<TimelineEntry, { kind: 'event' }>;
   offsetLabel: string;
   previousUserMessage?: string | null;
   turnEntries?: TurnEntry[];
+  attachedFeedback?: FeedbackTimelineEntry[];
+  startTs?: string;
+  highlightFeedbackId?: string | null;
+  highlightRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const isUser  = entry.data.eventType === 'user_message';
   const isBot   = entry.data.eventType === 'bot_reply';
@@ -348,6 +399,15 @@ function EventCard({
           mealSessions={botMealSessions}
           turnEntries={turnEntries}
           onClose={() => setShowSnapshot(false)}
+        />
+      )}
+
+      {isBot && attachedFeedback && attachedFeedback.length > 0 && startTs && (
+        <InlineFeedback
+          feedback={attachedFeedback}
+          startTs={startTs}
+          highlightId={highlightFeedbackId}
+          highlightRef={highlightRef}
         />
       )}
     </div>
@@ -457,29 +517,6 @@ function StarRating({ value }: { value: number }) {
   );
 }
 
-function FeedbackCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kind: 'feedback' }>; offsetLabel: string }) {
-  return (
-    <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 flex items-start gap-2 flex-wrap">
-      <span className="text-xs text-gray-400 w-14 shrink-0" title={formatAbsoluteDate(entry.ts)}>
-        {offsetLabel}
-      </span>
-      <StarRating value={entry.data.rating} />
-      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-200 text-purple-800">
-        {entry.data.source}
-      </span>
-      {entry.data.isAddressed && (
-        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-          addressed
-        </span>
-      )}
-      {entry.data.note && (
-        <span className="text-xs text-gray-700 italic">"{entry.data.note}"</span>
-      )}
-      <span className="ml-auto text-xs text-gray-400">feedback #{entry.data.id}</span>
-    </div>
-  );
-}
-
 const TimelineEntryCard = React.forwardRef<
   HTMLDivElement,
   {
@@ -488,8 +525,11 @@ const TimelineEntryCard = React.forwardRef<
     previousUserMessage?: string | null;
     turnEntries?: TurnEntry[];
     highlight?: boolean;
+    attachedFeedback?: FeedbackTimelineEntry[];
+    highlightFeedbackId?: string | null;
+    feedbackHighlightRef?: React.RefObject<HTMLDivElement | null>;
   }
->(function TimelineEntryCard({ entry, startTs, previousUserMessage, turnEntries, highlight }, ref) {
+>(function TimelineEntryCard({ entry, startTs, previousUserMessage, turnEntries, highlight, attachedFeedback, highlightFeedbackId, feedbackHighlightRef }, ref) {
   const offsetLabel = formatOffsetMs(startTs, entry.ts);
   const hasError =
     entry.kind === 'llm_call' && !!entry.data.errorType;
@@ -498,10 +538,9 @@ const TimelineEntryCard = React.forwardRef<
 
   return (
     <div ref={ref} className={`${leftBorder} ${highlightRing}`}>
-      {entry.kind === 'event'     && <EventCard     entry={entry} offsetLabel={offsetLabel} previousUserMessage={previousUserMessage} turnEntries={turnEntries} />}
+      {entry.kind === 'event'     && <EventCard entry={entry} offsetLabel={offsetLabel} previousUserMessage={previousUserMessage} turnEntries={turnEntries} attachedFeedback={attachedFeedback} startTs={startTs} highlightFeedbackId={highlightFeedbackId} highlightRef={feedbackHighlightRef} />}
       {entry.kind === 'llm_call'  && <LlmCallCard   entry={entry} offsetLabel={offsetLabel} />}
       {entry.kind === 'retrieval' && <RetrievalCard entry={entry} offsetLabel={offsetLabel} />}
-      {entry.kind === 'feedback'  && <FeedbackCard  entry={entry} offsetLabel={offsetLabel} />}
     </div>
   );
 });
@@ -692,6 +731,23 @@ function ChatbotSessionDetailView({
   const { totals } = detail;
   const totalTokens = totals.inputTokens + totals.outputTokens;
 
+  const allFeedback = detail.timeline.filter(
+    (e): e is FeedbackTimelineEntry => e.kind === 'feedback',
+  );
+  const feedbackByEventId = new Map<number, FeedbackTimelineEntry[]>();
+  const generalFeedback: FeedbackTimelineEntry[] = [];
+  for (const fb of allFeedback) {
+    if (fb.data.botReplyEventId != null) {
+      const arr = feedbackByEventId.get(fb.data.botReplyEventId);
+      if (arr) arr.push(fb);
+      else feedbackByEventId.set(fb.data.botReplyEventId, [fb]);
+    } else {
+      generalFeedback.push(fb);
+    }
+  }
+
+  const timelineWithoutFeedback = detail.timeline.filter((e) => e.kind !== 'feedback');
+
   const llmEntries = detail.timeline.filter(
     (e): e is Extract<TimelineEntry, { kind: 'llm_call' }> => e.kind === 'llm_call',
   );
@@ -754,6 +810,45 @@ function ChatbotSessionDetailView({
         />
       )}
 
+      {/* General feedback (not tied to a specific bot reply) */}
+      {generalFeedback.length > 0 && (
+        <div className="bg-white rounded-xl border border-purple-200 shadow-sm p-5 mb-6">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            General Feedback ({generalFeedback.length})
+          </h2>
+          <div className="flex flex-col gap-2">
+            {generalFeedback.map((fb) => {
+              const isHighlighted = !!(highlightFeedbackId && String(fb.data.id) === highlightFeedbackId);
+              return (
+                <div
+                  key={fb.data.id}
+                  ref={isHighlighted ? highlightRef : undefined}
+                  className={`rounded-md border border-purple-200 bg-purple-50 px-3 py-2 flex items-center gap-2 flex-wrap ${
+                    isHighlighted ? 'ring-2 ring-purple-400 ring-offset-1' : ''
+                  }`}
+                >
+                  <StarRating value={fb.data.rating} />
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-200 text-purple-800">
+                    {fb.data.source}
+                  </span>
+                  {fb.data.isAddressed && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                      addressed
+                    </span>
+                  )}
+                  {fb.data.note && (
+                    <span className="text-xs text-gray-700 italic">"{fb.data.note}"</span>
+                  )}
+                  <span className="ml-auto text-xs text-gray-400">
+                    {formatRelativeTime(fb.ts)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Summary card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Summary</h2>
@@ -801,30 +896,28 @@ function ChatbotSessionDetailView({
       {/* Timeline */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-          Timeline ({detail.timeline.length} entries)
+          Timeline ({timelineWithoutFeedback.length} entries)
         </h2>
-        {detail.timeline.length === 0 ? (
+        {timelineWithoutFeedback.length === 0 ? (
           <p className="text-gray-400 text-sm">No timeline entries.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {(() => {
-              const prevUserMessages = computePreviousUserMessages(detail.timeline);
-              const turnEntriesByIndex = computeTurnEntries(detail.timeline);
-              return detail.timeline.map((entry, i) => {
-                const isHighlighted = !!(
-                  highlightFeedbackId &&
-                  entry.kind === 'feedback' &&
-                  String(entry.data.id) === highlightFeedbackId
-                );
+              const prevUserMessages = computePreviousUserMessages(timelineWithoutFeedback);
+              const turnEntriesByIndex = computeTurnEntries(timelineWithoutFeedback);
+              return timelineWithoutFeedback.map((entry, i) => {
+                const eventId = entry.kind === 'event' ? entry.data.id : undefined;
+                const attached = eventId != null ? feedbackByEventId.get(eventId) : undefined;
                 return (
                   <TimelineEntryCard
                     key={i}
-                    ref={isHighlighted ? highlightRef : undefined}
                     entry={entry}
                     startTs={detail.firstSeenTs}
                     previousUserMessage={prevUserMessages[i]}
                     turnEntries={turnEntriesByIndex[i]}
-                    highlight={isHighlighted}
+                    attachedFeedback={attached}
+                    highlightFeedbackId={highlightFeedbackId}
+                    feedbackHighlightRef={highlightRef}
                   />
                 );
               });

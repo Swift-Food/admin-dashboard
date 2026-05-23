@@ -66,7 +66,6 @@ const GooglePlacesAutocomplete = ({
 
     const google = (window as any).google;
     const ac = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ["address"],
       componentRestrictions: { country: "gb" },
       fields: ["address_components", "geometry", "formatted_address"],
     });

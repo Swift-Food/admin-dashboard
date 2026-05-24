@@ -300,7 +300,7 @@ function InlineFeedback({ feedback, startTs, highlightId, highlightRef, onToggle
     if (!onToggleAddressed) return;
     setBusyId(fb.data.id);
     try {
-      await chatbotLogsService.updateFeedback(String(fb.data.id), !fb.data.isAddressed);
+      await chatbotLogsService.updateFeedback(String(fb.data.id), { isAddressed: !fb.data.isAddressed });
       onToggleAddressed(fb.data.id, !fb.data.isAddressed);
     } catch {
       // ignore
@@ -380,7 +380,7 @@ function FeedbackOverviewRow({
     e.stopPropagation();
     setBusy(true);
     try {
-      await chatbotLogsService.updateFeedback(String(fb.data.id), !fb.data.isAddressed);
+      await chatbotLogsService.updateFeedback(String(fb.data.id), { isAddressed: !fb.data.isAddressed });
       onToggleAddressed(fb.data.id, !fb.data.isAddressed);
     } catch {
       // ignore

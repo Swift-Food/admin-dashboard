@@ -33,6 +33,24 @@ function StarRating({ value }: { value: number }) {
   );
 }
 
+function EditableStars({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onChange(n); }}
+          className={`text-lg leading-none transition-transform hover:scale-110 ${n <= value ? 'text-amber-400' : 'text-gray-300'}`}
+          title={`Set rating to ${n}`}
+        >
+          ★
+        </button>
+      ))}
+    </span>
+  );
+}
+
 type FeedbackFilter = 'open' | 'addressed' | 'all';
 
 const FEEDBACK_FILTERS: { value: FeedbackFilter; label: string }[] = [
@@ -47,6 +65,11 @@ export default function FeedbackIssuesScreen() {
   const [filter, setFilter] = useState<FeedbackFilter>('open');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Inline edit state — one row at a time.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editNote, setEditNote] = useState('');
+  const [editRating, setEditRating] = useState(5);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [ratingFilterMode, setRatingFilterMode] = useState<'only' | 'exclude'>('only');
   type SortKey = { field: 'rating' | 'date'; dir: 'asc' | 'desc' };
@@ -103,7 +126,7 @@ export default function FeedbackIssuesScreen() {
   const toggleAddressed = async (item: ChatFeedbackItem) => {
     setBusyId(item.id);
     try {
-      await chatbotLogsService.updateFeedback(item.id, !item.isAddressed);
+      await chatbotLogsService.updateFeedback(item.id, { isAddressed: !item.isAddressed });
       setItems((prev) =>
         filter === 'all'
           ? prev.map((f) =>
@@ -120,6 +143,33 @@ export default function FeedbackIssuesScreen() {
 
   const openFeedback = (item: ChatFeedbackItem) => {
     navigate(`/swift/chatbot-logs?sessionId=${item.sessionId}&feedbackId=${item.id}`);
+  };
+
+  const startEdit = (item: ChatFeedbackItem) => {
+    setEditingId(item.id);
+    setEditNote(item.note ?? '');
+    setEditRating(item.rating);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditNote('');
+  };
+
+  const saveEdit = async (item: ChatFeedbackItem) => {
+    setSavingId(item.id);
+    const note = editNote.trim();
+    try {
+      await chatbotLogsService.updateFeedback(item.id, { note, rating: editRating });
+      setItems((prev) =>
+        prev.map((f) => (f.id === item.id ? { ...f, note, rating: editRating } : f)),
+      );
+      setEditingId(null);
+    } catch {
+      // leave editor open so the admin can retry
+    } finally {
+      setSavingId(null);
+    }
   };
 
   return (
@@ -216,13 +266,23 @@ export default function FeedbackIssuesScreen() {
         )}
 
         <div className="flex flex-col gap-2">
-          {sortedItems.map((item) => (
+          {sortedItems.map((item) => {
+            const isEditing = editingId === item.id;
+            return (
             <div
               key={item.id}
-              onClick={() => openFeedback(item)}
-              className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 cursor-pointer hover:bg-gray-100 transition-colors"
+              onClick={() => { if (!isEditing) openFeedback(item); }}
+              className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${
+                isEditing
+                  ? 'border-indigo-200 bg-white cursor-default'
+                  : 'border-gray-100 bg-gray-50 cursor-pointer hover:bg-gray-100'
+              }`}
             >
-              <StarRating value={item.rating} />
+              {isEditing ? (
+                <EditableStars value={editRating} onChange={setEditRating} />
+              ) : (
+                <StarRating value={item.rating} />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
@@ -245,27 +305,68 @@ export default function FeedbackIssuesScreen() {
                     {formatAbsoluteDate(item.createdAt)}
                   </span>
                 </div>
-                {item.note && (
-                  <p className="mt-1 text-sm text-gray-700 break-words">{item.note}</p>
+                {isEditing ? (
+                  <textarea
+                    value={editNote}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setEditNote(e.target.value)}
+                    rows={3}
+                    maxLength={2000}
+                    placeholder="Note / diagnosis…"
+                    className="mt-2 w-full resize-y rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-800 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  />
+                ) : (
+                  item.note && (
+                    <p className="mt-1 text-sm text-gray-700 break-words whitespace-pre-wrap">{item.note}</p>
+                  )
                 )}
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); toggleAddressed(item); }}
-                disabled={busyId === item.id}
-                className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors disabled:opacity-50 ${
-                  item.isAddressed
-                    ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                }`}
-              >
-                {busyId === item.id
-                  ? '…'
-                  : item.isAddressed
-                    ? 'Reopen'
-                    : 'Mark done'}
-              </button>
+              {isEditing ? (
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); saveEdit(item); }}
+                    disabled={savingId === item.id}
+                    className="px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  >
+                    {savingId === item.id ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
+                    disabled={savingId === item.id}
+                    className="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); startEdit(item); }}
+                    className="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                    title="Edit note / rating"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleAddressed(item); }}
+                    disabled={busyId === item.id}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors disabled:opacity-50 ${
+                      item.isAddressed
+                        ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    }`}
+                  >
+                    {busyId === item.id
+                      ? '…'
+                      : item.isAddressed
+                        ? 'Reopen'
+                        : 'Mark done'}
+                  </button>
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -35,10 +35,13 @@ class ChatbotLogsService {
     return response.data;
   }
 
-  async updateFeedback(id: string, isAddressed: boolean): Promise<{ ok: true }> {
+  async updateFeedback(
+    id: string,
+    patch: { isAddressed?: boolean; note?: string; rating?: number },
+  ): Promise<{ ok: true }> {
     const response: AxiosResponse<{ ok: true }> = await http.patch(
       `/admin/chatbot-sessions/feedback/${id}`,
-      { isAddressed },
+      patch,
     );
     return response.data;
   }

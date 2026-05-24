@@ -1203,7 +1203,7 @@ function fillGaps(items: CostItem[], period: Period, days: number): CostItem[] {
         weeklyMap.set(key, { ...item, period: ws.toISOString() });
       }
     }
-    const weeks = Math.min(Math.ceil(days / 7), 13);
+    const weeks = Math.ceil(days / 7);
     const nowWS = getWeekStart(now);
     for (let i = weeks - 1; i >= 0; i--) {
       const ws = new Date(Date.UTC(nowWS.getUTCFullYear(), nowWS.getUTCMonth(), nowWS.getUTCDate() - i * 7));
@@ -1211,7 +1211,7 @@ function fillGaps(items: CostItem[], period: Period, days: number): CostItem[] {
       filled.push(weeklyMap.get(key) ?? { ...EMPTY_ITEM, period: ws.toISOString() });
     }
   } else {
-    const months = Math.min(Math.ceil(days / 30), 12);
+    const months = Math.ceil(days / 30);
     for (let i = months - 1; i >= 0; i--) {
       const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
       const key = d.toISOString().slice(0, 10);
@@ -1247,11 +1247,18 @@ function UsageLineChart({
   onSelect: (idx: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [hover, setHover] = useState<{ idx: number; mouseX: number; mouseY: number } | null>(null);
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [items, period]);
+
   const chartH = 160;
-  const padL = 4;
-  const padR = 4;
+  const padL = 30;
+  const padR = 30;
   const padTop = 12;
   const padBot = 28;
 
@@ -1263,7 +1270,9 @@ function UsageLineChart({
   const values = items.map(getValue);
   const maxVal = Math.max(...values, metric === 'cost' ? 0.001 : 1);
 
-  const svgW = 800;
+  const pointSpacing = period === 'hourly' ? 30 : period === 'daily' ? 40 : period === 'weekly' ? 60 : 80;
+  const minW = 800;
+  const svgW = Math.max(minW, padL + padR + (items.length - 1) * pointSpacing);
   const plotW = svgW - padL - padR;
   const plotH = chartH - padTop - padBot;
 
@@ -1319,20 +1328,22 @@ function UsageLineChart({
   const hoverPoint = hover ? points[hover.idx] : null;
 
   const labelIndices: number[] = [];
-  if (items.length <= 10) {
-    items.forEach((_, i) => labelIndices.push(i));
-  } else {
-    const step = Math.ceil(items.length / 8);
-    for (let i = 0; i < items.length; i += step) labelIndices.push(i);
-    if (labelIndices[labelIndices.length - 1] !== items.length - 1) labelIndices.push(items.length - 1);
+  const minLabelGap = 60;
+  let lastLabelX = -Infinity;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].x - lastLabelX >= minLabelGap) {
+      labelIndices.push(i);
+      lastLabelX = points[i].x;
+    }
   }
 
   return (
     <div className="relative" ref={containerRef}>
+      <div ref={scrollRef} className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
       <svg
         viewBox={`0 0 ${svgW} ${chartH}`}
-        className="w-full cursor-pointer"
-        style={{ height: chartH }}
+        className="cursor-pointer"
+        style={{ height: chartH, width: svgW, minWidth: '100%' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHover(null)}
         onClick={handleClick}
@@ -1408,17 +1419,20 @@ function UsageLineChart({
           </text>
         ))}
       </svg>
+      </div>
 
       {/* Tooltip */}
-      {hover && hoverItem && (() => {
+      {hover && hoverItem && scrollRef.current && containerRef.current && (() => {
         const totalTok = hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens;
-        const leftPct = (hoverPoint!.x / svgW) * 100;
-        const clampedLeft = Math.max(12, Math.min(88, leftPct));
+        const scrollLeft = scrollRef.current!.scrollLeft;
+        const containerW = containerRef.current!.clientWidth;
+        const pointPx = (hoverPoint!.x / svgW) * svgW - scrollLeft;
+        const clampedLeft = Math.max(112, Math.min(containerW - 112, pointPx));
         return (
           <div
             className="absolute z-10 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-4 py-3 text-xs w-56"
             style={{
-              left: `${clampedLeft}%`,
+              left: clampedLeft,
               bottom: `calc(100% + 8px)`,
               transform: 'translateX(-50%)',
             }}
@@ -1492,7 +1506,7 @@ function CostOverview() {
     setLoading(true);
     setSelectedIdx(null);
     const apiPeriod: 'hourly' | 'daily' | 'monthly' = period === 'weekly' ? 'daily' : period;
-    const days = period === 'hourly' ? 1 : period === 'weekly' ? 90 : period === 'monthly' ? 365 : 30;
+    const days = period === 'hourly' ? 7 : period === 'weekly' ? 365 : period === 'monthly' ? 730 : 365;
     chatbotLogsService
       .getCosts({ period: apiPeriod, days })
       .then(setCosts)

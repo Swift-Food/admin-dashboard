@@ -1237,10 +1237,14 @@ function UsageLineChart({
   items,
   metric,
   period,
+  selectedIdx,
+  onSelect,
 }: {
   items: CostsResponse['items'];
   metric: ChartMetric;
   period: Period;
+  selectedIdx: number;
+  onSelect: (idx: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [hover, setHover] = useState<{ idx: number; mouseX: number; mouseY: number } | null>(null);
@@ -1297,6 +1301,20 @@ function UsageLineChart({
     setHover({ idx: closest, mouseX: e.clientX, mouseY: e.clientY });
   };
 
+  const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = e.currentTarget;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const svgX = (e.clientX - ctm.e) / ctm.a;
+    let closest = 0;
+    let closestDist = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const dist = Math.abs(points[i].x - svgX);
+      if (dist < closestDist) { closestDist = dist; closest = i; }
+    }
+    onSelect(closest);
+  };
+
   const hoverItem = hover ? items[hover.idx] : null;
   const hoverPoint = hover ? points[hover.idx] : null;
 
@@ -1313,10 +1331,11 @@ function UsageLineChart({
     <div className="relative" ref={containerRef}>
       <svg
         viewBox={`0 0 ${svgW} ${chartH}`}
-        className="w-full"
+        className="w-full cursor-pointer"
         style={{ height: chartH }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHover(null)}
+        onClick={handleClick}
       >
         {/* Grid lines */}
         {[0.25, 0.5, 0.75, 1].map((frac) => (
@@ -1348,14 +1367,23 @@ function UsageLineChart({
         />
 
         {/* Data points */}
-        {points.map((p) => (
-          <circle
-            key={p.idx}
-            cx={p.x} cy={p.y} r={hover?.idx === p.idx ? 5 : 3}
-            fill={hover?.idx === p.idx ? dotColor : lineColor}
-            stroke="white" strokeWidth="1.5"
-          />
-        ))}
+        {points.map((p) => {
+          const isSelected = p.idx === selectedIdx;
+          const isHovered = hover?.idx === p.idx;
+          return (
+            <g key={p.idx}>
+              {isSelected && (
+                <circle cx={p.x} cy={p.y} r={8} fill="none" stroke={dotColor} strokeWidth="2" opacity={0.3} />
+              )}
+              <circle
+                cx={p.x} cy={p.y}
+                r={isHovered ? 5 : isSelected ? 5 : 3}
+                fill={isHovered || isSelected ? dotColor : lineColor}
+                stroke="white" strokeWidth="1.5"
+              />
+            </g>
+          );
+        })}
 
         {/* Hover crosshair */}
         {hoverPoint && (
@@ -1458,9 +1486,11 @@ function CostOverview() {
   const [period, setPeriod] = useState<Period>('daily');
   const [metric, setMetric] = useState<ChartMetric>('cost');
   const [loading, setLoading] = useState(true);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setSelectedIdx(null);
     const apiPeriod: 'hourly' | 'daily' | 'monthly' = period === 'weekly' ? 'daily' : period;
     const days = period === 'hourly' ? 1 : period === 'weekly' ? 90 : period === 'monthly' ? 365 : 30;
     chatbotLogsService
@@ -1487,18 +1517,29 @@ function CostOverview() {
   }
 
   const filledItems = fillGaps(costs.items, period, costs.days);
-  const currentItem = filledItems[filledItems.length - 1];
-  const currentTokens = currentItem
-    ? currentItem.totalInputTokens + currentItem.totalOutputTokens + currentItem.totalThinkingTokens
+  const activeIdx = selectedIdx ?? filledItems.length - 1;
+  const activeItem = filledItems[activeIdx];
+  const activeTokens = activeItem
+    ? activeItem.totalInputTokens + activeItem.totalOutputTokens + activeItem.totalThinkingTokens
     : 0;
-  const currentCost = currentItem?.totalCostUsd ?? 0;
-  const currentSessions = currentItem?.sessionCount ?? 0;
-  const currentCalls = currentItem?.callCount ?? 0;
+  const activeCost = activeItem?.totalCostUsd ?? 0;
+  const activeSessions = activeItem?.sessionCount ?? 0;
+  const activeCalls = activeItem?.callCount ?? 0;
 
-  const periodLabel =
-    period === 'hourly' ? 'This hour' :
-    period === 'daily' ? 'Today' :
-    period === 'weekly' ? 'This week' : 'This month';
+  const isDefault = selectedIdx === null || selectedIdx === filledItems.length - 1;
+  const defaultLabels: Record<Period, string> = {
+    hourly: 'This hour', daily: 'Today', weekly: 'This week', monthly: 'This month',
+  };
+  const periodLabel = isDefault
+    ? defaultLabels[period]
+    : period === 'weekly'
+      ? (() => {
+          const start = new Date(activeItem.period);
+          const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 6));
+          const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          return `${fmt(start)} – ${fmt(end)}`;
+        })()
+      : formatDateLabel(activeItem.period, period);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
@@ -1506,16 +1547,16 @@ function CostOverview() {
         <div>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Gemini Usage</h2>
           <div className="flex items-baseline gap-3 mt-1">
-            <p className="text-2xl font-bold text-emerald-700">{formatCost(currentCost)}</p>
-            <p className="text-sm text-gray-500">{currentTokens.toLocaleString()} tokens</p>
+            <p className="text-2xl font-bold text-emerald-700">{formatCost(activeCost)}</p>
+            <p className="text-sm text-gray-500">{activeTokens.toLocaleString()} tokens</p>
             <p className="text-xs text-gray-400">{periodLabel}</p>
           </div>
           <p className="text-xs text-gray-400">
-            {currentSessions.toLocaleString()} sessions · {currentCalls.toLocaleString()} calls
+            {activeSessions.toLocaleString()} sessions · {activeCalls.toLocaleString()} calls
           </p>
-          {currentSessions > 0 && (
+          {activeSessions > 0 && (
             <p className="text-xs text-gray-400">
-              avg {formatCost(currentCost / currentSessions)}/session · {(currentCalls / currentSessions).toFixed(1)} calls/session · {Math.round(currentTokens / currentSessions).toLocaleString()} tokens/session
+              avg {formatCost(activeCost / activeSessions)}/session · {(activeCalls / activeSessions).toFixed(1)} calls/session · {Math.round(activeTokens / activeSessions).toLocaleString()} tokens/session
             </p>
           )}
         </div>
@@ -1556,7 +1597,7 @@ function CostOverview() {
         </div>
       </div>
 
-      <UsageLineChart items={filledItems} metric={metric} period={period} />
+      <UsageLineChart items={filledItems} metric={metric} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
     </div>
   );
 }

@@ -1486,10 +1486,19 @@ function CostOverview() {
     );
   }
 
-  const totalTokens = costs.items.reduce(
-    (s, i) => s + i.totalInputTokens + i.totalOutputTokens + i.totalThinkingTokens,
-    0,
-  );
+  const filledItems = fillGaps(costs.items, period, costs.days);
+  const currentItem = filledItems[filledItems.length - 1];
+  const currentTokens = currentItem
+    ? currentItem.totalInputTokens + currentItem.totalOutputTokens + currentItem.totalThinkingTokens
+    : 0;
+  const currentCost = currentItem?.totalCostUsd ?? 0;
+  const currentSessions = currentItem?.sessionCount ?? 0;
+  const currentCalls = currentItem?.callCount ?? 0;
+
+  const periodLabel =
+    period === 'hourly' ? 'This hour' :
+    period === 'daily' ? 'Today' :
+    period === 'weekly' ? 'This week' : 'This month';
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
@@ -1497,15 +1506,16 @@ function CostOverview() {
         <div>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Gemini Usage</h2>
           <div className="flex items-baseline gap-3 mt-1">
-            <p className="text-2xl font-bold text-emerald-700">{formatCost(costs.totalCostUsd)}</p>
-            <p className="text-sm text-gray-500">{totalTokens.toLocaleString()} tokens</p>
+            <p className="text-2xl font-bold text-emerald-700">{formatCost(currentCost)}</p>
+            <p className="text-sm text-gray-500">{currentTokens.toLocaleString()} tokens</p>
+            <p className="text-xs text-gray-400">{periodLabel}</p>
           </div>
           <p className="text-xs text-gray-400">
-            {(costs.totalSessions ?? 0).toLocaleString()} sessions · {costs.totalCalls.toLocaleString()} calls · {costs.days}d
+            {currentSessions.toLocaleString()} sessions · {currentCalls.toLocaleString()} calls
           </p>
-          {(costs.totalSessions ?? 0) > 0 && (
+          {currentSessions > 0 && (
             <p className="text-xs text-gray-400">
-              avg {formatCost(costs.totalCostUsd / costs.totalSessions)}/session · {(costs.totalCalls / costs.totalSessions).toFixed(1)} calls/session · {Math.round(totalTokens / costs.totalSessions).toLocaleString()} tokens/session
+              avg {formatCost(currentCost / currentSessions)}/session · {(currentCalls / currentSessions).toFixed(1)} calls/session · {Math.round(currentTokens / currentSessions).toLocaleString()} tokens/session
             </p>
           )}
         </div>
@@ -1546,7 +1556,7 @@ function CostOverview() {
         </div>
       </div>
 
-      <UsageLineChart items={fillGaps(costs.items, period, costs.days)} metric={metric} period={period} />
+      <UsageLineChart items={filledItems} metric={metric} period={period} />
     </div>
   );
 }

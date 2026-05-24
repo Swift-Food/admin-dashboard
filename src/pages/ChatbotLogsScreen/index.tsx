@@ -1530,7 +1530,7 @@ function CostOverview() {
   const defaultLabels: Record<Period, string> = {
     hourly: 'This hour', daily: 'Today', weekly: 'This week', monthly: 'This month',
   };
-  const periodLabel = isDefault
+  const periodLabel = isDefault || !activeItem
     ? defaultLabels[period]
     : period === 'weekly'
       ? (() => {
@@ -1543,21 +1543,58 @@ function CostOverview() {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Gemini Usage</h2>
-          <div className="flex items-baseline gap-3 mt-1">
-            <p className="text-2xl font-bold text-emerald-700">{formatCost(activeCost)}</p>
-            <p className="text-sm text-gray-500">{activeTokens.toLocaleString()} tokens</p>
-            <p className="text-xs text-gray-400">{periodLabel}</p>
-          </div>
-          <p className="text-xs text-gray-400">
-            {activeSessions.toLocaleString()} sessions · {activeCalls.toLocaleString()} calls
-          </p>
-          {activeSessions > 0 && (
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start gap-6">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Gemini Usage</h2>
+            <div className="flex items-baseline gap-3 mt-1">
+              <p className="text-2xl font-bold text-emerald-700">{formatCost(activeCost)}</p>
+              <p className="text-sm text-gray-500">{activeTokens.toLocaleString()} tokens</p>
+              <p className="text-xs text-gray-400">{periodLabel}</p>
+            </div>
             <p className="text-xs text-gray-400">
-              avg {formatCost(activeCost / activeSessions)}/session · {(activeCalls / activeSessions).toFixed(1)} calls/session · {Math.round(activeTokens / activeSessions).toLocaleString()} tokens/session
+              {activeSessions.toLocaleString()} sessions · {activeCalls.toLocaleString()} calls
             </p>
+            {activeSessions > 0 && (
+              <p className="text-xs text-gray-400">
+                avg {formatCost(activeCost / activeSessions)}/session · {(activeCalls / activeSessions).toFixed(1)} calls/session · {Math.round(activeTokens / activeSessions).toLocaleString()} tokens/session
+              </p>
+            )}
+          </div>
+          {activeItem && (
+            <table className="text-[11px] text-gray-500 mt-5">
+              <thead>
+                <tr className="text-gray-400">
+                  <th className="text-left font-normal pb-0.5 pr-3"></th>
+                  <th className="text-right font-normal pb-0.5 pr-3">Tokens</th>
+                  <th className="text-right font-normal pb-0.5">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="pr-3">Input</td>
+                  <td className="text-right tabular-nums pr-3">{activeItem.totalInputTokens.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.inputCostUsd)}</td>
+                </tr>
+                <tr>
+                  <td className="pr-3">Output</td>
+                  <td className="text-right tabular-nums pr-3">{activeItem.totalOutputTokens.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.outputCostUsd)}</td>
+                </tr>
+                {activeItem.totalThinkingTokens > 0 && (
+                  <tr>
+                    <td className="pr-3">Thinking</td>
+                    <td className="text-right tabular-nums pr-3">{activeItem.totalThinkingTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.thinkingCostUsd)}</td>
+                  </tr>
+                )}
+                <tr className="border-t border-gray-200 font-semibold text-gray-700">
+                  <td className="pr-3 pt-0.5">Total</td>
+                  <td className="text-right tabular-nums pr-3 pt-0.5">{activeTokens.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-700 pt-0.5">{formatCost(activeCost)}</td>
+                </tr>
+              </tbody>
+            </table>
           )}
         </div>
         <div className="flex flex-col gap-2 items-end">

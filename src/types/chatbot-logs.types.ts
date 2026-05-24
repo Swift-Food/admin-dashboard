@@ -40,10 +40,18 @@ export type TimelineEntry =
         caller: string;
         model: string;
         inputTokens: number | null;
+        cachedInputTokens: number | null;
         outputTokens: number | null;
         thinkingTokens: number | null;
         latencyMs: number | null;
         costUsd: number | null;
+        /** Per-call cost split, computed server-side from the shared pricing
+         *  table. inputCostUsd already includes the cache discount;
+         *  cachedInputCostUsd is its 25%-rate portion. */
+        inputCostUsd: number | null;
+        cachedInputCostUsd: number | null;
+        outputCostUsd: number | null;
+        thinkingCostUsd: number | null;
         turnId: string | null;
         errorType: string | null;
         errorMessage: string | null;
@@ -123,9 +131,14 @@ export interface CostPeriodItem {
   period: string;
   totalCostUsd: number;
   totalInputTokens: number;
+  /** Subset of totalInputTokens served from Gemini context cache (billed at
+   *  25%). Uncached = totalInputTokens - totalCachedInputTokens. */
+  totalCachedInputTokens: number;
   totalOutputTokens: number;
   totalThinkingTokens: number;
   inputCostUsd: number;
+  /** Cached portion of inputCostUsd. Uncached input cost = inputCostUsd - this. */
+  cachedInputCostUsd: number;
   outputCostUsd: number;
   thinkingCostUsd: number;
   callCount: number;

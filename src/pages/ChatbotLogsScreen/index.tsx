@@ -55,31 +55,6 @@ function formatCost(usd: number | null | undefined): string {
   return `$${usd.toFixed(2)}`;
 }
 
-const MODEL_RATES: Record<string, { input: number; output: number }> = {
-  'gemini-2.5-flash': { input: 0.30, output: 2.50 },
-  'gemini-2.5-flash-lite': { input: 0.075, output: 0.30 },
-  'gemini-2.5-pro': { input: 1.25, output: 10.0 },
-};
-
-function tokenCost(tokens: number, ratePerMillion: number): number {
-  return (tokens * ratePerMillion) / 1_000_000;
-}
-
-function formatTokenCostBreakdown(
-  model: string,
-  inputTokens: number | null,
-  outputTokens: number | null,
-  thinkingTokens: number | null,
-): { inputCost: string; outputCost: string; thinkingCost: string } | null {
-  const rates = MODEL_RATES[model];
-  if (!rates || inputTokens == null) return null;
-  return {
-    inputCost: formatCost(tokenCost(inputTokens, rates.input)),
-    outputCost: formatCost(tokenCost(outputTokens ?? 0, rates.output)),
-    thinkingCost: formatCost(tokenCost(thinkingTokens ?? 0, rates.output)),
-  };
-}
-
 function shortId(sessionId: string): string {
   return sessionId.slice(0, 8) + '…';
 }
@@ -550,31 +525,29 @@ function LlmCallCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { k
         )}
         <span className="ml-auto text-xs text-gray-400">llm #{entry.data.id}</span>
       </div>
-      {(entry.data.inputTokens != null || entry.data.outputTokens != null) && (() => {
-        const breakdown = formatTokenCostBreakdown(
-          entry.data.model, entry.data.inputTokens, entry.data.outputTokens, entry.data.thinkingTokens,
-        );
-        return (
-          <div className="text-xs text-gray-600 mb-1">
-            <span>{entry.data.inputTokens ?? '?'} in</span>
-            {breakdown && <span className="text-emerald-600"> ({breakdown.inputCost})</span>}
-            <span> · {entry.data.outputTokens ?? '?'} out</span>
-            {breakdown && <span className="text-emerald-600"> ({breakdown.outputCost})</span>}
-            {entry.data.thinkingTokens ? (
-              <>
-                <span> · {entry.data.thinkingTokens} thinking</span>
-                {breakdown && <span className="text-emerald-600"> ({breakdown.thinkingCost})</span>}
-              </>
-            ) : null}
-            {entry.data.costUsd != null && (
-              <span className="ml-2 font-semibold text-emerald-700">= {formatCost(entry.data.costUsd)}</span>
-            )}
-            {entry.data.turnId && (
-              <span className="ml-2 text-gray-400" title={entry.data.turnId}>turn {entry.data.turnId.slice(0, 8)}</span>
-            )}
-          </div>
-        );
-      })()}
+      {(entry.data.inputTokens != null || entry.data.outputTokens != null) && (
+        <div className="text-xs text-gray-600 mb-1">
+          <span>{entry.data.inputTokens ?? '?'} in</span>
+          {entry.data.inputCostUsd != null && <span className="text-emerald-600"> ({formatCost(entry.data.inputCostUsd)})</span>}
+          {entry.data.cachedInputTokens ? (
+            <span className="text-sky-600"> · {entry.data.cachedInputTokens.toLocaleString()} cached</span>
+          ) : null}
+          <span> · {entry.data.outputTokens ?? '?'} out</span>
+          {entry.data.outputCostUsd != null && <span className="text-emerald-600"> ({formatCost(entry.data.outputCostUsd)})</span>}
+          {entry.data.thinkingTokens ? (
+            <>
+              <span> · {entry.data.thinkingTokens} thinking</span>
+              {entry.data.thinkingCostUsd != null && <span className="text-emerald-600"> ({formatCost(entry.data.thinkingCostUsd)})</span>}
+            </>
+          ) : null}
+          {entry.data.costUsd != null && (
+            <span className="ml-2 font-semibold text-emerald-700">= {formatCost(entry.data.costUsd)}</span>
+          )}
+          {entry.data.turnId && (
+            <span className="ml-2 text-gray-400" title={entry.data.turnId}>turn {entry.data.turnId.slice(0, 8)}</span>
+          )}
+        </div>
+      )}
       {hasError && (
         <div className="mb-2">
           <p className="text-xs font-bold text-red-700">{entry.data.errorType}</p>
@@ -922,18 +895,26 @@ function ChatbotSessionDetailView({
   const llmEntries = detail.timeline.filter(
     (e): e is Extract<TimelineEntry, { kind: 'llm_call' }> => e.kind === 'llm_call',
   );
+  // Costs are pre-computed per call by the backend (shared pricing table), so
+  // we just sum them — no FE-side rate math that could drift. inputCostUsd
+  // already includes the cache discount; cachedInputCostUsd is its 25% portion.
   const sessionCostBreakdown = llmEntries.reduce(
     (acc, e) => {
-      const rates = MODEL_RATES[e.data.model];
-      if (!rates) return acc;
-      acc.inputCost += tokenCost(e.data.inputTokens ?? 0, rates.input);
-      acc.outputCost += tokenCost(e.data.outputTokens ?? 0, rates.output);
-      acc.thinkingCost += tokenCost(e.data.thinkingTokens ?? 0, rates.output);
+      acc.uncachedInputCost += (e.data.inputCostUsd ?? 0) - (e.data.cachedInputCostUsd ?? 0);
+      acc.cachedInputCost += e.data.cachedInputCostUsd ?? 0;
+      acc.outputCost += e.data.outputCostUsd ?? 0;
+      acc.thinkingCost += e.data.thinkingCostUsd ?? 0;
       acc.thinkingTokens += e.data.thinkingTokens ?? 0;
+      acc.cachedInputTokens += e.data.cachedInputTokens ?? 0;
       return acc;
     },
-    { inputCost: 0, outputCost: 0, thinkingCost: 0, thinkingTokens: 0 },
+    {
+      uncachedInputCost: 0, cachedInputCost: 0, outputCost: 0,
+      thinkingCost: 0, thinkingTokens: 0, cachedInputTokens: 0,
+    },
   );
+  const sessionInputCost =
+    sessionCostBreakdown.uncachedInputCost + sessionCostBreakdown.cachedInputCost;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -998,15 +979,25 @@ function ChatbotSessionDetailView({
               {formatCost(totals.costUsd)}
             </p>
             <p className="text-[11px] text-gray-500 mt-0.5">
-              in {formatCost(sessionCostBreakdown.inputCost)} · out {formatCost(sessionCostBreakdown.outputCost)}
+              in {formatCost(sessionInputCost)} · out {formatCost(sessionCostBreakdown.outputCost)}
               {sessionCostBreakdown.thinkingTokens > 0 && ` · think ${formatCost(sessionCostBreakdown.thinkingCost)}`}
             </p>
+            {sessionCostBreakdown.cachedInputTokens > 0 && (
+              <p className="text-[11px] text-sky-600 mt-0.5">
+                input: {formatCost(sessionCostBreakdown.uncachedInputCost)} live + {formatCost(sessionCostBreakdown.cachedInputCost)} cached
+              </p>
+            )}
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-1">Tokens (in / out / total)</p>
             <p className="text-lg font-bold text-gray-900">
               {totals.inputTokens.toLocaleString()} / {totals.outputTokens.toLocaleString()} / {totalTokens.toLocaleString()}
             </p>
+            {sessionCostBreakdown.cachedInputTokens > 0 && totals.inputTokens > 0 && (
+              <p className="text-[11px] text-sky-600 mt-0.5">
+                {sessionCostBreakdown.cachedInputTokens.toLocaleString()} of input cached ({Math.round((sessionCostBreakdown.cachedInputTokens / totals.inputTokens) * 100)}%)
+              </p>
+            )}
             {sessionCostBreakdown.thinkingTokens > 0 && (
               <p className="text-[11px] text-gray-500 mt-0.5">
                 + {sessionCostBreakdown.thinkingTokens.toLocaleString()} thinking
@@ -1135,9 +1126,11 @@ type CostItem = CostsResponse['items'][number];
 const EMPTY_ITEM: Omit<CostItem, 'period'> = {
   totalCostUsd: 0,
   totalInputTokens: 0,
+  totalCachedInputTokens: 0,
   totalOutputTokens: 0,
   totalThinkingTokens: 0,
   inputCostUsd: 0,
+  cachedInputCostUsd: 0,
   outputCostUsd: 0,
   thinkingCostUsd: 0,
   callCount: 0,
@@ -1191,9 +1184,11 @@ function fillGaps(items: CostItem[], period: Period, days: number): CostItem[] {
           period: ws.toISOString(),
           totalCostUsd: existing.totalCostUsd + item.totalCostUsd,
           totalInputTokens: existing.totalInputTokens + item.totalInputTokens,
+          totalCachedInputTokens: existing.totalCachedInputTokens + item.totalCachedInputTokens,
           totalOutputTokens: existing.totalOutputTokens + item.totalOutputTokens,
           totalThinkingTokens: existing.totalThinkingTokens + item.totalThinkingTokens,
           inputCostUsd: existing.inputCostUsd + item.inputCostUsd,
+          cachedInputCostUsd: existing.cachedInputCostUsd + item.cachedInputCostUsd,
           outputCostUsd: existing.outputCostUsd + item.outputCostUsd,
           thinkingCostUsd: existing.thinkingCostUsd + item.thinkingCostUsd,
           callCount: existing.callCount + item.callCount,
@@ -1424,6 +1419,12 @@ function UsageLineChart({
       {/* Tooltip */}
       {hover && hoverItem && scrollRef.current && containerRef.current && (() => {
         const totalTok = hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens;
+        // totalInputTokens is gross (includes cached). Split into the live
+        // (full-rate) portion and the cached (25%) portion so the discount
+        // is visible rather than lumped together.
+        const cachedInput = hoverItem.totalCachedInputTokens;
+        const uncachedInput = hoverItem.totalInputTokens - cachedInput;
+        const uncachedInputCost = hoverItem.inputCostUsd - hoverItem.cachedInputCostUsd;
         const scrollLeft = scrollRef.current!.scrollLeft;
         const containerW = containerRef.current!.clientWidth;
         const pointPx = (hoverPoint!.x / svgW) * svgW - scrollLeft;
@@ -1456,10 +1457,17 @@ function UsageLineChart({
               </thead>
               <tbody className="text-gray-200">
                 <tr>
-                  <td className="pr-2">Input</td>
-                  <td className="text-right tabular-nums">{hoverItem.totalInputTokens.toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-emerald-300">{formatCost(hoverItem.inputCostUsd)}</td>
+                  <td className="pr-2">Input (live)</td>
+                  <td className="text-right tabular-nums">{uncachedInput.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{formatCost(uncachedInputCost)}</td>
                 </tr>
+                {cachedInput > 0 && (
+                  <tr>
+                    <td className="pr-2 text-sky-300">Input (cached)</td>
+                    <td className="text-right tabular-nums text-sky-300">{cachedInput.toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-sky-300">{formatCost(hoverItem.cachedInputCostUsd)}</td>
+                  </tr>
+                )}
                 <tr>
                   <td className="pr-2">Output</td>
                   <td className="text-right tabular-nums">{hoverItem.totalOutputTokens.toLocaleString()}</td>
@@ -1586,10 +1594,17 @@ function CostOverview() {
               </thead>
               <tbody>
                 <tr>
-                  <td className="pr-3">Input</td>
-                  <td className="text-right tabular-nums pr-3">{activeItem.totalInputTokens.toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.inputCostUsd)}</td>
+                  <td className="pr-3">Input (live)</td>
+                  <td className="text-right tabular-nums pr-3">{(activeItem.totalInputTokens - activeItem.totalCachedInputTokens).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.inputCostUsd - activeItem.cachedInputCostUsd)}</td>
                 </tr>
+                {activeItem.totalCachedInputTokens > 0 && (
+                  <tr className="text-sky-600">
+                    <td className="pr-3">Input (cached)</td>
+                    <td className="text-right tabular-nums pr-3">{activeItem.totalCachedInputTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums">{formatCost(activeItem.cachedInputCostUsd)}</td>
+                  </tr>
+                )}
                 <tr>
                   <td className="pr-3">Output</td>
                   <td className="text-right tabular-nums pr-3">{activeItem.totalOutputTokens.toLocaleString()}</td>

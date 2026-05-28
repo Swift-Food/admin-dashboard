@@ -13,6 +13,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const [showConfirmReview, setShowConfirmReview] = useState(false);
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
   const [showSendPaymentModal, setShowSendPaymentModal] = useState(false);
+  const [isLoadingVATPreview, setIsLoadingVATPreview] = useState(false);
   const [paymentLinkForm, setPaymentLinkForm] = useState({
     daysUntilDue: 7,
     ccEmails: "",
@@ -287,6 +288,25 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const canSendPaymentLink =
     order.status === "restaurant_reviewed" ||
     order.status === "payment_link_sent";
+  const canPreviewVAT = !["pending_review", "cancelled"].includes(order.status);
+
+  const handlePreviewVAT = async () => {
+    setIsLoadingVATPreview(true);
+    try {
+      const blob = await cateringService.fetchPreviewVatPdf(order.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } catch (err: any) {
+      alert(
+        `Failed to load VAT preview: ${
+          err?.response?.data?.message || err?.message || "unknown error"
+        }`,
+      );
+    } finally {
+      setIsLoadingVATPreview(false);
+    }
+  };
 
   return (
     <Modal open={true} onClose={onClose} overlayOpacity={50}>
@@ -912,6 +932,17 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm"
                   >
                     Send Payment Link
+                  </button>
+                )}
+
+                {/* Preview VAT PDF button */}
+                {canPreviewVAT && (
+                  <button
+                    onClick={handlePreviewVAT}
+                    disabled={isLoadingVATPreview}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm disabled:bg-blue-300 disabled:cursor-not-allowed"
+                  >
+                    {isLoadingVATPreview ? "Loading..." : "Preview VAT PDF"}
                   </button>
                 )}
               </>

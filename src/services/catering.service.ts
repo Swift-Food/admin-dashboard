@@ -57,6 +57,13 @@ const bulkUpdateAdminNotes = async (orders: Array<{ orderId: string; adminNotes?
   await http.patch("catering-orders/notes", { orders });
 };
 
+const fetchPreviewVatPdf = async (orderId: string): Promise<Blob> => {
+  const res = await http.get(`catering-orders/${orderId}/preview-vat-pdf`, {
+    responseType: "blob",
+  });
+  return res.data as Blob;
+};
+
 export default {
   getOrders,
   reviewOrder,
@@ -64,4 +71,5 @@ export default {
   cancelOrder,
   completeOrder,
   bulkUpdateAdminNotes,
+  fetchPreviewVatPdf,
 };

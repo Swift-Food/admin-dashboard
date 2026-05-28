@@ -70,6 +70,7 @@ const CateringOrderDetailsModal = ({
     preview: false,
   });
   const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [isLoadingVATPreview, setIsLoadingVATPreview] = useState(false);
 
   // Review form state
   const [reviewForm, setReviewForm] = useState<{
@@ -150,6 +151,25 @@ const CateringOrderDetailsModal = ({
   const canSendPaymentLink =
     order.status === "restaurant_reviewed" ||
     order.status === "payment_link_sent";
+  const canPreviewVAT = !["pending_review", "cancelled"].includes(order.status);
+
+  const handlePreviewVAT = async () => {
+    setIsLoadingVATPreview(true);
+    try {
+      const blob = await cateringService.fetchPreviewVatPdf(order.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } catch (err: any) {
+      alert(
+        `Failed to load VAT preview: ${
+          err?.response?.data?.message || err?.message || "unknown error"
+        }`,
+      );
+    } finally {
+      setIsLoadingVATPreview(false);
+    }
+  };
 
   const handleConfirmCancel = async () => {
     setIsCancelling(true);
@@ -683,6 +703,15 @@ const CateringOrderDetailsModal = ({
                 className="flex-1 min-w-[120px] bg-purple-500 hover:bg-purple-600 text-black font-medium py-3 px-4 rounded-lg transition-colors"
               >
                 Send Payment Link
+              </button>
+            )}
+            {canPreviewVAT && (
+              <button
+                onClick={handlePreviewVAT}
+                disabled={isLoadingVATPreview}
+                className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+              >
+                {isLoadingVATPreview ? "Loading..." : "Preview VAT PDF"}
               </button>
             )}
             {canCancelOrder && (

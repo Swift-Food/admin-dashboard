@@ -28,6 +28,12 @@ const MiscellaneousScreen: React.FC = () => {
   const [showOrderDropdown, setShowOrderDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Preview-invoice card state
+  const [previewOrderId, setPreviewOrderId] = useState<string>("");
+  const [previewOrderSearch, setPreviewOrderSearch] = useState<string>("");
+  const [previewLoadingType, setPreviewLoadingType] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -71,6 +77,82 @@ const MiscellaneousScreen: React.FC = () => {
     setSelectedRefs((prev) =>
       prev.includes(ref) ? prev.filter((r) => r !== ref) : [...prev, ref]
     );
+  };
+
+  const previewFilteredOrders = orders.filter((order) => {
+    const ref = getOrderRef(order.id);
+    const s = previewOrderSearch.toLowerCase();
+    return (
+      ref.toLowerCase().includes(s) ||
+      order.customerName?.toLowerCase().includes(s)
+    );
+  });
+
+  // Each invoice type maps to a (possibly future) backend endpoint that
+  // returns a PDF blob. Disabled types are stubs — the backend endpoint
+  // hasn't shipped yet.
+  type InvoiceType = {
+    key: string;
+    label: string;
+    description: string;
+    endpoint: ((orderId: string) => string) | null;
+  };
+  const invoiceTypes: InvoiceType[] = [
+    {
+      key: "customer-vat",
+      label: "Customer VAT Invoice",
+      description: "Page 1 client invoice + supplier annexure",
+      endpoint: (id) => `catering-orders/${id}/preview-vat-pdf`,
+    },
+    {
+      key: "customer-receipt",
+      label: "Customer Receipt",
+      description: "Post-payment receipt (coming soon)",
+      endpoint: null,
+    },
+    {
+      key: "restaurant-payout",
+      label: "Restaurant Payout Receipt",
+      description: "Email attachment to restaurant on payout (coming soon)",
+      endpoint: null,
+    },
+    {
+      key: "commission-tax",
+      label: "Monthly Commission Tax Invoice",
+      description: "Swift's tax invoice for restaurant commission (coming soon)",
+      endpoint: null,
+    },
+    {
+      key: "self-billed-vat",
+      label: "Self-billed VAT Invoice",
+      description: "For VAT-registered restaurants under self-billing agreement (coming soon)",
+      endpoint: null,
+    },
+  ];
+
+  const handlePreviewInvoice = async (type: InvoiceType) => {
+    if (!previewOrderId) {
+      setPreviewError("Pick an order first");
+      return;
+    }
+    if (!type.endpoint) return;
+    setPreviewError(null);
+    setPreviewLoadingType(type.key);
+    try {
+      const res = await http.get(type.endpoint(previewOrderId), {
+        responseType: "blob",
+      });
+      const blob = res.data as Blob;
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } catch (err: any) {
+      setPreviewError(
+        err?.response?.data?.message || err?.message || "Failed to load preview",
+      );
+    } finally {
+      setPreviewLoadingType(null);
+    }
   };
 
   const handleDownloadReceipts = async () => {
@@ -380,6 +462,149 @@ const MiscellaneousScreen: React.FC = () => {
             </>
           )}
         </button>
+      </div>
+
+      {/* Preview Invoice Types */}
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          padding: 24,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          maxWidth: 600,
+          marginTop: 24,
+        }}
+      >
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: "#334155" }}>
+          Preview Invoice Types
+        </h2>
+        <p style={{ color: "#64748b", marginBottom: 20, fontSize: 14 }}>
+          Render any invoice/receipt PDF for a chosen catering order without
+          sending email or creating a Stripe invoice. Useful for QA.
+        </p>
+
+        {/* Order picker */}
+        <div style={{ marginBottom: 16 }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: 6,
+              color: "#475569",
+            }}
+          >
+            Order
+          </label>
+          <input
+            type="text"
+            placeholder="Search by reference or customer name..."
+            value={previewOrderSearch}
+            onChange={(e) => setPreviewOrderSearch(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: "1px solid #e2e8f0",
+              fontSize: 14,
+              outline: "none",
+              boxSizing: "border-box",
+              marginBottom: 8,
+            }}
+          />
+          <select
+            value={previewOrderId}
+            onChange={(e) => setPreviewOrderId(e.target.value)}
+            size={Math.min(6, previewFilteredOrders.length + 1)}
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid #e2e8f0",
+              fontSize: 14,
+              outline: "none",
+              background: "#fff",
+            }}
+          >
+            <option value="">— Select an order —</option>
+            {previewFilteredOrders.slice(0, 50).map((order) => (
+              <option key={order.id} value={order.id}>
+                {getOrderRef(order.id)} — {order.customerName}
+                {order.eventDate
+                  ? ` · ${new Date(order.eventDate).toLocaleDateString("en-GB")}`
+                  : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Invoice-type buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {invoiceTypes.map((type) => {
+            const isDisabled = !type.endpoint || !previewOrderId;
+            const isLoading = previewLoadingType === type.key;
+            return (
+              <button
+                key={type.key}
+                onClick={() => handlePreviewInvoice(type)}
+                disabled={isDisabled || isLoading}
+                style={{
+                  textAlign: "left",
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  border: "1px solid #e2e8f0",
+                  background: isDisabled ? "#f8fafc" : "#fff",
+                  cursor: isDisabled ? "not-allowed" : "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      color: isDisabled ? "#94a3b8" : "#1e293b",
+                      fontSize: 14,
+                    }}
+                  >
+                    {type.label}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                    {type.description}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: type.endpoint ? "#2563eb" : "#94a3b8",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {isLoading ? "Loading..." : type.endpoint ? "Open PDF →" : "Coming soon"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {previewError && (
+          <div
+            style={{
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 8,
+              padding: 12,
+              marginTop: 16,
+              color: "#dc2626",
+              fontSize: 14,
+            }}
+          >
+            {previewError}
+          </div>
+        )}
       </div>
 
       <style>

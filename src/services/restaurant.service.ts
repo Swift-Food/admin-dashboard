@@ -56,6 +56,8 @@ interface RestaurantResponse {
   showOnSite?: boolean;
   priceRange?: string;
   tags?: string[];
+  vatNumber?: string | null;
+  vatNumberAddedAt?: string | null;
 }
 
 // CreateRestaurantDto

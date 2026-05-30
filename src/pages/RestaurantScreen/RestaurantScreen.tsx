@@ -14,6 +14,7 @@ import {
   getAllRestaurantsAdminDashboard,
   updateRestaurantStatus,
   updateRestaurant,
+  updateRestaurantVatNumber,
   deleteRestaurant,
   uploadRestaurantImage,
 } from "../../services/restaurant.service";
@@ -40,6 +41,11 @@ const RestaurantAdminDashboard = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<UpdateRestaurantDto>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // VAT number is stored + saved via a dedicated endpoint, so track it
+  // separately from the rest of the form.
+  const [editVatNumber, setEditVatNumber] = useState<string>("");
+  const [originalVatNumber, setOriginalVatNumber] = useState<string>("");
 
   // Delete modal state
   const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
@@ -108,6 +114,8 @@ const RestaurantAdminDashboard = () => {
       priceRange: restaurant.priceRange || "",
       tags: restaurant.tags || [],
     });
+    setEditVatNumber(restaurant.vatNumber || "");
+    setOriginalVatNumber(restaurant.vatNumber || "");
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,6 +195,22 @@ const RestaurantAdminDashboard = () => {
       };
       await updateRestaurant(restaurantId, payload as any);
 
+      // Save VAT number via dedicated endpoint if it changed
+      const normalisedVat = editVatNumber.replace(/\s+/g, "").toUpperCase();
+      const normalisedOriginal = (originalVatNumber || "").replace(/\s+/g, "").toUpperCase();
+      let vatUpdate: { vatNumber: string | null; vatNumberAddedAt: string | null } | null = null;
+      if (normalisedVat !== normalisedOriginal) {
+        if (normalisedVat && !/^GB\d{9}$/.test(normalisedVat)) {
+          throw new Error(
+            "VAT number must be in UK format (GB followed by 9 digits), or empty to clear",
+          );
+        }
+        vatUpdate = await updateRestaurantVatNumber(
+          restaurantId,
+          normalisedVat || null,
+        );
+      }
+
       // Update local state
       setRestaurants(
         restaurants.map((r) =>
@@ -194,6 +218,10 @@ const RestaurantAdminDashboard = () => {
             ? {
                 ...r,
                 ...restForm,
+                ...(vatUpdate ? {
+                  vatNumber: vatUpdate.vatNumber,
+                  vatNumberAddedAt: vatUpdate.vatNumberAddedAt,
+                } : {}),
                 images: imageStr ? [imageStr] : [],
                 ...(pendingAddress && r.address
                   ? {
@@ -433,6 +461,21 @@ const RestaurantAdminDashboard = () => {
                                     </div>
 
                                     <div className="form-field">
+                                      <label className="field-label">
+                                        VAT Number
+                                        <span className="field-hint">UK format: GB followed by 9 digits. Leave blank if not VAT-registered.</span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={editVatNumber}
+                                        onChange={(e) => setEditVatNumber(e.target.value)}
+                                        placeholder="GB123456789"
+                                        className="form-input"
+                                        maxLength={20}
+                                      />
+                                    </div>
+
+                                    <div className="form-field">
                                       <label className="field-label">FSA Rating</label>
                                       <select
                                         value={editForm.fsa ?? ""}
@@ -668,6 +711,14 @@ const RestaurantAdminDashboard = () => {
                                       <span className="setting-label">Commission</span>
                                       <span className="setting-value commission-value">
                                         {restaurant.commission ?? 20}%
+                                      </span>
+                                    </div>
+                                    <div className="setting-item">
+                                      <span className="setting-label">VAT Number</span>
+                                      <span className="setting-value">
+                                        {restaurant.vatNumber
+                                          ? restaurant.vatNumber
+                                          : <span style={{ color: "#9ca3af" }}>Not VAT-registered</span>}
                                       </span>
                                     </div>
                                     <div className="setting-item">

@@ -74,6 +74,8 @@ export interface Restaurant {
   maxDiscountPercentage: number;
   fsa: number;
   fsaLink: string | null;
+  vatNumber: string | null;
+  vatNumberAddedAt: string | null;
 }
 
 export interface UpdateAvailabilityDto {

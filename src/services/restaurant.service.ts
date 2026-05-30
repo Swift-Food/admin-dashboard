@@ -216,6 +216,19 @@ const updateRestaurant = async (
   return res.data;
 };
 
+// Dedicated endpoint per the backend spec — separate from /restaurant/:id
+// because of dual-actor auth and stricter validation.
+const updateRestaurantVatNumber = async (
+  id: string,
+  vatNumber: string | null
+): Promise<{ vatNumber: string | null; vatNumberAddedAt: string | null }> => {
+  const res = await http.patch<{
+    vatNumber: string | null;
+    vatNumberAddedAt: string | null;
+  }>(`/restaurant/${id}/vat-number`, { vatNumber });
+  return res.data;
+};
+
 const deleteRestaurant = async (id: string): Promise<void> => {
   await http.delete(`/restaurant/${id}`);
 };
@@ -399,6 +412,7 @@ export {
   // Update operations
   updateRestaurantAvailability,
   updateRestaurantStatus,
+  updateRestaurantVatNumber,
   updateRestaurant,
   // Delete operations
   deleteRestaurant,

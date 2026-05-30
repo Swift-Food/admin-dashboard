@@ -101,32 +101,32 @@ const MiscellaneousScreen: React.FC = () => {
     {
       key: "customer-vat",
       label: "Customer VAT Invoice",
-      description: "Page 1 client invoice + supplier annexure",
+      description: "Per-supplier-block customer invoice with VAT breakdown",
       endpoint: (id) => `catering-orders/${id}/preview-vat-pdf`,
     },
     {
       key: "customer-receipt",
       label: "Customer Receipt",
-      description: "Post-payment receipt (coming soon)",
-      endpoint: null,
+      description: "Post-payment receipt (same layout as invoice, marked paid)",
+      endpoint: (id) => `catering-orders/${id}/preview-vat-receipt-pdf`,
     },
     {
       key: "restaurant-payout",
       label: "Restaurant Payout Receipt",
-      description: "Email attachment to restaurant on payout (coming soon)",
-      endpoint: null,
+      description: "Per-restaurant payout receipt (first supplier in order)",
+      endpoint: (id) => `catering-orders/${id}/preview-payout-receipt-pdf`,
     },
     {
       key: "commission-tax",
       label: "Monthly Commission Tax Invoice",
-      description: "Swift's tax invoice for restaurant commission (coming soon)",
-      endpoint: null,
+      description: "Swift's tax invoice for the supplier's commission (month of event)",
+      endpoint: (id) => `catering-orders/${id}/preview-commission-pdf`,
     },
     {
       key: "self-billed-vat",
       label: "Self-billed VAT Invoice",
-      description: "For VAT-registered restaurants under self-billing agreement (coming soon)",
-      endpoint: null,
+      description: "For VAT-registered suppliers — supplier must have a VAT number on file",
+      endpoint: (id) => `catering-orders/${id}/preview-self-billed-pdf`,
     },
   ];
 
@@ -143,13 +143,27 @@ const MiscellaneousScreen: React.FC = () => {
         responseType: "blob",
       });
       const blob = res.data as Blob;
-      const url = URL.createObjectURL(blob);
+      // Commission preview returns HTML; everything else is PDF.
+      const blobType =
+        type.key === "commission-tax" ? "text/html" : "application/pdf";
+      const typedBlob = blob.type ? blob : new Blob([blob], { type: blobType });
+      const url = URL.createObjectURL(typedBlob);
       window.open(url, "_blank");
       setTimeout(() => URL.revokeObjectURL(url), 30000);
     } catch (err: any) {
-      setPreviewError(
-        err?.response?.data?.message || err?.message || "Failed to load preview",
-      );
+      // Blob error responses come back as Blob even when the server sent JSON.
+      let message =
+        err?.response?.data?.message || err?.message || "Failed to load preview";
+      if (err?.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          message = parsed.message || text;
+        } catch {
+          /* swallow */
+        }
+      }
+      setPreviewError(message);
     } finally {
       setPreviewLoadingType(null);
     }

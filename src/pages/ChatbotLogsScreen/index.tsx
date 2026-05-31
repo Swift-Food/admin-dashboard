@@ -95,6 +95,46 @@ function extractMealSessions(payload: unknown): MealSessionView[] {
   return ms.filter(isMealSessionView);
 }
 
+// ─── Pipeline_v1 payload extraction ─────────────────────────────────────────
+// bot_reply events now carry pipeline_variant + stages_run + early_exit +
+// pro_cart_fallback_fired alongside the existing response. These helpers
+// pull them out defensively (legacy rows don't have them).
+
+type PipelineMeta = {
+  variant: 'legacy' | 'pipeline_v1' | null;
+  stagesRun: string[] | null;
+  earlyExit: string | null;
+  proCartFallbackFired: boolean;
+  turnId: string | null;
+};
+
+function extractPipelineMeta(payload: unknown): PipelineMeta {
+  const empty: PipelineMeta = {
+    variant: null, stagesRun: null, earlyExit: null,
+    proCartFallbackFired: false, turnId: null,
+  };
+  if (!payload || typeof payload !== 'object') return empty;
+  const p = payload as Record<string, unknown>;
+  const variant = p.pipeline_variant;
+  const stages = p.stages_run;
+  return {
+    variant: variant === 'legacy' || variant === 'pipeline_v1' ? variant : null,
+    stagesRun: Array.isArray(stages) ? stages.filter((s) => typeof s === 'string') : null,
+    earlyExit: typeof p.early_exit === 'string' ? p.early_exit : null,
+    proCartFallbackFired: p.pro_cart_fallback_fired === true,
+    turnId: typeof p.turn_id === 'string' ? p.turn_id : null,
+  };
+}
+
+/** Caller value → variant. Pipeline_v1 callers are prefixed `pipeline_v1.`;
+ *  the legacy tool loop uses `tool_calling_loop`. Anything else is 'other'. */
+function callerToVariant(caller: string | null | undefined): 'legacy' | 'pipeline_v1' | 'other' {
+  if (!caller) return 'other';
+  if (caller.startsWith('pipeline_v1.')) return 'pipeline_v1';
+  if (caller === 'tool_calling_loop') return 'legacy';
+  return 'other';
+}
+
 // ─── JSON viewer ─────────────────────────────────────────────────────────────
 // JsonView, JsonModal, and JsonViewControl are imported from
 // '../../components/JsonModal' so the snapshot preview modals can reuse them.
@@ -446,6 +486,7 @@ function EventCard({
 
   const payload = entry.data.payload as unknown;
   const userMessageText = isUser ? extractUserMessageText(payload) : null;
+  const pipelineMeta = isBot ? extractPipelineMeta(payload) : null;
 
   const [showSnapshot, setShowSnapshot] = useState(false);
 
@@ -482,6 +523,42 @@ function EventCard({
           {userMessageText}
         </div>
       )}
+      {pipelineMeta && (pipelineMeta.variant || pipelineMeta.stagesRun || pipelineMeta.earlyExit) && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+          {pipelineMeta.variant && (
+            <span
+              className={`px-1.5 py-0.5 rounded font-mono ${
+                pipelineMeta.variant === 'pipeline_v1'
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : 'bg-slate-100 text-slate-700 border border-slate-300'
+              }`}
+              title="pipeline_variant on bot_reply"
+            >
+              {pipelineMeta.variant}
+            </span>
+          )}
+          {pipelineMeta.stagesRun && pipelineMeta.stagesRun.length > 0 && (
+            <span className="font-mono text-gray-700">
+              {pipelineMeta.stagesRun.join(' → ')}
+            </span>
+          )}
+          {pipelineMeta.earlyExit && (
+            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-mono">
+              early_exit: {pipelineMeta.earlyExit}
+            </span>
+          )}
+          {pipelineMeta.proCartFallbackFired && (
+            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 font-mono">
+              pro_cart_fallback
+            </span>
+          )}
+          {pipelineMeta.turnId && (
+            <span className="text-gray-400 font-mono" title={pipelineMeta.turnId}>
+              turn {pipelineMeta.turnId.slice(0, 8)}
+            </span>
+          )}
+        </div>
+      )}
       <JsonBlock label="payload" value={entry.data.payload} />
 
       {isBot && showSnapshot && (
@@ -510,14 +587,35 @@ function EventCard({
 
 function LlmCallCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { kind: 'llm_call' }>; offsetLabel: string }) {
   const hasError = !!entry.data.errorType;
-  const border   = hasError ? 'border-l-4 border-l-red-500 border-t border-r border-b border-red-200 bg-red-50' : 'border border-indigo-200 bg-indigo-50';
+  const variant  = callerToVariant(entry.data.caller);
+  // Tint the card subtly by variant so a multi-row pipeline_v1 turn reads
+  // as a single visual group when scrolling through the timeline.
+  const variantBorder = hasError
+    ? 'border-l-4 border-l-red-500 border-t border-r border-b border-red-200 bg-red-50'
+    : variant === 'pipeline_v1'
+      ? 'border border-emerald-200 bg-emerald-50'
+      : variant === 'legacy'
+        ? 'border border-slate-200 bg-slate-50'
+        : 'border border-indigo-200 bg-indigo-50';
 
   return (
-    <div className={`rounded-lg ${border} p-3`}>
+    <div className={`rounded-lg ${variantBorder} p-3`}>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <span className="text-xs text-gray-400 w-14 shrink-0" title={formatAbsoluteDate(entry.ts)}>
           {offsetLabel}
         </span>
+        {variant !== 'other' && (
+          <span
+            className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+              variant === 'pipeline_v1'
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                : 'bg-slate-100 text-slate-700 border border-slate-300'
+            }`}
+            title={variant === 'pipeline_v1' ? 'pipeline_v1.* caller' : 'legacy tool_calling_loop'}
+          >
+            {variant}
+          </span>
+        )}
         <span className="font-bold text-sm text-indigo-800">{entry.data.caller}</span>
         <span className="text-xs text-indigo-500">{entry.data.model}</span>
         {entry.data.latencyMs != null && (
@@ -1134,10 +1232,42 @@ const EMPTY_ITEM: Omit<CostItem, 'period'> = {
   outputCostUsd: 0,
   thinkingCostUsd: 0,
   callCount: 0,
+  turnCount: 0,
   sessionCount: 0,
+  byVariant: {},
 };
 
 type Period = 'hourly' | 'daily' | 'weekly' | 'monthly';
+
+/** Merge two byVariant maps element-wise. Used by the weekly aggregator
+ *  when collapsing daily buckets into weeks. */
+function mergeByVariant(
+  a: CostItem['byVariant'],
+  b: CostItem['byVariant'],
+): CostItem['byVariant'] {
+  const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]) as Set<keyof CostItem['byVariant']>;
+  const out: CostItem['byVariant'] = {};
+  for (const k of keys) {
+    const av = a?.[k];
+    const bv = b?.[k];
+    if (!av) { out[k] = bv; continue; }
+    if (!bv) { out[k] = av; continue; }
+    out[k] = {
+      totalCostUsd: av.totalCostUsd + bv.totalCostUsd,
+      totalInputTokens: av.totalInputTokens + bv.totalInputTokens,
+      totalCachedInputTokens: av.totalCachedInputTokens + bv.totalCachedInputTokens,
+      totalOutputTokens: av.totalOutputTokens + bv.totalOutputTokens,
+      totalThinkingTokens: av.totalThinkingTokens + bv.totalThinkingTokens,
+      inputCostUsd: av.inputCostUsd + bv.inputCostUsd,
+      cachedInputCostUsd: av.cachedInputCostUsd + bv.cachedInputCostUsd,
+      outputCostUsd: av.outputCostUsd + bv.outputCostUsd,
+      thinkingCostUsd: av.thinkingCostUsd + bv.thinkingCostUsd,
+      callCount: av.callCount + bv.callCount,
+      turnCount: av.turnCount + bv.turnCount,
+    };
+  }
+  return out;
+}
 
 function getWeekStart(d: Date): Date {
   const day = d.getUTCDay();
@@ -1192,7 +1322,9 @@ function fillGaps(items: CostItem[], period: Period, days: number): CostItem[] {
           outputCostUsd: existing.outputCostUsd + item.outputCostUsd,
           thinkingCostUsd: existing.thinkingCostUsd + item.thinkingCostUsd,
           callCount: existing.callCount + item.callCount,
+          turnCount: existing.turnCount + item.turnCount,
           sessionCount: existing.sessionCount + item.sessionCount,
+          byVariant: mergeByVariant(existing.byVariant, item.byVariant),
         });
       } else {
         weeklyMap.set(key, { ...item, period: ws.toISOString() });
@@ -1664,6 +1796,89 @@ function CostOverview() {
       </div>
 
       <UsageLineChart items={filledItems} metric={metric} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
+
+      <VariantBreakdown costs={costs} />
+    </div>
+  );
+}
+
+/**
+ * Per-variant rollup card. Shows legacy vs pipeline_v1 spend share for
+ * the current window. The headline number is the CEO-visible "did the
+ * refactor actually save money" measurement. Renders nothing when there's
+ * no pipeline_v1 activity yet (avoid noise during rollout prep).
+ */
+function VariantBreakdown({ costs }: { costs: CostsResponse }) {
+  const totals = costs.variantTotals;
+  if (!totals) return null;
+
+  const legacy = totals.legacy;
+  const v1 = totals.pipeline_v1;
+  const other = totals.other;
+  const grand = legacy.totalCostUsd + v1.totalCostUsd + other.totalCostUsd;
+
+  // Suppress the panel entirely until a partner is actually on
+  // pipeline_v1. Until then it would always read "100% legacy" and is
+  // just noise.
+  if (v1.totalCostUsd === 0 && v1.callCount === 0) return null;
+
+  const pct = (n: number) => (grand > 0 ? (n / grand) * 100 : 0);
+  const costPerTurn = (b: typeof legacy) =>
+    b.turnCount > 0 ? b.totalCostUsd / b.turnCount : null;
+
+  const VariantRow = ({
+    label,
+    bucket,
+    accent,
+  }: {
+    label: string;
+    bucket: typeof legacy;
+    accent: 'slate' | 'emerald' | 'amber';
+  }) => {
+    const ringByAccent = {
+      slate: 'bg-slate-50 border-slate-200 text-slate-700',
+      emerald: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      amber: 'bg-amber-50 border-amber-200 text-amber-800',
+    };
+    const barByAccent = {
+      slate: 'bg-slate-400',
+      emerald: 'bg-emerald-500',
+      amber: 'bg-amber-500',
+    };
+    const cpt = costPerTurn(bucket);
+    return (
+      <div className={`rounded-md border p-2.5 ${ringByAccent[accent]}`}>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="font-mono text-xs font-semibold">{label}</span>
+          <span className="text-xs">{pct(bucket.totalCostUsd).toFixed(1)}%</span>
+        </div>
+        <div className="text-lg font-bold tabular-nums">{formatCost(bucket.totalCostUsd)}</div>
+        <div className="text-[10px] text-gray-500 tabular-nums">
+          {bucket.callCount.toLocaleString()} calls · {bucket.turnCount.toLocaleString()} turns
+          {cpt != null && <> · {formatCost(cpt)}/turn</>}
+        </div>
+        <div className="mt-1 h-1 bg-white rounded overflow-hidden">
+          <div className={`h-full ${barByAccent[accent]}`} style={{ width: `${pct(bucket.totalCostUsd)}%` }} />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      <div className="flex items-baseline justify-between mb-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Pipeline variant split
+        </h3>
+        <span className="text-[10px] text-gray-400">window total {formatCost(grand)}</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <VariantRow label="legacy" bucket={legacy} accent="slate" />
+        <VariantRow label="pipeline_v1" bucket={v1} accent="emerald" />
+        {other.totalCostUsd > 0 && (
+          <VariantRow label="other" bucket={other} accent="amber" />
+        )}
+      </div>
     </div>
   );
 }

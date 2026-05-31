@@ -1611,6 +1611,8 @@ function UsageLineChart({
         const anyThinking = legacy.totalThinkingTokens > 0 || v1.totalThinkingTokens > 0;
         const liveInput = (b: CostBucket) => b.totalInputTokens - b.totalCachedInputTokens;
         const liveCost  = (b: CostBucket) => b.inputCostUsd - b.cachedInputCostUsd;
+        const lCpt = legacy.turnCount > 0 ? legacy.totalCostUsd / legacy.turnCount : null;
+        const vCpt = v1.turnCount     > 0 ? v1.totalCostUsd     / v1.turnCount     : null;
         const scrollLeft = scrollRef.current!.scrollLeft;
         const containerW = containerRef.current!.clientWidth;
         const pointPx = hoverX - scrollLeft;
@@ -1697,6 +1699,30 @@ function UsageLineChart({
                   <td className="text-right tabular-nums text-emerald-300 pt-1">{formatCost(legacy.totalCostUsd)}</td>
                   <td className="text-right tabular-nums pl-1 pt-1 border-l border-gray-700">{bucketTokens(v1).toLocaleString()}</td>
                   <td className="text-right tabular-nums text-emerald-300 pt-1">{formatCost(v1.totalCostUsd)}</td>
+                </tr>
+                <tr>
+                  <td className="pr-2 pt-1">Calls</td>
+                  <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{legacy.callCount.toLocaleString()}</td>
+                  <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{v1.callCount.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td className="pr-2 pt-1">Turns</td>
+                  <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{legacy.turnCount.toLocaleString()}</td>
+                  <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{v1.turnCount.toLocaleString()}</td>
+                </tr>
+                {hoverItem.sessionCount > 0 && (
+                  <tr className="text-gray-400">
+                    <td className="pr-2 pt-1">Avg/session</td>
+                    <td className="text-right tabular-nums pl-1 pt-1 border-l border-gray-700">{Math.round(bucketTokens(legacy) / hoverItem.sessionCount).toLocaleString()}</td>
+                    <td className="text-right tabular-nums pt-1">{formatCost(legacy.totalCostUsd / hoverItem.sessionCount)}</td>
+                    <td className="text-right tabular-nums pl-1 pt-1 border-l border-gray-700">{Math.round(bucketTokens(v1) / hoverItem.sessionCount).toLocaleString()}</td>
+                    <td className="text-right tabular-nums pt-1">{formatCost(v1.totalCostUsd / hoverItem.sessionCount)}</td>
+                  </tr>
+                )}
+                <tr className="text-gray-400">
+                  <td className="pr-2 pt-1">Cost/turn</td>
+                  <td colSpan={2} className="text-center tabular-nums text-emerald-300 pl-1 pt-1 border-l border-gray-700">{lCpt != null ? formatCost(lCpt) : '—'}</td>
+                  <td colSpan={2} className="text-center tabular-nums text-emerald-300 pl-1 pt-1 border-l border-gray-700">{vCpt != null ? formatCost(vCpt) : '—'}</td>
                 </tr>
               </tbody>
             </table>
@@ -1798,6 +1824,10 @@ function CostOverview() {
             const anyThinking = legacy.totalThinkingTokens > 0 || v1.totalThinkingTokens > 0;
             const liveTok  = (b: CostBucket) => b.totalInputTokens - b.totalCachedInputTokens;
             const liveCost = (b: CostBucket) => b.inputCostUsd - b.cachedInputCostUsd;
+            // Cost-per-turn — the rollout-critical comparison. Null when the
+            // pipeline produced no turns in the selected period.
+            const lCpt = legacy.turnCount > 0 ? legacy.totalCostUsd / legacy.turnCount : null;
+            const vCpt = v1.turnCount     > 0 ? v1.totalCostUsd     / v1.turnCount     : null;
             return (
               <table className="text-[11px] text-gray-500 mt-5">
                 <thead>
@@ -1863,6 +1893,30 @@ function CostOverview() {
                     <td className="text-right tabular-nums text-emerald-700 pr-2 pt-0.5">{formatCost(legacy.totalCostUsd)}</td>
                     <td className="text-right tabular-nums pl-2 pr-2 pt-0.5 border-l border-gray-200">{bucketTokens(v1).toLocaleString()}</td>
                     <td className="text-right tabular-nums text-emerald-700 pr-2 pt-0.5">{formatCost(v1.totalCostUsd)}</td>
+                  </tr>
+                  <tr>
+                    <td className="pr-3 pt-0.5">Calls</td>
+                    <td colSpan={2} className="text-center tabular-nums px-2 pt-0.5 border-l border-gray-200">{legacy.callCount.toLocaleString()}</td>
+                    <td colSpan={2} className="text-center tabular-nums px-2 pt-0.5 border-l border-gray-200">{v1.callCount.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="pr-3 pt-0.5">Turns</td>
+                    <td colSpan={2} className="text-center tabular-nums px-2 pt-0.5 border-l border-gray-200">{legacy.turnCount.toLocaleString()}</td>
+                    <td colSpan={2} className="text-center tabular-nums px-2 pt-0.5 border-l border-gray-200">{v1.turnCount.toLocaleString()}</td>
+                  </tr>
+                  {activeSessions > 0 && (
+                    <tr className="text-gray-400">
+                      <td className="pr-3 pt-0.5">Avg/session</td>
+                      <td className="text-right tabular-nums pl-2 pr-2 pt-0.5 border-l border-gray-200">{Math.round(bucketTokens(legacy) / activeSessions).toLocaleString()}</td>
+                      <td className="text-right tabular-nums pr-2 pt-0.5">{formatCost(legacy.totalCostUsd / activeSessions)}</td>
+                      <td className="text-right tabular-nums pl-2 pr-2 pt-0.5 border-l border-gray-200">{Math.round(bucketTokens(v1) / activeSessions).toLocaleString()}</td>
+                      <td className="text-right tabular-nums pr-2 pt-0.5">{formatCost(v1.totalCostUsd / activeSessions)}</td>
+                    </tr>
+                  )}
+                  <tr className="text-gray-400">
+                    <td className="pr-3 pt-0.5">Cost/turn</td>
+                    <td colSpan={2} className="text-center tabular-nums text-emerald-600 px-2 pt-0.5 border-l border-gray-200">{lCpt != null ? formatCost(lCpt) : '—'}</td>
+                    <td colSpan={2} className="text-center tabular-nums text-emerald-600 px-2 pt-0.5 border-l border-gray-200">{vCpt != null ? formatCost(vCpt) : '—'}</td>
                   </tr>
                 </tbody>
               </table>

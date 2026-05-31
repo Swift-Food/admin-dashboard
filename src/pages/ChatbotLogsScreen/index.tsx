@@ -6,6 +6,7 @@ import type {
   ChatbotSessionDetail,
   TimelineEntry,
   CostsResponse,
+  CostBucket,
 } from '../../types/chatbot-logs.types';
 import { SnapshotModal } from '../../features/chatbot-snapshot/SnapshotModal';
 import {
@@ -127,11 +128,12 @@ function extractPipelineMeta(payload: unknown): PipelineMeta {
 }
 
 /** Caller value → variant. Pipeline_v1 callers are prefixed `pipeline_v1.`;
- *  the legacy tool loop uses `tool_calling_loop`. Anything else is 'other'. */
+ *  legacy chat used `chat_tool_calling` historically and `tool_calling_loop`
+ *  after the variant-switch rename — both map to legacy. Anything else is 'other'. */
 function callerToVariant(caller: string | null | undefined): 'legacy' | 'pipeline_v1' | 'other' {
   if (!caller) return 'other';
   if (caller.startsWith('pipeline_v1.')) return 'pipeline_v1';
-  if (caller === 'tool_calling_loop') return 'legacy';
+  if (caller === 'tool_calling_loop' || caller === 'chat_tool_calling') return 'legacy';
   return 'other';
 }
 
@@ -1221,6 +1223,33 @@ type ChartMetric = 'cost' | 'tokens';
 
 type CostItem = CostsResponse['items'][number];
 
+/** Shared palette so chart, tooltip, and card table all colour the two
+ *  pipelines identically. slate = legacy (pre-refactor), emerald = pipeline_v1
+ *  (the cheaper Flash pipeline we're rolling out). */
+const VARIANT_COLORS = {
+  legacy:      { line: '#64748b', dot: '#475569', text: 'text-slate-600' },
+  pipeline_v1: { line: '#059669', dot: '#047857', text: 'text-emerald-600' },
+} as const;
+
+/** Empty CostBucket used when a variant has no rows in a given period. Lets
+ *  the table/tooltip render zeros instead of branching on undefined. */
+const EMPTY_BUCKET: CostBucket = {
+  totalCostUsd: 0,
+  totalInputTokens: 0,
+  totalCachedInputTokens: 0,
+  totalOutputTokens: 0,
+  totalThinkingTokens: 0,
+  inputCostUsd: 0,
+  cachedInputCostUsd: 0,
+  outputCostUsd: 0,
+  thinkingCostUsd: 0,
+  callCount: 0,
+  turnCount: 0,
+};
+
+const bucketTokens = (b: CostBucket): number =>
+  b.totalInputTokens + b.totalOutputTokens + b.totalThinkingTokens;
+
 const EMPTY_ITEM: Omit<CostItem, 'period'> = {
   totalCostUsd: 0,
   totalInputTokens: 0,
@@ -1389,13 +1418,18 @@ function UsageLineChart({
   const padTop = 12;
   const padBot = 28;
 
-  const getValue = (item: CostsResponse['items'][number]) =>
-    metric === 'cost'
-      ? item.totalCostUsd
-      : item.totalInputTokens + item.totalOutputTokens + item.totalThinkingTokens;
+  /** Per-variant value for the selected metric. Missing variant in a period
+   *  reads as zero — the byVariant map only includes rows that exist. */
+  const variantValue = (b: CostBucket | undefined) => {
+    if (!b) return 0;
+    return metric === 'cost' ? b.totalCostUsd : bucketTokens(b);
+  };
 
-  const values = items.map(getValue);
-  const maxVal = Math.max(...values, metric === 'cost' ? 0.001 : 1);
+  const legacyVals = items.map((it) => variantValue(it.byVariant.legacy));
+  const v1Vals     = items.map((it) => variantValue(it.byVariant.pipeline_v1));
+  // Shared Y axis so the two lines stay directly comparable. Clamp to a tiny
+  // positive floor so a fully-zero window still has a sensible scale.
+  const maxVal = Math.max(...legacyVals, ...v1Vals, metric === 'cost' ? 0.001 : 1);
 
   const pointSpacing = period === 'hourly' ? 30 : period === 'daily' ? 40 : period === 'weekly' ? 60 : 80;
   const minW = 800;
@@ -1403,38 +1437,33 @@ function UsageLineChart({
   const plotW = svgW - padL - padR;
   const plotH = chartH - padTop - padBot;
 
-  const points = items.map((item, i) => {
-    const x = padL + (items.length === 1 ? plotW / 2 : (i / (items.length - 1)) * plotW);
-    const y = padTop + plotH - (getValue(item) / maxVal) * plotH;
-    return { x, y, item, idx: i };
-  });
-
-  const polyline = points.map((p) => `${p.x},${p.y}`).join(' ');
+  const xs = items.map((_, i) =>
+    padL + (items.length === 1 ? plotW / 2 : (i / (items.length - 1)) * plotW),
+  );
+  const yOf = (v: number) => padTop + plotH - (v / maxVal) * plotH;
   const baseline = padTop + plotH;
-  const areaPath = points.length > 0
-    ? `M ${points[0].x},${baseline} ${points.map((p) => `L ${p.x},${p.y}`).join(' ')} L ${points[points.length - 1].x},${baseline} Z`
-    : '';
 
-  const lineColor = metric === 'cost' ? '#059669' : '#6366f1';
-  const fillColor = metric === 'cost' ? '#d1fae580' : '#e0e7ff80';
-  const dotColor = metric === 'cost' ? '#047857' : '#4f46e5';
+  const legacyPoints = items.map((_, i) => ({ x: xs[i], y: yOf(legacyVals[i]) }));
+  const v1Points     = items.map((_, i) => ({ x: xs[i], y: yOf(v1Vals[i]) }));
+  const legacyPolyline = legacyPoints.map((p) => `${p.x},${p.y}`).join(' ');
+  const v1Polyline     = v1Points.map((p) => `${p.x},${p.y}`).join(' ');
+
+  const closestIdxFromSvgX = (svgX: number) => {
+    let closest = 0;
+    let closestDist = Infinity;
+    for (let i = 0; i < xs.length; i++) {
+      const dist = Math.abs(xs[i] - svgX);
+      if (dist < closestDist) { closestDist = dist; closest = i; }
+    }
+    return closest;
+  };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const svg = e.currentTarget;
     const ctm = svg.getScreenCTM();
     if (!ctm) return;
     const svgX = (e.clientX - ctm.e) / ctm.a;
-
-    let closest = 0;
-    let closestDist = Infinity;
-    for (let i = 0; i < points.length; i++) {
-      const dist = Math.abs(points[i].x - svgX);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = i;
-      }
-    }
-    setHover({ idx: closest, mouseX: e.clientX, mouseY: e.clientY });
+    setHover({ idx: closestIdxFromSvgX(svgX), mouseX: e.clientX, mouseY: e.clientY });
   };
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -1442,30 +1471,39 @@ function UsageLineChart({
     const ctm = svg.getScreenCTM();
     if (!ctm) return;
     const svgX = (e.clientX - ctm.e) / ctm.a;
-    let closest = 0;
-    let closestDist = Infinity;
-    for (let i = 0; i < points.length; i++) {
-      const dist = Math.abs(points[i].x - svgX);
-      if (dist < closestDist) { closestDist = dist; closest = i; }
-    }
-    onSelect(closest);
+    onSelect(closestIdxFromSvgX(svgX));
   };
 
   const hoverItem = hover ? items[hover.idx] : null;
-  const hoverPoint = hover ? points[hover.idx] : null;
+  const hoverX    = hover ? xs[hover.idx] : null;
 
   const labelIndices: number[] = [];
   const minLabelGap = 60;
   let lastLabelX = -Infinity;
-  for (let i = 0; i < points.length; i++) {
-    if (points[i].x - lastLabelX >= minLabelGap) {
+  for (let i = 0; i < xs.length; i++) {
+    if (xs[i] - lastLabelX >= minLabelGap) {
       labelIndices.push(i);
-      lastLabelX = points[i].x;
+      lastLabelX = xs[i];
     }
   }
 
+  const legacyC = VARIANT_COLORS.legacy;
+  const v1C     = VARIANT_COLORS.pipeline_v1;
+
   return (
     <div className="relative" ref={containerRef}>
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-3 mb-1 text-[10px] text-gray-500">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: legacyC.line }} />
+          legacy
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: v1C.line }} />
+          pipeline_v1
+        </span>
+      </div>
+
       <div ref={scrollRef} className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
       <svg
         viewBox={`0 0 ${svgW} ${chartH}`}
@@ -1491,32 +1529,48 @@ function UsageLineChart({
           stroke="#e5e7eb" strokeWidth="1"
         />
 
-        {/* Area fill */}
-        {areaPath && <path d={areaPath} fill={fillColor} />}
-
-        {/* Line */}
+        {/* Legacy line */}
         <polyline
-          points={polyline}
+          points={legacyPolyline}
           fill="none"
-          stroke={lineColor}
+          stroke={legacyC.line}
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {/* pipeline_v1 line */}
+        <polyline
+          points={v1Polyline}
+          fill="none"
+          stroke={v1C.line}
           strokeWidth="2.5"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
 
-        {/* Data points */}
-        {points.map((p) => {
-          const isSelected = p.idx === selectedIdx;
-          const isHovered = hover?.idx === p.idx;
+        {/* Data points — one dot per variant per bucket */}
+        {items.map((_, idx) => {
+          const isSelected = idx === selectedIdx;
+          const isHovered  = hover?.idx === idx;
+          const r = isHovered ? 5 : isSelected ? 5 : 3;
           return (
-            <g key={p.idx}>
+            <g key={idx}>
               {isSelected && (
-                <circle cx={p.x} cy={p.y} r={8} fill="none" stroke={dotColor} strokeWidth="2" opacity={0.3} />
+                <>
+                  <circle cx={legacyPoints[idx].x} cy={legacyPoints[idx].y} r={8} fill="none" stroke={legacyC.dot} strokeWidth="2" opacity={0.3} />
+                  <circle cx={v1Points[idx].x}     cy={v1Points[idx].y}     r={8} fill="none" stroke={v1C.dot}     strokeWidth="2" opacity={0.3} />
+                </>
               )}
               <circle
-                cx={p.x} cy={p.y}
-                r={isHovered ? 5 : isSelected ? 5 : 3}
-                fill={isHovered || isSelected ? dotColor : lineColor}
+                cx={legacyPoints[idx].x} cy={legacyPoints[idx].y}
+                r={r}
+                fill={isHovered || isSelected ? legacyC.dot : legacyC.line}
+                stroke="white" strokeWidth="1.5"
+              />
+              <circle
+                cx={v1Points[idx].x} cy={v1Points[idx].y}
+                r={r}
+                fill={isHovered || isSelected ? v1C.dot : v1C.line}
                 stroke="white" strokeWidth="1.5"
               />
             </g>
@@ -1524,9 +1578,9 @@ function UsageLineChart({
         })}
 
         {/* Hover crosshair */}
-        {hoverPoint && (
+        {hoverX != null && (
           <line
-            x1={hoverPoint.x} x2={hoverPoint.x}
+            x1={hoverX} x2={hoverX}
             y1={padTop} y2={baseline}
             stroke="#9ca3af" strokeWidth="1" strokeDasharray="4 3"
           />
@@ -1536,7 +1590,7 @@ function UsageLineChart({
         {labelIndices.map((i) => (
           <text
             key={i}
-            x={points[i].x}
+            x={xs[i]}
             y={chartH - 4}
             textAnchor="middle"
             className="fill-gray-400"
@@ -1548,22 +1602,22 @@ function UsageLineChart({
       </svg>
       </div>
 
-      {/* Tooltip */}
-      {hover && hoverItem && scrollRef.current && containerRef.current && (() => {
+      {/* Tooltip — per-pipeline breakdown of Input/Output/Thinking for the hovered bucket. */}
+      {hover && hoverItem && hoverX != null && scrollRef.current && containerRef.current && (() => {
+        const legacy = hoverItem.byVariant.legacy     ?? EMPTY_BUCKET;
+        const v1     = hoverItem.byVariant.pipeline_v1 ?? EMPTY_BUCKET;
         const totalTok = hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens;
-        // totalInputTokens is gross (includes cached). Split into the live
-        // (full-rate) portion and the cached (25%) portion so the discount
-        // is visible rather than lumped together.
-        const cachedInput = hoverItem.totalCachedInputTokens;
-        const uncachedInput = hoverItem.totalInputTokens - cachedInput;
-        const uncachedInputCost = hoverItem.inputCostUsd - hoverItem.cachedInputCostUsd;
+        const anyCached   = legacy.totalCachedInputTokens > 0 || v1.totalCachedInputTokens > 0;
+        const anyThinking = legacy.totalThinkingTokens > 0 || v1.totalThinkingTokens > 0;
+        const liveInput = (b: CostBucket) => b.totalInputTokens - b.totalCachedInputTokens;
+        const liveCost  = (b: CostBucket) => b.inputCostUsd - b.cachedInputCostUsd;
         const scrollLeft = scrollRef.current!.scrollLeft;
         const containerW = containerRef.current!.clientWidth;
-        const pointPx = (hoverPoint!.x / svgW) * svgW - scrollLeft;
-        const clampedLeft = Math.max(112, Math.min(containerW - 112, pointPx));
+        const pointPx = hoverX - scrollLeft;
+        const clampedLeft = Math.max(168, Math.min(containerW - 168, pointPx));
         return (
           <div
-            className="absolute z-10 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-4 py-3 text-xs w-56"
+            className="absolute z-10 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-4 py-3 text-[11px] w-80"
             style={{
               left: clampedLeft,
               bottom: `calc(100% + 8px)`,
@@ -1579,55 +1633,77 @@ function UsageLineChart({
               })() : formatDateLabel(hoverItem.period, period)}
             </p>
 
-            <table className="w-full text-[11px]">
+            <table className="w-full">
               <thead>
                 <tr className="text-gray-400">
+                  <th className="text-left font-normal pb-0.5"></th>
+                  <th colSpan={2} className="font-normal pb-0.5 border-l border-gray-700">
+                    <span className="inline-flex items-center gap-1 px-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-sm" style={{ background: legacyC.line }} />
+                      legacy
+                    </span>
+                  </th>
+                  <th colSpan={2} className="font-normal pb-0.5 border-l border-gray-700">
+                    <span className="inline-flex items-center gap-1 px-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-sm" style={{ background: v1C.line }} />
+                      pipeline_v1
+                    </span>
+                  </th>
+                </tr>
+                <tr className="text-gray-400 text-[10px]">
                   <th className="text-left font-normal pb-1"></th>
-                  <th className="text-right font-normal pb-1">Tokens</th>
+                  <th className="text-right font-normal pb-1 pl-1 border-l border-gray-700">Tokens</th>
+                  <th className="text-right font-normal pb-1">Cost</th>
+                  <th className="text-right font-normal pb-1 pl-1 border-l border-gray-700">Tokens</th>
                   <th className="text-right font-normal pb-1">Cost</th>
                 </tr>
               </thead>
               <tbody className="text-gray-200">
                 <tr>
                   <td className="pr-2">Input (live)</td>
-                  <td className="text-right tabular-nums">{uncachedInput.toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-emerald-300">{formatCost(uncachedInputCost)}</td>
+                  <td className="text-right tabular-nums pl-1 border-l border-gray-700">{liveInput(legacy).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{formatCost(liveCost(legacy))}</td>
+                  <td className="text-right tabular-nums pl-1 border-l border-gray-700">{liveInput(v1).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{formatCost(liveCost(v1))}</td>
                 </tr>
-                {cachedInput > 0 && (
-                  <tr>
-                    <td className="pr-2 text-sky-300">Input (cached)</td>
-                    <td className="text-right tabular-nums text-sky-300">{cachedInput.toLocaleString()}</td>
-                    <td className="text-right tabular-nums text-sky-300">{formatCost(hoverItem.cachedInputCostUsd)}</td>
+                {anyCached && (
+                  <tr className="text-sky-300">
+                    <td className="pr-2">Input (cached)</td>
+                    <td className="text-right tabular-nums pl-1 border-l border-gray-700">{legacy.totalCachedInputTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums">{formatCost(legacy.cachedInputCostUsd)}</td>
+                    <td className="text-right tabular-nums pl-1 border-l border-gray-700">{v1.totalCachedInputTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums">{formatCost(v1.cachedInputCostUsd)}</td>
                   </tr>
                 )}
                 <tr>
                   <td className="pr-2">Output</td>
-                  <td className="text-right tabular-nums">{hoverItem.totalOutputTokens.toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-emerald-300">{formatCost(hoverItem.outputCostUsd)}</td>
+                  <td className="text-right tabular-nums pl-1 border-l border-gray-700">{legacy.totalOutputTokens.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{formatCost(legacy.outputCostUsd)}</td>
+                  <td className="text-right tabular-nums pl-1 border-l border-gray-700">{v1.totalOutputTokens.toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{formatCost(v1.outputCostUsd)}</td>
                 </tr>
-                {hoverItem.totalThinkingTokens > 0 && (
+                {anyThinking && (
                   <tr>
                     <td className="pr-2">Thinking</td>
-                    <td className="text-right tabular-nums">{hoverItem.totalThinkingTokens.toLocaleString()}</td>
-                    <td className="text-right tabular-nums text-emerald-300">{formatCost(hoverItem.thinkingCostUsd)}</td>
+                    <td className="text-right tabular-nums pl-1 border-l border-gray-700">{legacy.totalThinkingTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-300">{formatCost(legacy.thinkingCostUsd)}</td>
+                    <td className="text-right tabular-nums pl-1 border-l border-gray-700">{v1.totalThinkingTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-300">{formatCost(v1.thinkingCostUsd)}</td>
                   </tr>
                 )}
-                <tr className="border-t border-gray-700">
-                  <td className="pr-2 pt-1 font-semibold">Total</td>
-                  <td className="text-right pt-1 font-semibold tabular-nums">{totalTok.toLocaleString()}</td>
-                  <td className="text-right pt-1 font-semibold tabular-nums text-emerald-300">{formatCost(hoverItem.totalCostUsd)}</td>
+                <tr className="border-t border-gray-700 font-semibold">
+                  <td className="pr-2 pt-1">Total</td>
+                  <td className="text-right tabular-nums pl-1 pt-1 border-l border-gray-700">{bucketTokens(legacy).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300 pt-1">{formatCost(legacy.totalCostUsd)}</td>
+                  <td className="text-right tabular-nums pl-1 pt-1 border-l border-gray-700">{bucketTokens(v1).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300 pt-1">{formatCost(v1.totalCostUsd)}</td>
                 </tr>
-                {hoverItem.sessionCount > 0 && (
-                  <tr className="text-gray-400">
-                    <td className="pr-2 pt-1">Avg/session</td>
-                    <td className="text-right pt-1 tabular-nums">{Math.round(totalTok / hoverItem.sessionCount).toLocaleString()}</td>
-                    <td className="text-right pt-1 tabular-nums">{formatCost(hoverItem.totalCostUsd / hoverItem.sessionCount)}</td>
-                  </tr>
-                )}
               </tbody>
             </table>
 
-            <p className="text-gray-400 mt-2 text-[10px]">{hoverItem.sessionCount} sessions · {hoverItem.callCount} calls</p>
+            <p className="text-gray-400 mt-2 text-[10px]">
+              bucket total {totalTok.toLocaleString()} tokens · {formatCost(hoverItem.totalCostUsd)} · {hoverItem.sessionCount} sessions · {hoverItem.callCount} calls
+            </p>
           </div>
         );
       })()}
@@ -1715,48 +1791,83 @@ function CostOverview() {
               </p>
             )}
           </div>
-          {activeItem && (
-            <table className="text-[11px] text-gray-500 mt-5">
-              <thead>
-                <tr className="text-gray-400">
-                  <th className="text-left font-normal pb-0.5 pr-3"></th>
-                  <th className="text-right font-normal pb-0.5 pr-3">Tokens</th>
-                  <th className="text-right font-normal pb-0.5">Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="pr-3">Input (live)</td>
-                  <td className="text-right tabular-nums pr-3">{(activeItem.totalInputTokens - activeItem.totalCachedInputTokens).toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.inputCostUsd - activeItem.cachedInputCostUsd)}</td>
-                </tr>
-                {activeItem.totalCachedInputTokens > 0 && (
-                  <tr className="text-sky-600">
-                    <td className="pr-3">Input (cached)</td>
-                    <td className="text-right tabular-nums pr-3">{activeItem.totalCachedInputTokens.toLocaleString()}</td>
-                    <td className="text-right tabular-nums">{formatCost(activeItem.cachedInputCostUsd)}</td>
+          {activeItem && (() => {
+            const legacy = activeItem.byVariant.legacy     ?? EMPTY_BUCKET;
+            const v1     = activeItem.byVariant.pipeline_v1 ?? EMPTY_BUCKET;
+            const anyCached   = legacy.totalCachedInputTokens > 0 || v1.totalCachedInputTokens > 0;
+            const anyThinking = legacy.totalThinkingTokens > 0 || v1.totalThinkingTokens > 0;
+            const liveTok  = (b: CostBucket) => b.totalInputTokens - b.totalCachedInputTokens;
+            const liveCost = (b: CostBucket) => b.inputCostUsd - b.cachedInputCostUsd;
+            return (
+              <table className="text-[11px] text-gray-500 mt-5">
+                <thead>
+                  <tr className="text-gray-400">
+                    <th className="text-left font-normal pb-0.5 pr-3"></th>
+                    <th colSpan={2} className="font-normal pb-0.5 px-2 border-l border-gray-200">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-2 rounded-sm" style={{ background: VARIANT_COLORS.legacy.line }} />
+                        legacy
+                      </span>
+                    </th>
+                    <th colSpan={2} className="font-normal pb-0.5 px-2 border-l border-gray-200">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-2 rounded-sm" style={{ background: VARIANT_COLORS.pipeline_v1.line }} />
+                        pipeline_v1
+                      </span>
+                    </th>
                   </tr>
-                )}
-                <tr>
-                  <td className="pr-3">Output</td>
-                  <td className="text-right tabular-nums pr-3">{activeItem.totalOutputTokens.toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.outputCostUsd)}</td>
-                </tr>
-                {activeItem.totalThinkingTokens > 0 && (
+                  <tr className="text-gray-400 text-[10px]">
+                    <th className="text-left font-normal pb-0.5 pr-3"></th>
+                    <th className="text-right font-normal pb-0.5 pl-2 pr-2 border-l border-gray-200">Tokens</th>
+                    <th className="text-right font-normal pb-0.5 pr-2">Cost</th>
+                    <th className="text-right font-normal pb-0.5 pl-2 pr-2 border-l border-gray-200">Tokens</th>
+                    <th className="text-right font-normal pb-0.5 pr-2">Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
                   <tr>
-                    <td className="pr-3">Thinking</td>
-                    <td className="text-right tabular-nums pr-3">{activeItem.totalThinkingTokens.toLocaleString()}</td>
-                    <td className="text-right tabular-nums text-emerald-600">{formatCost(activeItem.thinkingCostUsd)}</td>
+                    <td className="pr-3">Input (live)</td>
+                    <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{liveTok(legacy).toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(liveCost(legacy))}</td>
+                    <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{liveTok(v1).toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(liveCost(v1))}</td>
                   </tr>
-                )}
-                <tr className="border-t border-gray-200 font-semibold text-gray-700">
-                  <td className="pr-3 pt-0.5">Total</td>
-                  <td className="text-right tabular-nums pr-3 pt-0.5">{activeTokens.toLocaleString()}</td>
-                  <td className="text-right tabular-nums text-emerald-700 pt-0.5">{formatCost(activeCost)}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
+                  {anyCached && (
+                    <tr className="text-sky-600">
+                      <td className="pr-3">Input (cached)</td>
+                      <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{legacy.totalCachedInputTokens.toLocaleString()}</td>
+                      <td className="text-right tabular-nums pr-2">{formatCost(legacy.cachedInputCostUsd)}</td>
+                      <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{v1.totalCachedInputTokens.toLocaleString()}</td>
+                      <td className="text-right tabular-nums pr-2">{formatCost(v1.cachedInputCostUsd)}</td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td className="pr-3">Output</td>
+                    <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{legacy.totalOutputTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(legacy.outputCostUsd)}</td>
+                    <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{v1.totalOutputTokens.toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(v1.outputCostUsd)}</td>
+                  </tr>
+                  {anyThinking && (
+                    <tr>
+                      <td className="pr-3">Thinking</td>
+                      <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{legacy.totalThinkingTokens.toLocaleString()}</td>
+                      <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(legacy.thinkingCostUsd)}</td>
+                      <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{v1.totalThinkingTokens.toLocaleString()}</td>
+                      <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(v1.thinkingCostUsd)}</td>
+                    </tr>
+                  )}
+                  <tr className="border-t border-gray-200 font-semibold text-gray-700">
+                    <td className="pr-3 pt-0.5">Total</td>
+                    <td className="text-right tabular-nums pl-2 pr-2 pt-0.5 border-l border-gray-200">{bucketTokens(legacy).toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-700 pr-2 pt-0.5">{formatCost(legacy.totalCostUsd)}</td>
+                    <td className="text-right tabular-nums pl-2 pr-2 pt-0.5 border-l border-gray-200">{bucketTokens(v1).toLocaleString()}</td>
+                    <td className="text-right tabular-nums text-emerald-700 pr-2 pt-0.5">{formatCost(v1.totalCostUsd)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
         <div className="flex flex-col gap-2 items-end">
           <div className="flex gap-1">
@@ -1796,89 +1907,6 @@ function CostOverview() {
       </div>
 
       <UsageLineChart items={filledItems} metric={metric} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
-
-      <VariantBreakdown costs={costs} />
-    </div>
-  );
-}
-
-/**
- * Per-variant rollup card. Shows legacy vs pipeline_v1 spend share for
- * the current window. The headline number is the CEO-visible "did the
- * refactor actually save money" measurement. Renders nothing when there's
- * no pipeline_v1 activity yet (avoid noise during rollout prep).
- */
-function VariantBreakdown({ costs }: { costs: CostsResponse }) {
-  const totals = costs.variantTotals;
-  if (!totals) return null;
-
-  const legacy = totals.legacy;
-  const v1 = totals.pipeline_v1;
-  const other = totals.other;
-  const grand = legacy.totalCostUsd + v1.totalCostUsd + other.totalCostUsd;
-
-  // Suppress the panel entirely until a partner is actually on
-  // pipeline_v1. Until then it would always read "100% legacy" and is
-  // just noise.
-  if (v1.totalCostUsd === 0 && v1.callCount === 0) return null;
-
-  const pct = (n: number) => (grand > 0 ? (n / grand) * 100 : 0);
-  const costPerTurn = (b: typeof legacy) =>
-    b.turnCount > 0 ? b.totalCostUsd / b.turnCount : null;
-
-  const VariantRow = ({
-    label,
-    bucket,
-    accent,
-  }: {
-    label: string;
-    bucket: typeof legacy;
-    accent: 'slate' | 'emerald' | 'amber';
-  }) => {
-    const ringByAccent = {
-      slate: 'bg-slate-50 border-slate-200 text-slate-700',
-      emerald: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-      amber: 'bg-amber-50 border-amber-200 text-amber-800',
-    };
-    const barByAccent = {
-      slate: 'bg-slate-400',
-      emerald: 'bg-emerald-500',
-      amber: 'bg-amber-500',
-    };
-    const cpt = costPerTurn(bucket);
-    return (
-      <div className={`rounded-md border p-2.5 ${ringByAccent[accent]}`}>
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="font-mono text-xs font-semibold">{label}</span>
-          <span className="text-xs">{pct(bucket.totalCostUsd).toFixed(1)}%</span>
-        </div>
-        <div className="text-lg font-bold tabular-nums">{formatCost(bucket.totalCostUsd)}</div>
-        <div className="text-[10px] text-gray-500 tabular-nums">
-          {bucket.callCount.toLocaleString()} calls · {bucket.turnCount.toLocaleString()} turns
-          {cpt != null && <> · {formatCost(cpt)}/turn</>}
-        </div>
-        <div className="mt-1 h-1 bg-white rounded overflow-hidden">
-          <div className={`h-full ${barByAccent[accent]}`} style={{ width: `${pct(bucket.totalCostUsd)}%` }} />
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="mt-4 pt-4 border-t border-gray-100">
-      <div className="flex items-baseline justify-between mb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Pipeline variant split
-        </h3>
-        <span className="text-[10px] text-gray-400">window total {formatCost(grand)}</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <VariantRow label="legacy" bucket={legacy} accent="slate" />
-        <VariantRow label="pipeline_v1" bucket={v1} accent="emerald" />
-        {other.totalCostUsd > 0 && (
-          <VariantRow label="other" bucket={other} accent="amber" />
-        )}
-      </div>
     </div>
   );
 }

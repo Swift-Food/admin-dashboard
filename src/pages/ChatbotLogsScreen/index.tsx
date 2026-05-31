@@ -1613,17 +1613,26 @@ function UsageLineChart({
         const liveCost  = (b: CostBucket) => b.inputCostUsd - b.cachedInputCostUsd;
         const lCpt = legacy.turnCount > 0 ? legacy.totalCostUsd / legacy.turnCount : null;
         const vCpt = v1.turnCount     > 0 ? v1.totalCostUsd     / v1.turnCount     : null;
-        const scrollLeft = scrollRef.current!.scrollLeft;
-        const containerW = containerRef.current!.clientWidth;
-        const pointPx = hoverX - scrollLeft;
-        const clampedLeft = Math.max(168, Math.min(containerW - 168, pointPx));
+        // The tooltip is taller than the chart, so anchor it to the cursor with
+        // fixed (viewport-relative) positioning and flip it below the cursor when
+        // there isn't room above. Keeps it fully visible regardless of how short
+        // the surrounding card is.
+        const TOOLTIP_W = 320; // matches w-80
+        const ESTIMATED_H = 340;
+        const cursorX = hover!.mouseX;
+        const cursorY = hover!.mouseY;
+        const placeBelow = cursorY < ESTIMATED_H + 16;
+        const clampedLeft = Math.max(
+          TOOLTIP_W / 2 + 8,
+          Math.min(window.innerWidth - TOOLTIP_W / 2 - 8, cursorX),
+        );
         return (
           <div
-            className="absolute z-10 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-4 py-3 text-[11px] w-80"
+            className="fixed z-50 pointer-events-none bg-gray-900 text-white rounded-lg shadow-lg px-4 py-3 text-[11px] w-80"
             style={{
               left: clampedLeft,
-              bottom: `calc(100% + 8px)`,
-              transform: 'translateX(-50%)',
+              top: placeBelow ? cursorY + 16 : cursorY - 12,
+              transform: placeBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
             }}
           >
             <p className="font-semibold text-sm mb-2">
@@ -1817,6 +1826,48 @@ function CostOverview() {
               </p>
             )}
           </div>
+        </div>
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex gap-1">
+            {(['hourly', 'daily', 'weekly', 'monthly'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  period === p
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {p === 'hourly' ? 'Hourly' : p === 'daily' ? 'Daily' : p === 'weekly' ? 'Weekly' : 'Monthly'}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1">
+            {([
+              { key: 'cost' as const, label: 'Cost' },
+              { key: 'tokens' as const, label: 'Tokens' },
+            ]).map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMetric(m.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  metric === m.key
+                    ? m.key === 'cost' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-6">
+        <div className="flex-1 min-w-0">
+          <UsageLineChart items={filledItems} metric={metric} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
+        </div>
           {activeItem && (() => {
             const legacy = activeItem.byVariant.legacy     ?? EMPTY_BUCKET;
             const v1     = activeItem.byVariant.pipeline_v1 ?? EMPTY_BUCKET;
@@ -1829,7 +1880,7 @@ function CostOverview() {
             const lCpt = legacy.turnCount > 0 ? legacy.totalCostUsd / legacy.turnCount : null;
             const vCpt = v1.turnCount     > 0 ? v1.totalCostUsd     / v1.turnCount     : null;
             return (
-              <table className="text-[11px] text-gray-500 mt-5">
+              <table className="text-[11px] text-gray-500 shrink-0">
                 <thead>
                   <tr className="text-gray-400">
                     <th className="text-left font-normal pb-0.5 pr-3"></th>
@@ -1922,45 +1973,7 @@ function CostOverview() {
               </table>
             );
           })()}
-        </div>
-        <div className="flex flex-col gap-2 items-end">
-          <div className="flex gap-1">
-            {(['hourly', 'daily', 'weekly', 'monthly'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  period === p
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {p === 'hourly' ? 'Hourly' : p === 'daily' ? 'Daily' : p === 'weekly' ? 'Weekly' : 'Monthly'}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1">
-            {([
-              { key: 'cost' as const, label: 'Cost' },
-              { key: 'tokens' as const, label: 'Tokens' },
-            ]).map((m) => (
-              <button
-                key={m.key}
-                onClick={() => setMetric(m.key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  metric === m.key
-                    ? m.key === 'cost' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
-
-      <UsageLineChart items={filledItems} metric={metric} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
     </div>
   );
 }

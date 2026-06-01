@@ -1270,12 +1270,13 @@ type Period = 'hourly' | 'daily' | 'weekly' | 'monthly';
 
 /** Merge two byVariant maps element-wise. Used by the weekly aggregator
  *  when collapsing daily buckets into weeks. */
+type ByVariant = NonNullable<CostItem['byVariant']>;
 function mergeByVariant(
-  a: CostItem['byVariant'],
-  b: CostItem['byVariant'],
-): CostItem['byVariant'] {
-  const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]) as Set<keyof CostItem['byVariant']>;
-  const out: CostItem['byVariant'] = {};
+  a: ByVariant | undefined,
+  b: ByVariant | undefined,
+): ByVariant {
+  const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]) as Set<keyof ByVariant>;
+  const out: ByVariant = {};
   for (const k of keys) {
     const av = a?.[k];
     const bv = b?.[k];
@@ -1425,8 +1426,8 @@ function UsageLineChart({
     return metric === 'cost' ? b.totalCostUsd : bucketTokens(b);
   };
 
-  const legacyVals = items.map((it) => variantValue(it.byVariant.legacy));
-  const v1Vals     = items.map((it) => variantValue(it.byVariant.pipeline_v1));
+  const legacyVals = items.map((it) => variantValue(it.byVariant?.legacy));
+  const v1Vals     = items.map((it) => variantValue(it.byVariant?.pipeline_v1));
   // Shared Y axis so the two lines stay directly comparable. Clamp to a tiny
   // positive floor so a fully-zero window still has a sensible scale.
   const maxVal = Math.max(...legacyVals, ...v1Vals, metric === 'cost' ? 0.001 : 1);
@@ -1604,8 +1605,8 @@ function UsageLineChart({
 
       {/* Tooltip — per-pipeline breakdown of Input/Output/Thinking for the hovered bucket. */}
       {hover && hoverItem && hoverX != null && scrollRef.current && containerRef.current && (() => {
-        const legacy = hoverItem.byVariant.legacy     ?? EMPTY_BUCKET;
-        const v1     = hoverItem.byVariant.pipeline_v1 ?? EMPTY_BUCKET;
+        const legacy = hoverItem.byVariant?.legacy     ?? EMPTY_BUCKET;
+        const v1     = hoverItem.byVariant?.pipeline_v1 ?? EMPTY_BUCKET;
         const totalTok = hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens;
         const anyCached   = legacy.totalCachedInputTokens > 0 || v1.totalCachedInputTokens > 0;
         const anyThinking = legacy.totalThinkingTokens > 0 || v1.totalThinkingTokens > 0;
@@ -1869,8 +1870,8 @@ function CostOverview() {
           <UsageLineChart items={filledItems} metric={metric} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
         </div>
           {activeItem && (() => {
-            const legacy = activeItem.byVariant.legacy     ?? EMPTY_BUCKET;
-            const v1     = activeItem.byVariant.pipeline_v1 ?? EMPTY_BUCKET;
+            const legacy = activeItem.byVariant?.legacy     ?? EMPTY_BUCKET;
+            const v1     = activeItem.byVariant?.pipeline_v1 ?? EMPTY_BUCKET;
             const anyCached   = legacy.totalCachedInputTokens > 0 || v1.totalCachedInputTokens > 0;
             const anyThinking = legacy.totalThinkingTokens > 0 || v1.totalThinkingTokens > 0;
             const liveTok  = (b: CostBucket) => b.totalInputTokens - b.totalCachedInputTokens;

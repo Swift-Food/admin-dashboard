@@ -155,8 +155,10 @@ export interface CostBucket {
 export interface CostPeriodItem extends CostBucket {
   period: string;
   sessionCount: number;
-  /** Per-variant breakdown for this period. Only variants with rows appear. */
-  byVariant: Partial<Record<CostVariantKey, CostBucket>>;
+  /** Per-variant breakdown for this period. Only variants with rows appear.
+   *  Optional: a backend predating per-variant cost tracking omits it, so
+   *  consumers must treat it as possibly-absent. */
+  byVariant?: Partial<Record<CostVariantKey, CostBucket>>;
 }
 
 export interface CostsResponse {

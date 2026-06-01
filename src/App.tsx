@@ -32,6 +32,7 @@ import EventLocationsScreen from "./pages/EventLocationsScreen/EventLocationsScr
 import CalendarsScreen from "./pages/CalendarsScreen/CalendarsScreen";
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import ChatbotLogsScreen from "./pages/ChatbotLogsScreen";
+import CateringAiConfigScreen from "./pages/CateringAiConfigScreen";
 import FeedbackIssuesScreen from "./pages/FeedbackIssuesScreen";
 import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
 import CoworkingSpacesScreen from "./pages/CoworkingSpacesScreen/CoworkingSpacesScreen";
@@ -49,6 +50,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   "catering-sessions": "catering-sessions",
   "chatbot-logs": "chatbot-logs",
   "feedback-issues": "feedback-issues",
+  "catering-ai-config": "catering-ai-config",
   "catering-financials": "catering-financials",
   "order-financials": "order-financials",
   "corporate-orders": "corporate",
@@ -81,6 +83,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "catering-sessions": "catering-sessions",
   "chatbot-logs": "chatbot-logs",
   "feedback-issues": "feedback-issues",
+  "catering-ai-config": "catering-ai-config",
   "catering-financials": "catering-financials",
   "order-financials": "order-financials",
   corporate: "corporate-orders",
@@ -113,6 +116,7 @@ const swiftPages: SidebarPage[] = [
   "catering-sessions",
   "chatbot-logs",
   "feedback-issues",
+  "catering-ai-config",
   "catering-financials",
   "order-financials",
   "corporate",
@@ -194,6 +198,8 @@ function PageRenderer() {
         return <CateringSessionsScreen />;
       case "chatbot-logs":
         return <ChatbotLogsScreen />;
+      case "catering-ai-config":
+        return <CateringAiConfigScreen />;
       case "feedback-issues":
         return <FeedbackIssuesScreen />;
       case "catering-financials":

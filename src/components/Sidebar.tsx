@@ -24,6 +24,7 @@ import {
   faHandshake,
   faMessage,
   faDatabase,
+  faSliders,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
@@ -57,6 +58,7 @@ export type SidebarPage =
   | "partner-spaces"
   | "chatbot-logs"
   | "feedback-issues"
+  | "catering-ai-config"
   | "miscellaneous"
   | "cache";
 
@@ -174,6 +176,11 @@ const navSections: NavSection[] = [
         id: "feedback-issues" as SidebarPage,
         label: "Feedback & Issues",
         icon: <FontAwesomeIcon icon={faMessage} style={iconCommonStyle} />,
+      },
+      {
+        id: "catering-ai-config" as SidebarPage,
+        label: "Model Config",
+        icon: <FontAwesomeIcon icon={faSliders} style={iconCommonStyle} />,
       },
     ],
   },

@@ -122,12 +122,6 @@ const MiscellaneousScreen: React.FC = () => {
       description: "Swift's tax invoice for the supplier's commission (month of event)",
       endpoint: (id) => `catering-orders/${id}/preview-commission-pdf`,
     },
-    {
-      key: "self-billed-vat",
-      label: "Self-billed VAT Invoice",
-      description: "For VAT-registered suppliers — supplier must have a VAT number on file",
-      endpoint: (id) => `catering-orders/${id}/preview-self-billed-pdf`,
-    },
   ];
 
   const handlePreviewInvoice = async (type: InvoiceType) => {

@@ -127,8 +127,13 @@ export interface ChatbotSessionDetail {
   timeline: TimelineEntry[];
 }
 
-export interface CostPeriodItem {
-  period: string;
+/** Cost variant — derived from llm_calls.caller on the backend.
+ *  legacy = `tool_calling_loop`; pipeline_v1 = `pipeline_v1.*`; other = anything else. */
+export type CostVariantKey = 'legacy' | 'pipeline_v1' | 'other';
+
+/** Per-bucket cost + token totals. Shared shape between the top-level
+ *  CostPeriodItem and each per-variant slice under byVariant. */
+export interface CostBucket {
   totalCostUsd: number;
   totalInputTokens: number;
   /** Subset of totalInputTokens served from Gemini context cache (billed at
@@ -142,7 +147,16 @@ export interface CostPeriodItem {
   outputCostUsd: number;
   thinkingCostUsd: number;
   callCount: number;
+  /** Distinct turn_id count (pipeline_v1 turns produce 2-3 calls each, so
+   *  callCount overstates turn count for them). Use for cost-per-turn math. */
+  turnCount: number;
+}
+
+export interface CostPeriodItem extends CostBucket {
+  period: string;
   sessionCount: number;
+  /** Per-variant breakdown for this period. Only variants with rows appear. */
+  byVariant: Partial<Record<CostVariantKey, CostBucket>>;
 }
 
 export interface CostsResponse {
@@ -150,6 +164,10 @@ export interface CostsResponse {
   totalCostUsd: number;
   totalCalls: number;
   totalSessions: number;
+  /** Window-wide rollup, one bucket per variant. Always present for all
+   *  three keys (zero-filled when empty) so the dashboard headline ("X% of
+   *  spend is pipeline_v1") doesn't need null guards. */
+  variantTotals: Record<CostVariantKey, CostBucket>;
   period: 'hourly' | 'daily' | 'monthly';
   days: number;
 }

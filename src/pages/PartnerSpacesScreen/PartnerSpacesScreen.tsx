@@ -5,6 +5,7 @@ import type {
   PartnerSpace,
   CreatePartnerSpaceDto,
   UpdatePartnerSpaceDto,
+  AiPipelineVariant,
 } from "../../types/partner-spaces.types";
 import "./PartnerSpacesScreen.css";
 
@@ -204,6 +205,7 @@ const PartnerSpacesScreen = () => {
     allowedOrigins: string[];
     isActive: boolean;
     aiChatEnabled: boolean;
+    aiPipelineVariant: AiPipelineVariant;
   }>({
     name: "",
     slug: "",
@@ -212,6 +214,7 @@ const PartnerSpacesScreen = () => {
     allowedOrigins: [],
     isActive: true,
     aiChatEnabled: false,
+    aiPipelineVariant: "legacy",
   });
   const [saving, setSaving] = useState(false);
   const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
@@ -244,6 +247,7 @@ const PartnerSpacesScreen = () => {
       allowedOrigins: editForm.allowedOrigins,
       isActive: editForm.isActive,
       aiChatEnabled: editForm.aiChatEnabled,
+      aiPipelineVariant: editForm.aiPipelineVariant,
     };
 
     try {
@@ -274,6 +278,7 @@ const PartnerSpacesScreen = () => {
       allowedOrigins: space.allowedOrigins ?? [],
       isActive: space.isActive,
       aiChatEnabled: space.aiChatEnabled ?? false,
+      aiPipelineVariant: space.aiPipelineVariant ?? "legacy",
     });
     setEditFieldErrors({});
     setEditGeneralError(null);
@@ -709,6 +714,28 @@ const PartnerSpacesScreen = () => {
                   checked={editForm.aiChatEnabled}
                   onChange={(e) => setEditForm((p) => ({ ...p, aiChatEnabled: e.target.checked }))}
                 />
+              </div>
+
+              <div className="ps-toggle-row">
+                <span className="ps-toggle-label">AI Pipeline variant</span>
+                <select
+                  value={editForm.aiPipelineVariant}
+                  onChange={(e) =>
+                    setEditForm((p) => ({
+                      ...p,
+                      aiPipelineVariant: e.target.value as AiPipelineVariant,
+                    }))
+                  }
+                  disabled={!editForm.aiChatEnabled}
+                  title={
+                    editForm.aiChatEnabled
+                      ? "legacy = single Pro call. pipeline_v1 = multi-stage Flash pipeline (cheaper)."
+                      : "Enable AI Chat first."
+                  }
+                >
+                  <option value="legacy">legacy (single Pro call)</option>
+                  <option value="pipeline_v1">pipeline_v1 (multi-stage Flash)</option>
+                </select>
               </div>
 
               <p className="ps-section-label" style={{ marginTop: "1.5rem" }}>Danger Zone</p>

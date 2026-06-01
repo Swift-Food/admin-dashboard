@@ -1,3 +1,8 @@
+/** Which AI chat path runs for this partner. `legacy` is today's single
+ *  Pro generateWithTools call; `pipeline_v1` is the multi-stage Flash
+ *  pipeline. Flag-gated rollout — flip per partner via the admin form. */
+export type AiPipelineVariant = 'legacy' | 'pipeline_v1';
+
 export interface PartnerSpace {
   id: string;
   name: string;
@@ -5,6 +10,7 @@ export interface PartnerSpace {
   publishableKey: string;
   isActive: boolean;
   aiChatEnabled: boolean;
+  aiPipelineVariant: AiPipelineVariant;
   contactEmail: string;
   webhookUrl: string | null;
   allowedOrigins: string[];
@@ -19,6 +25,7 @@ export interface CreatePartnerSpaceDto {
   webhookUrl?: string;
   allowedOrigins?: string[];
   aiChatEnabled?: boolean;
+  aiPipelineVariant?: AiPipelineVariant;
 }
 
 export interface UpdatePartnerSpaceDto {
@@ -29,4 +36,5 @@ export interface UpdatePartnerSpaceDto {
   allowedOrigins?: string[];
   isActive?: boolean;
   aiChatEnabled?: boolean;
+  aiPipelineVariant?: AiPipelineVariant;
 }

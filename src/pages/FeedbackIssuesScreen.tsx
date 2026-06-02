@@ -73,7 +73,7 @@ export default function FeedbackIssuesScreen() {
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [ratingFilterMode, setRatingFilterMode] = useState<'only' | 'exclude'>('only');
   type SortKey = { field: 'rating' | 'date'; dir: 'asc' | 'desc' };
-  const [sortKeys, setSortKeys] = useState<SortKey[]>([{ field: 'rating', dir: 'asc' }]);
+  const [sortKeys, setSortKeys] = useState<SortKey[]>([]);
 
   const sortRating = sortKeys.find((s) => s.field === 'rating')?.dir ?? null;
   const sortDate = sortKeys.find((s) => s.field === 'date')?.dir ?? null;

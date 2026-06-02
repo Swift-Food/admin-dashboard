@@ -14,6 +14,10 @@ export interface ChatbotSessionSummary {
   totalCostUsd: number;
   errorCount: number;
   inferredStatus: 'active' | 'completed' | 'abandoned' | 'errored';
+  /** Pipeline classification derived from llm_calls.caller — same buckets
+   *  as the /costs endpoint. 'mixed' = session has both legacy and
+   *  pipeline_v1 calls. null = no llm_calls yet. */
+  variant: 'legacy' | 'pipeline_v1' | 'mixed' | 'other' | null;
 }
 
 export interface ChatbotSessionsListResponse {

@@ -300,6 +300,25 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Tints match the inline llm_call card badges so the table column reads
+// as the same dimension being surfaced earlier.
+const VARIANT_STYLES: Record<string, { label: string; cls: string }> = {
+  pipeline_v1: { label: 'pipeline_v1', cls: 'bg-emerald-100 text-emerald-800 border border-emerald-300' },
+  legacy:      { label: 'legacy',      cls: 'bg-slate-100 text-slate-700 border border-slate-300' },
+  mixed:       { label: 'mixed',       cls: 'bg-amber-100 text-amber-800 border border-amber-300' },
+  other:       { label: 'other',       cls: 'bg-gray-100 text-gray-600 border border-gray-300' },
+};
+
+function VariantBadge({ variant }: { variant: 'legacy' | 'pipeline_v1' | 'mixed' | 'other' | null }) {
+  if (!variant) return <span className="text-xs text-gray-400">—</span>;
+  const cfg = VARIANT_STYLES[variant] ?? VARIANT_STYLES.other;
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[11px] font-mono ${cfg.cls}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
 // ─── Timeline cards ──────────────────────────────────────────────────────────
 
 type FeedbackTimelineEntry = Extract<TimelineEntry, { kind: 'feedback' }>;
@@ -2151,6 +2170,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Variant</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Session ID</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer select-none hover:text-blue-600 transition-colors" onClick={() => handleSort('created')}>
                     Created<SortIndicator col="created" />
@@ -2170,7 +2190,7 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
               <tbody className="divide-y divide-gray-100">
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-6 py-16 text-center text-gray-400 text-sm">
+                    <td colSpan={10} className="px-6 py-16 text-center text-gray-400 text-sm">
                       No sessions found.
                     </td>
                   </tr>
@@ -2183,6 +2203,9 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
                       <StatusBadge status={item.inferredStatus} />
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <VariantBadge variant={item.variant} />
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">

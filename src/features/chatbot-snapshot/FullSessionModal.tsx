@@ -565,9 +565,16 @@ function TurnRow({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       aria-pressed={isSelected}
       style={{
         display: 'block',
@@ -584,9 +591,11 @@ function TurnRow({
         color: 'inherit',
       }}
     >
-      {turn.userText !== null && <TextBubble sender="user" text={turn.userText} />}
+      {turn.userText !== null && (
+        <TextBubble sender="user" text={turn.userText} clickToCopy={isSelected} />
+      )}
       {turn.textParts.map((text, i) => (
-        <TextBubble key={`bt-${i}`} sender="bot" text={text} />
+        <TextBubble key={`bt-${i}`} sender="bot" text={text} clickToCopy={isSelected} />
       ))}
       {turn.hasSuggestions && (() => {
         const count = turn.structuredParts.length + turn.mealSessions.length;
@@ -611,6 +620,6 @@ function TurnRow({
           ))}
         </div>
       )}
-    </button>
+    </div>
   );
 }

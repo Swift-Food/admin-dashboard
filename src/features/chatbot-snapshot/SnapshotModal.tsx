@@ -118,9 +118,9 @@ export function SnapshotModal({
         >
           <TurnInspectButtons turnEntries={turnEntries} />
 
-          {userText !== null && <TextBubble sender="user" text={userText} />}
+          {userText !== null && <TextBubble sender="user" text={userText} clickToCopy />}
 
-          {!hasParts && botText && <TextBubble sender="bot" text={botText} />}
+          {!hasParts && botText && <TextBubble sender="bot" text={botText} clickToCopy />}
 
           {/* Render all text parts first (directly under the user bubble), */}
           {/* then the structured suggestion parts beneath. The backend may */}
@@ -130,7 +130,7 @@ export function SnapshotModal({
           {parts
             .filter((p) => p.type === 'text')
             .map((part, i) => (
-              <TextBubble key={`text-${i}`} sender="bot" text={part.text} />
+              <TextBubble key={`text-${i}`} sender="bot" text={part.text} clickToCopy />
             ))}
 
           {parts

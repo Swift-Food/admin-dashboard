@@ -154,11 +154,15 @@ export interface CostBucket {
   /** Distinct turn_id count (pipeline_v1 turns produce 2-3 calls each, so
    *  callCount overstates turn count for them). Use for cost-per-turn math. */
   turnCount: number;
+  /** DISTINCT session_id count for this bucket. When the bucket is a
+   *  variant slice, a session that mixes variants in the same period
+   *  contributes to each variant it touched, so per-variant counts can
+   *  sum to more than the period-level sessionCount. */
+  sessionCount: number;
 }
 
 export interface CostPeriodItem extends CostBucket {
   period: string;
-  sessionCount: number;
   /** Per-variant breakdown for this period. Only variants with rows appear.
    *  Optional: a backend predating per-variant cost tracking omits it, so
    *  consumers must treat it as possibly-absent. */

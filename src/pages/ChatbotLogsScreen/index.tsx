@@ -1238,8 +1238,6 @@ const STATUS_FILTERS = [
   { label: 'Errored',   value: 'errored' },
 ] as const;
 
-type ChartMetric = 'cost' | 'tokens';
-
 type CostItem = CostsResponse['items'][number];
 
 /** Shared palette so chart, tooltip, and card table all colour the two
@@ -1264,6 +1262,7 @@ const EMPTY_BUCKET: CostBucket = {
   thinkingCostUsd: 0,
   callCount: 0,
   turnCount: 0,
+  sessionCount: 0,
 };
 
 const bucketTokens = (b: CostBucket): number =>
@@ -1313,6 +1312,10 @@ function mergeByVariant(
       thinkingCostUsd: av.thinkingCostUsd + bv.thinkingCostUsd,
       callCount: av.callCount + bv.callCount,
       turnCount: av.turnCount + bv.turnCount,
+      // Summing across days overcounts sessions that span multiple days
+      // — same caveat as the period-level sessionCount above. Acceptable
+      // for the weekly rollup; rare in practice.
+      sessionCount: av.sessionCount + bv.sessionCount,
     };
   }
   return out;
@@ -1411,13 +1414,11 @@ function formatDateLabel(iso: string, mode: Period): string {
 
 function UsageLineChart({
   items,
-  metric,
   period,
   selectedIdx,
   onSelect,
 }: {
   items: CostsResponse['items'];
-  metric: ChartMetric;
   period: Period;
   selectedIdx: number;
   onSelect: (idx: number) => void;
@@ -1438,18 +1439,15 @@ function UsageLineChart({
   const padTop = 12;
   const padBot = 28;
 
-  /** Per-variant value for the selected metric. Missing variant in a period
-   *  reads as zero — the byVariant map only includes rows that exist. */
-  const variantValue = (b: CostBucket | undefined) => {
-    if (!b) return 0;
-    return metric === 'cost' ? b.totalCostUsd : bucketTokens(b);
-  };
+  /** Missing variant in a period reads as zero — the byVariant map only
+   *  includes rows that exist. */
+  const variantValue = (b: CostBucket | undefined) => b?.totalCostUsd ?? 0;
 
   const legacyVals = items.map((it) => variantValue(it.byVariant?.legacy));
   const v1Vals     = items.map((it) => variantValue(it.byVariant?.pipeline_v1));
   // Shared Y axis so the two lines stay directly comparable. Clamp to a tiny
   // positive floor so a fully-zero window still has a sensible scale.
-  const maxVal = Math.max(...legacyVals, ...v1Vals, metric === 'cost' ? 0.001 : 1);
+  const maxVal = Math.max(...legacyVals, ...v1Vals, 0.001);
 
   const pointSpacing = period === 'hourly' ? 30 : period === 'daily' ? 40 : period === 'weekly' ? 60 : 80;
   const minW = 800;
@@ -1730,6 +1728,11 @@ function UsageLineChart({
                   <td className="text-right tabular-nums text-emerald-300 pt-1">{formatCost(v1.totalCostUsd)}</td>
                 </tr>
                 <tr>
+                  <td className="pr-2 pt-1">Sessions</td>
+                  <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{(legacy.sessionCount ?? 0).toLocaleString()}</td>
+                  <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{(v1.sessionCount ?? 0).toLocaleString()}</td>
+                </tr>
+                <tr>
                   <td className="pr-2 pt-1">Calls</td>
                   <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{legacy.callCount.toLocaleString()}</td>
                   <td colSpan={2} className="text-center tabular-nums pl-1 pt-1 border-l border-gray-700">{v1.callCount.toLocaleString()}</td>
@@ -1769,7 +1772,6 @@ function UsageLineChart({
 function CostOverview() {
   const [costs, setCosts] = useState<CostsResponse | null>(null);
   const [period, setPeriod] = useState<Period>('daily');
-  const [metric, setMetric] = useState<ChartMetric>('cost');
   const [loading, setLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
@@ -1863,30 +1865,12 @@ function CostOverview() {
               </button>
             ))}
           </div>
-          <div className="flex gap-1">
-            {([
-              { key: 'cost' as const, label: 'Cost' },
-              { key: 'tokens' as const, label: 'Tokens' },
-            ]).map((m) => (
-              <button
-                key={m.key}
-                onClick={() => setMetric(m.key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  metric === m.key
-                    ? m.key === 'cost' ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
       <div className="flex items-start gap-6">
         <div className="flex-1 min-w-0">
-          <UsageLineChart items={filledItems} metric={metric} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
+          <UsageLineChart items={filledItems} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
         </div>
           {activeItem && (() => {
             const legacy = activeItem.byVariant?.legacy     ?? EMPTY_BUCKET;
@@ -1964,6 +1948,11 @@ function CostOverview() {
                     <td className="text-right tabular-nums text-emerald-700 pr-2 pt-0.5">{formatCost(legacy.totalCostUsd)}</td>
                     <td className="text-right tabular-nums pl-2 pr-2 pt-0.5 border-l border-gray-200">{bucketTokens(v1).toLocaleString()}</td>
                     <td className="text-right tabular-nums text-emerald-700 pr-2 pt-0.5">{formatCost(v1.totalCostUsd)}</td>
+                  </tr>
+                  <tr>
+                    <td className="pr-3 pt-0.5">Sessions</td>
+                    <td colSpan={2} className="text-center tabular-nums px-2 pt-0.5 border-l border-gray-200">{(legacy.sessionCount ?? 0).toLocaleString()}</td>
+                    <td colSpan={2} className="text-center tabular-nums px-2 pt-0.5 border-l border-gray-200">{(v1.sessionCount ?? 0).toLocaleString()}</td>
                   </tr>
                   <tr>
                     <td className="pr-3 pt-0.5">Calls</td>

@@ -19,6 +19,7 @@ export interface PipelineConfig {
   pro_disambiguator: StageModelConfig;
   pro_cart_fallback: PerToolStageConfig;
   reply_polisher: StageModelConfig;
+  qa_composer: StageModelConfig;
 }
 
 export type StageName = keyof PipelineConfig;

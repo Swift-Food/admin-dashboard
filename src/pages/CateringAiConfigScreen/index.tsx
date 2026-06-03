@@ -25,6 +25,12 @@ const STAGE_META: Array<{ key: StageName; label: string; description: string }> 
       'Extracts tool arguments from the message. Runs once per tool — supports per-tool overrides.',
   },
   {
+    key: 'qa_composer',
+    label: 'Q&A Composer',
+    description:
+      'Composes a one-line answer from restaurant facts (e.g. ask_restaurant results). Runs only on Q&A turns; a peer to the reply polisher.',
+  },
+  {
     key: 'pro_disambiguator',
     label: 'Pro Disambiguator',
     description:

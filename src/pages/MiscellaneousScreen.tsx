@@ -79,7 +79,15 @@ const MiscellaneousScreen: React.FC = () => {
     );
   };
 
+  // HMRC issued Swift's VAT registration with effective date 2026-04-01;
+  // supplies before that are pre-registration and have no VAT invoice to
+  // preview, so the picker only lists orders whose event date is in the
+  // VAT-registered period.
+  const VAT_EFFECTIVE_DATE = new Date("2026-04-01T00:00:00Z").getTime();
   const previewFilteredOrders = orders.filter((order) => {
+    if (!order.eventDate) return false;
+    const eventTime = new Date(order.eventDate).getTime();
+    if (Number.isNaN(eventTime) || eventTime < VAT_EFFECTIVE_DATE) return false;
     const ref = getOrderRef(order.id);
     const s = previewOrderSearch.toLowerCase();
     return (
@@ -488,7 +496,9 @@ const MiscellaneousScreen: React.FC = () => {
         </h2>
         <p style={{ color: "#64748b", marginBottom: 20, fontSize: 14 }}>
           Render any invoice/receipt PDF for a chosen catering order without
-          sending email or creating a Stripe invoice. Useful for QA.
+          sending email or creating a Stripe invoice. Useful for QA. Only
+          orders with an event date on or after 1 April 2026 are listed —
+          earlier orders are pre-VAT-registration and have no VAT invoice.
         </p>
 
         {/* Order picker */}

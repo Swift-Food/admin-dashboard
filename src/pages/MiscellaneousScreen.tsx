@@ -130,6 +130,12 @@ const MiscellaneousScreen: React.FC = () => {
       description: "Swift's tax invoice for the supplier's commission (month of event)",
       endpoint: (id) => `catering-orders/${id}/preview-commission-pdf`,
     },
+    {
+      key: "delivery-note",
+      label: "Order Checklist",
+      description: "Per-restaurant packing checklist — items, add-ons & cutlery, no prices",
+      endpoint: (id) => `catering-orders/${id}/preview-delivery-note-pdf`,
+    },
   ];
 
   const handlePreviewInvoice = async (type: InvoiceType) => {

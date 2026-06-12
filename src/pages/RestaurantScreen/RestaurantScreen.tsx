@@ -18,6 +18,7 @@ import {
   deleteRestaurant,
   uploadRestaurantImage,
 } from "../../services/restaurant.service";
+import http from "../../services/http";
 import type { RestaurantResponse, UpdateRestaurantDto } from "../../services/restaurant.service";
 import { updateAddress } from "../../services/address.service";
 
@@ -57,6 +58,8 @@ const RestaurantAdminDashboard = () => {
   // Image upload state
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const [monthlyOrderCounts, setMonthlyOrderCounts] = useState<Record<string, number | null>>({});
   const isEditingShowOnSite = editForm.showOnSite ?? true;
 
   useEffect(() => {
@@ -69,6 +72,20 @@ const RestaurantAdminDashboard = () => {
       const data = await getAllRestaurantsAdminDashboard();
       setRestaurants(data);
       setError(null);
+
+      // Fetch monthly order counts for all restaurants in parallel
+      const counts: Record<string, number | null> = {};
+      await Promise.all(
+        data.map(async (r) => {
+          try {
+            const res = await http.get<any>(`restaurant-analytics/${r.id}/dashboard`);
+            counts[r.id] = res.data?.thisMonth?.totalOrdersCount ?? null;
+          } catch {
+            counts[r.id] = null;
+          }
+        })
+      );
+      setMonthlyOrderCounts(counts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -326,6 +343,7 @@ const RestaurantAdminDashboard = () => {
                   <th>Restaurant</th>
                   <th>Status</th>
                   <th>Contact</th>
+                  <th>Orders This Month</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -368,6 +386,15 @@ const RestaurantAdminDashboard = () => {
                           {restaurant.email || "N/A"}
                         </div>
                       </td>
+                      <td className="contact-cell">
+                        {!(restaurant.id in monthlyOrderCounts) ? (
+                          <span className="text-gray-400 text-sm">—</span>
+                        ) : monthlyOrderCounts[restaurant.id] === null ? (
+                          <span className="text-gray-400 text-sm">N/A</span>
+                        ) : (
+                          <span className="font-semibold text-gray-900">{monthlyOrderCounts[restaurant.id]}</span>
+                        )}
+                      </td>
                       <td>
                         <button
                           onClick={() =>
@@ -382,7 +409,7 @@ const RestaurantAdminDashboard = () => {
                     </tr>
                     {expandedId === restaurant.id && (
                       <tr>
-                        <td colSpan={4} className="expanded-cell">
+                        <td colSpan={5} className="expanded-cell">
                           <div className="expanded-content">
                             {/* Restaurant Settings Section */}
                             <div className="settings-section">

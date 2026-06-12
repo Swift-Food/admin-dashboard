@@ -325,7 +325,7 @@ const navSections: NavSection[] = [
     items: [
       {
         id: "cache",
-        label: "Cache Handling",
+        label: "Cache Control",
         icon: <FontAwesomeIcon icon={faDatabase} style={iconCommonStyle} />,
       },
     ],

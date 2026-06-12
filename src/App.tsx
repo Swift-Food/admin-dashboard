@@ -38,7 +38,7 @@ import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
 import CoworkingSpacesScreen from "./pages/CoworkingSpacesScreen/CoworkingSpacesScreen";
 import PendingTransfersScreen from "./pages/PendingTransfersScreen";
 import PartnerSpacesScreen from "./pages/PartnerSpacesScreen/PartnerSpacesScreen";
-import CacheHandlingScreen from "./pages/CacheHandlingScreen";
+import CacheControlScreen from "./pages/CacheControlScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -243,7 +243,7 @@ function PageRenderer() {
       case "partner-spaces":
         return <PartnerSpacesScreen />;
       case "cache":
-        return <CacheHandlingScreen />;
+        return <CacheControlScreen />;
       case "home":
         if (adminMode === "coworking") return <CoworkingSpacesScreen />;
         if (adminMode === "prismo") return <PrismoDashboard />;

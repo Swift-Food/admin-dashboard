@@ -136,11 +136,6 @@ const navSections: NavSection[] = [
     mode: "swift",
     items: [
       {
-        id: "orders",
-        label: "Orders",
-        icon: <FontAwesomeIcon icon={faReceipt} style={iconCommonStyle} />,
-      },
-      {
         id: "catering",
         label: "Catering Orders",
         icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,

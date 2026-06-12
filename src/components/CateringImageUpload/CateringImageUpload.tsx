@@ -7,6 +7,7 @@ interface CateringImageUploadProps {
   isUploading: boolean;
   onImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onImageRemove: () => void;
+  previewAspectRatio?: string;
 }
 
 const CateringImageUpload: React.FC<CateringImageUploadProps> = ({
@@ -14,12 +15,18 @@ const CateringImageUpload: React.FC<CateringImageUploadProps> = ({
   isUploading,
   onImageSelect,
   onImageRemove,
+  previewAspectRatio,
 }) => {
   return (
     <div className="catering-image-upload">
       {imageUrl ? (
         <div className="catering-image-preview">
-          <img src={imageUrl} alt="Catering" className="catering-preview-img" />
+          <img
+            src={imageUrl}
+            alt="Catering"
+            className="catering-preview-img"
+            style={previewAspectRatio ? { aspectRatio: previewAspectRatio } : undefined}
+          />
           <div className="catering-image-actions">
             <label className="btn btn-secondary btn-sm">
               <Upload size={14} />

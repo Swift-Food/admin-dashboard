@@ -53,6 +53,7 @@ export interface Restaurant {
   openingHours: OpeningHours[];
   images: string[];
   eventImages?: string[];
+  logoImageUrl?: string;
   showOnSite?: boolean;
   averageRating: number;
   status: 'active' | 'inactive' | 'coming_soon';
@@ -97,6 +98,7 @@ export interface UpdateRestaurantDto {
   email?: string;
   status?: "active" | "inactive" | "coming_soon";
   images?: string;
+  logoImageUrl?: string;
   priceRange?: string;
   tags?: string[];
 }

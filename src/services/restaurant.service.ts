@@ -53,6 +53,7 @@ interface RestaurantResponse {
   createdAt?: Date;
   updatedAt?: Date;
   images?: string[];
+  logoImageUrl?: string;
   showOnSite?: boolean;
   priceRange?: string;
   tags?: string[];

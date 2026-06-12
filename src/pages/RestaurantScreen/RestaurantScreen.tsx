@@ -59,6 +59,10 @@ const RestaurantAdminDashboard = () => {
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Logo upload state
+  const [logoImageToCrop, setLogoImageToCrop] = useState<string | null>(null);
+  const [uploadingLogoImage, setUploadingLogoImage] = useState(false);
+
   const [monthlyOrderCounts, setMonthlyOrderCounts] = useState<Record<string, number | null>>({});
   const isEditingShowOnSite = editForm.showOnSite ?? true;
 
@@ -128,6 +132,7 @@ const RestaurantAdminDashboard = () => {
       fsaLink: restaurant.fsaLink || "",
       status: restaurant.status ?? "inactive",
       images: restaurant.images?.[0] || "",
+      logoImageUrl: restaurant.logoImageUrl || "",
       priceRange: restaurant.priceRange || "",
       tags: restaurant.tags || [],
     });
@@ -178,6 +183,51 @@ const RestaurantAdminDashboard = () => {
 
   const handleCropCancel = () => {
     setImageToCrop(null);
+  };
+
+  const handleLogoImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Please select a valid image file (JPEG, PNG, WebP, or GIF)");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image file size must be less than 10MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogoImageToCrop(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleLogoCropComplete = async (croppedBlob: Blob) => {
+    try {
+      setUploadingLogoImage(true);
+      setLogoImageToCrop(null);
+
+      const file = new File([croppedBlob], "logo-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      const imageUrl = await uploadRestaurantImage(file);
+      setEditForm({ ...editForm, logoImageUrl: imageUrl });
+    } catch (err) {
+      alert(`Failed to upload logo: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setUploadingLogoImage(false);
+    }
+  };
+
+  const handleLogoCropCancel = () => {
+    setLogoImageToCrop(null);
   };
 
   const cancelEditing = () => {
@@ -715,6 +765,20 @@ const RestaurantAdminDashboard = () => {
                                       )}
                                     </div>
 
+                                    <div className="form-field full-width">
+                                      <label className="field-label">
+                                        Restaurant Logo
+                                        <span className="field-hint">Circular logo shown on menu item cards</span>
+                                      </label>
+                                      <CateringImageUpload
+                                        imageUrl={editForm.logoImageUrl}
+                                        isUploading={uploadingLogoImage}
+                                        onImageSelect={handleLogoImageSelect}
+                                        onImageRemove={() => setEditForm({ ...editForm, logoImageUrl: "" })}
+                                        previewAspectRatio="1"
+                                      />
+                                    </div>
+
                                     {isEditingShowOnSite && (
                                       <div className="form-field full-width">
                                         <label className="field-label">
@@ -874,6 +938,15 @@ const RestaurantAdminDashboard = () => {
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
           aspectRatio={16 / 9}
+        />
+      )}
+
+      {logoImageToCrop && (
+        <ImageCropper
+          imageSrc={logoImageToCrop}
+          onCropComplete={handleLogoCropComplete}
+          onCancel={handleLogoCropCancel}
+          aspectRatio={1}
         />
       )}
     </div>

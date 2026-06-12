@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ChevronRight, RefreshCw, Trash2, X } from "lucide-react";
 import cacheControlService, {
   type CacheSectionMeta,
@@ -12,8 +12,6 @@ type Confirm =
   | { kind: "section"; section: CacheSectionMeta }
   | { kind: "all" }
   | null;
-
-const COLLAPSE_STORAGE_KEY = "cacheControl.collapsedGroups";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
@@ -38,14 +36,8 @@ const CacheControlScreen: React.FC = () => {
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [showOther, setShowOther] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    try {
-      const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const didInitCollapse = useRef(false);
 
   const showToast = useCallback((next: Toast) => {
     setToast(next);
@@ -81,15 +73,6 @@ const CacheControlScreen: React.FC = () => {
     };
   }, [loadStats, showToast]);
 
-  // Persist collapse state so the admin's layout preference sticks.
-  useEffect(() => {
-    try {
-      localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(collapsed));
-    } catch {
-      /* ignore quota / private-mode write errors */
-    }
-  }, [collapsed]);
-
   // Preserve the registry's group ordering as sections arrive.
   const groups = useMemo(() => {
     const order: string[] = [];
@@ -103,6 +86,21 @@ const CacheControlScreen: React.FC = () => {
     }
     return order.map((g) => ({ group: g, items: byGroup.get(g)! }));
   }, [sections]);
+
+  // On first load, collapse groups whose caches are all empty (0 keys) so the
+  // page opens focused on what actually has data. Runs once per mount, after
+  // counts arrive; manual toggles and Expand/Collapse-all take over afterward
+  // (a later stats refresh won't re-collapse what you've opened).
+  useEffect(() => {
+    if (didInitCollapse.current || !stats || groups.length === 0) return;
+    didInitCollapse.current = true;
+    const next: Record<string, boolean> = {};
+    for (const g of groups) {
+      const total = g.items.reduce((sum, s) => sum + (stats.sections[s.id] ?? 0), 0);
+      next[g.group] = total === 0;
+    }
+    setCollapsed(next);
+  }, [stats, groups]);
 
   const countFor = (id: string): number | null =>
     stats ? stats.sections[id] ?? 0 : null;

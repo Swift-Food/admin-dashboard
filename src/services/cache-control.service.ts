@@ -18,6 +18,10 @@ export interface CacheStats {
   usedMemoryHuman: string;
   /** Per-section key count keyed by section id. */
   sections: Record<string, number>;
+  /** Keys matching no section (auth/refresh tokens, locks, payout state, …). */
+  untracked: number;
+  /** Untracked keys bucketed by first key segment, count desc (top 12). */
+  untrackedByPrefix: Record<string, number>;
 }
 
 export interface ClearSectionResult {

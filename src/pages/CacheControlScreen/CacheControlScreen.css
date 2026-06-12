@@ -53,6 +53,80 @@
   flex: 1 1 auto;
 }
 
+.cache-stat__value--muted {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* "Other / operational" stat is clickable to reveal the breakdown */
+.cache-stat--button {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  margin: -4px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.cache-stat--button:hover {
+  background: #eef2ff;
+}
+
+.cache-stat__caret {
+  color: #9ca3af;
+  margin-left: 4px;
+  vertical-align: middle;
+  transition: transform 0.18s ease;
+}
+
+.cache-stat__caret--open {
+  transform: rotate(90deg);
+}
+
+/* Breakdown panel for untracked/operational keys */
+.cache-control__other {
+  margin: -8px 0 20px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.cache-control__other-title {
+  font-size: 0.82rem;
+  color: #4b5563;
+  margin-bottom: 12px;
+  max-width: 760px;
+  line-height: 1.45;
+}
+
+.cache-control__other-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 18px;
+}
+
+.cache-control__other-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: #374151;
+  padding: 3px 0;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.cache-control__other-row code {
+  background: #eef2f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: #1f2937;
+}
+
 /* ── Buttons ───────────────────────────────────────────────── */
 .cache-btn {
   padding: 8px 16px;
@@ -108,13 +182,74 @@
   margin-bottom: 26px;
 }
 
+.cache-group__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px 6px;
+  margin: 0 0 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.cache-group__header:hover {
+  background: #f3f4f6;
+}
+
+.cache-group__chevron {
+  color: #9ca3af;
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.cache-group__chevron--open {
+  transform: rotate(90deg);
+}
+
 .cache-group__title {
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #6b7280;
-  margin: 0 0 10px;
+}
+
+.cache-group__meta {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+/* ── Expand/collapse-all toolbar ───────────────────────────── */
+.cache-control__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cache-control__toolbar-sep {
+  color: #d1d5db;
+}
+
+.cache-control__linkbtn {
+  background: none;
+  border: none;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.cache-control__linkbtn:hover {
+  text-decoration: underline;
 }
 
 .cache-group__grid {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, RefreshCw, Trash2, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, RefreshCw, Trash2, X } from "lucide-react";
 import cacheControlService, {
   type CacheSectionMeta,
   type CacheStats,
@@ -12,6 +12,10 @@ type Confirm =
   | { kind: "section"; section: CacheSectionMeta }
   | { kind: "all" }
   | null;
+
+const COLLAPSE_STORAGE_KEY = "cacheControl.collapsedGroups";
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 function extractError(err: unknown, fallback: string): string {
   if (err && typeof err === "object") {
@@ -33,6 +37,15 @@ const CacheControlScreen: React.FC = () => {
   const [clearingId, setClearingId] = useState<string | null>(null); // section id or "__all__"
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [showOther, setShowOther] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const showToast = useCallback((next: Toast) => {
     setToast(next);
@@ -68,6 +81,15 @@ const CacheControlScreen: React.FC = () => {
     };
   }, [loadStats, showToast]);
 
+  // Persist collapse state so the admin's layout preference sticks.
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(collapsed));
+    } catch {
+      /* ignore quota / private-mode write errors */
+    }
+  }, [collapsed]);
+
   // Preserve the registry's group ordering as sections arrive.
   const groups = useMemo(() => {
     const order: string[] = [];
@@ -84,6 +106,19 @@ const CacheControlScreen: React.FC = () => {
 
   const countFor = (id: string): number | null =>
     stats ? stats.sections[id] ?? 0 : null;
+
+  const groupKeyTotal = (items: CacheSectionMeta[]): number | null =>
+    stats ? items.reduce((sum, s) => sum + (stats.sections[s.id] ?? 0), 0) : null;
+
+  const trackedTotal = stats
+    ? Object.values(stats.sections).reduce((a, b) => a + b, 0)
+    : null;
+
+  const toggleGroup = (group: string) =>
+    setCollapsed((c) => ({ ...c, [group]: !c[group] }));
+
+  const setAllCollapsed = (value: boolean) =>
+    setCollapsed(Object.fromEntries(groups.map((g) => [g.group, value])));
 
   const handleClearSection = async (section: CacheSectionMeta) => {
     setClearingId(section.id);
@@ -134,12 +169,34 @@ const CacheControlScreen: React.FC = () => {
       <div className="cache-control__statsbar">
         <div className="cache-stat">
           <span className="cache-stat__value">
+            {statsLoading ? "…" : trackedTotal?.toLocaleString() ?? "—"}
+          </span>
+          <span className="cache-stat__label">Cached keys (managed here)</span>
+        </div>
+        <button
+          type="button"
+          className="cache-stat cache-stat--button"
+          onClick={() => setShowOther((v) => !v)}
+          aria-expanded={showOther}
+          title="Operational keys this panel doesn't manage — click to break down"
+        >
+          <span className="cache-stat__value">
+            {statsLoading ? "…" : stats?.untracked.toLocaleString() ?? "—"}
+            <ChevronRight
+              size={13}
+              className={"cache-stat__caret" + (showOther ? " cache-stat__caret--open" : "")}
+            />
+          </span>
+          <span className="cache-stat__label">Other / operational</span>
+        </button>
+        <div className="cache-stat">
+          <span className="cache-stat__value cache-stat__value--muted">
             {statsLoading ? "…" : stats?.totalKeys.toLocaleString() ?? "—"}
           </span>
-          <span className="cache-stat__label">Total Redis keys</span>
+          <span className="cache-stat__label">Total in Redis</span>
         </div>
         <div className="cache-stat">
-          <span className="cache-stat__value">
+          <span className="cache-stat__value cache-stat__value--muted">
             {statsLoading ? "…" : stats?.usedMemoryHuman ?? "—"}
           </span>
           <span className="cache-stat__label">Memory used</span>
@@ -165,55 +222,119 @@ const CacheControlScreen: React.FC = () => {
         </button>
       </div>
 
+      {/* Breakdown of the "other / operational" keys — proves total = cached + other */}
+      {showOther && stats && (
+        <div className="cache-control__other">
+          <div className="cache-control__other-title">
+            {stats.untracked.toLocaleString()} operational keys this panel doesn't manage
+            (auth &amp; refresh tokens, OTPs, locks, payout state). Clearing these would log users
+            out or break in-flight work, so they're excluded by design.
+          </div>
+          <div className="cache-control__other-grid">
+            {Object.entries(stats.untrackedByPrefix).map(([prefix, n]) => (
+              <div key={prefix} className="cache-control__other-row">
+                <code>{prefix}:*</code>
+                <span>{n.toLocaleString()}</span>
+              </div>
+            ))}
+            {Object.keys(stats.untrackedByPrefix).length === 0 && (
+              <span style={{ color: "#9ca3af", fontSize: "0.82rem" }}>
+                None — every key in Redis maps to a managed section.
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <p style={{ color: "#6b7280" }}>Loading cache sections…</p>
       ) : (
-        groups.map(({ group, items }) => (
-          <section key={group} className="cache-group">
-            <h2 className="cache-group__title">{group}</h2>
-            <div className="cache-group__grid">
-              {items.map((section) => {
-                const count = countFor(section.id);
-                const busy = clearingId === section.id;
-                return (
-                  <div
-                    key={section.id}
+        <>
+          <div className="cache-control__toolbar">
+            <button className="cache-control__linkbtn" onClick={() => setAllCollapsed(false)}>
+              Expand all
+            </button>
+            <span className="cache-control__toolbar-sep">·</span>
+            <button className="cache-control__linkbtn" onClick={() => setAllCollapsed(true)}>
+              Collapse all
+            </button>
+          </div>
+
+          {groups.map(({ group, items }) => {
+            const isCollapsed = !!collapsed[group];
+            const gTotal = groupKeyTotal(items);
+            const panelId = `cache-group-${slug(group)}`;
+            return (
+              <section key={group} className="cache-group">
+                <button
+                  type="button"
+                  className="cache-group__header"
+                  aria-expanded={!isCollapsed}
+                  aria-controls={panelId}
+                  onClick={() => toggleGroup(group)}
+                >
+                  <ChevronRight
+                    size={16}
                     className={
-                      "cache-card" + (section.disruptive ? " cache-card--disruptive" : "")
+                      "cache-group__chevron" + (isCollapsed ? "" : " cache-group__chevron--open")
                     }
-                  >
-                    <div className="cache-card__head">
-                      <span className="cache-card__label">{section.label}</span>
-                      <span
-                        className={
-                          "cache-card__count" +
-                          (count === 0 ? " cache-card__count--empty" : "")
-                        }
-                      >
-                        {count === null ? "…" : `${count.toLocaleString()} key${count === 1 ? "" : "s"}`}
-                      </span>
-                    </div>
-                    <p className="cache-card__desc">{section.description}</p>
-                    {section.disruptive && (
-                      <span className="cache-card__warn">
-                        <AlertTriangle size={13} /> Disrupts active users
-                      </span>
-                    )}
-                    <div className="cache-card__foot">
-                      <button
-                        className="cache-btn cache-btn--clear"
-                        onClick={() => setConfirm({ kind: "section", section })}
-                        disabled={modalBusy}
-                      >
-                        {busy ? "Clearing…" : "Clear"}
-                      </button>
-                    </div>
+                  />
+                  <span className="cache-group__title">{group}</span>
+                  <span className="cache-group__meta">
+                    {items.length} {items.length === 1 ? "cache" : "caches"}
+                    {gTotal !== null && ` · ${gTotal.toLocaleString()} key${gTotal === 1 ? "" : "s"}`}
+                  </span>
+                </button>
+
+                {!isCollapsed && (
+                  <div id={panelId} role="region" className="cache-group__grid">
+                    {items.map((section) => {
+                      const count = countFor(section.id);
+                      const busy = clearingId === section.id;
+                      return (
+                        <div
+                          key={section.id}
+                          className={
+                            "cache-card" + (section.disruptive ? " cache-card--disruptive" : "")
+                          }
+                        >
+                          <div className="cache-card__head">
+                            <span className="cache-card__label">{section.label}</span>
+                            <span
+                              className={
+                                "cache-card__count" +
+                                (count === 0 ? " cache-card__count--empty" : "")
+                              }
+                            >
+                              {count === null
+                                ? "…"
+                                : `${count.toLocaleString()} key${count === 1 ? "" : "s"}`}
+                            </span>
+                          </div>
+                          <p className="cache-card__desc">{section.description}</p>
+                          {section.disruptive && (
+                            <span className="cache-card__warn">
+                              <AlertTriangle size={13} /> Disrupts active users
+                            </span>
+                          )}
+                          <div className="cache-card__foot">
+                            <button
+                              className="cache-btn cache-btn--clear"
+                              onClick={() => setConfirm({ kind: "section", section })}
+                              disabled={modalBusy}
+                            >
+                              {busy ? "Clearing…" : "Clear"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        ))
+                )}
+              </section>
+            );
+          })}
+        </>
       )}
 
       {/* Confirm modal */}

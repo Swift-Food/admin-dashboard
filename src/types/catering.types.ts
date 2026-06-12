@@ -240,6 +240,18 @@ export interface CateringOrder {
   };
 
   // ============================================================
+  // SHARED ACCESS (customer dashboard users)
+  // Per-user accessToken is only populated by the admin list endpoint.
+  // ============================================================
+  sharedAccessUsers?: Array<{
+    userId: string;
+    email: string;
+    name?: string;
+    role: "viewer" | "editor";
+    accessToken?: string;
+  }>;
+
+  // ============================================================
   // PARTNER SPACE (embed partner that submitted the order, if any)
   // ============================================================
   partnerSpace?: {

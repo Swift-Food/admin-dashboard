@@ -373,6 +373,39 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             </div>
           )}
 
+          {/* Customer Dashboard Access */}
+          {order.sharedAccessUsers && order.sharedAccessUsers.length > 0 && (
+            <div className="bg-purple-50/60 border border-purple-200/70 rounded-xl px-4 py-3 mb-3">
+              <h3 className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider mb-2">Customer Dashboard Access</h3>
+              <div className="space-y-2">
+                {order.sharedAccessUsers.map((u, idx) => (
+                  <div key={u.accessToken || u.email || idx} className="flex items-center justify-between gap-3 bg-white border border-purple-100 rounded-lg px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{u.name || u.email}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {u.email}
+                        {u.role && <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-purple-100 text-purple-700">{u.role}</span>}
+                      </p>
+                    </div>
+                    {u.accessToken ? (
+                      <a
+                        href={`https://swiftfood.uk/event-order/view/${u.accessToken}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        View Customer Dashboard
+                      </a>
+                    ) : (
+                      <span className="flex-shrink-0 text-xs text-gray-400">No access link</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Financial Summary */}
           <div className="bg-gradient-to-br from-emerald-50 to-green-50/60 p-4 rounded-xl mb-3 border border-emerald-200/70">
             <h3 className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider mb-3">Financial Summary</h3>

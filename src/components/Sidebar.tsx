@@ -11,7 +11,6 @@ import {
   faChevronDown,
   faUtensils,
   faTags,
-  faReceipt,
   faMoneyBillWave,
   faUsers,
   faLayerGroup,

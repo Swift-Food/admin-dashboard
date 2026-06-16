@@ -58,6 +58,7 @@ export type SidebarPage =
   | "chatbot-logs"
   | "feedback-issues"
   | "catering-ai-config"
+  | "catering-settings"
   | "miscellaneous"
   | "cache";
 
@@ -183,6 +184,11 @@ const navSections: NavSection[] = [
     label: "Management",
     mode: "swift",
     items: [
+      {
+        id: "catering-settings" as SidebarPage,
+        label: "Catering Settings",
+        icon: <FontAwesomeIcon icon={faSliders} style={iconCommonStyle} />,
+      },
       {
         id: "restaurant",
         label: "Restaurants",

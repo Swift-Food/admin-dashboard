@@ -593,11 +593,11 @@ const RestaurantAdminDashboard = () => {
                                         }
                                         className="form-input"
                                       >
-                                        <option value="">Not Set</option>
-                                        <option value="~£">~£</option>
-                                        <option value="£-££">£-££</option>
-                                        <option value="££-£££">££-£££</option>
-                                        <option value="£££~">£££~</option>
+                                        <option value="">Not set</option>
+                                        <option value="Budget">Budget</option>
+                                        <option value="Moderate">Moderate</option>
+                                        <option value="Premium">Premium</option>
+                                        <option value="Luxury">Luxury</option>
                                       </select>
                                     </div>
 
@@ -843,7 +843,7 @@ const RestaurantAdminDashboard = () => {
                                     <div className="setting-item">
                                       <span className="setting-label">Price Range</span>
                                       <span className="setting-value">
-                                        {restaurant.priceRange || "N/A"}
+                                        {restaurant.priceRange || "Not set"}
                                       </span>
                                     </div>
                                     {restaurant.tags && restaurant.tags.length > 0 && (

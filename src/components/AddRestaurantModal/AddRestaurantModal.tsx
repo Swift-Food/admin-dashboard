@@ -779,11 +779,11 @@ const AddRestaurantModal = ({
                     onChange={(e) => handleInputChange("priceRange", e.target.value)}
                     className="form-select"
                   >
-                    <option value="">Not Set</option>
-                    <option value="~£">~£</option>
-                    <option value="£-££">£-££</option>
-                    <option value="££-£££">££-£££</option>
-                    <option value="£££~">£££~</option>
+                    <option value="">Not set</option>
+                    <option value="Budget">Budget</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Luxury">Luxury</option>
                   </select>
                 </div>
 

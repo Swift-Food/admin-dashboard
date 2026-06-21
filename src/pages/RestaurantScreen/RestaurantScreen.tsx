@@ -30,6 +30,63 @@ import GooglePlacesAutocomplete from "../../components/GooglePlacesAutocomplete/
 import type { PlaceResult } from "../../components/GooglePlacesAutocomplete/GooglePlacesAutocomplete";
 import "./RestaurantScreen.css";
 
+const formatCateringHoursTime = (time: string): string => {
+  const [hours, minutes] = time.split(":").map(Number);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${displayHours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+};
+
+const formatCateringHours = (
+  cateringOperatingHours: RestaurantResponse["cateringOperatingHours"]
+): string => {
+  if (!cateringOperatingHours || cateringOperatingHours.length === 0) {
+    return "Not set";
+  }
+
+  const enabledDays = cateringOperatingHours.filter((schedule) => schedule.enabled);
+  if (enabledDays.length === 0) {
+    return "No hours set";
+  }
+
+  const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const byDay = new Map<string, string[]>();
+
+  for (const schedule of enabledDays) {
+    const dayKey = schedule.day.toLowerCase();
+    if (!byDay.has(dayKey)) byDay.set(dayKey, []);
+    if (schedule.open && schedule.close) {
+      byDay.get(dayKey)!.push(
+        `${formatCateringHoursTime(schedule.open)} - ${formatCateringHoursTime(schedule.close)}`
+      );
+    }
+  }
+
+  const grouped: { days: string[]; hours: string }[] = [];
+  for (const dayKey of dayOrder) {
+    const slots = byDay.get(dayKey);
+    if (!slots || slots.length === 0) continue;
+    const dayName = dayKey.charAt(0).toUpperCase() + dayKey.slice(1, 3);
+    const hours = slots.join(", ");
+    const lastGroup = grouped[grouped.length - 1];
+    if (lastGroup && lastGroup.hours === hours) {
+      lastGroup.days.push(dayName);
+    } else {
+      grouped.push({ days: [dayName], hours });
+    }
+  }
+
+  return grouped
+    .map((group) => {
+      const dayRange =
+        group.days.length > 1
+          ? `${group.days[0]} - ${group.days[group.days.length - 1]}`
+          : group.days[0];
+      return `${dayRange}: ${group.hours}`;
+    })
+    .join(" | ");
+};
+
 const RestaurantAdminDashboard = () => {
   const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -870,6 +927,12 @@ const RestaurantAdminDashboard = () => {
                                       <span className="setting-label">Price Range</span>
                                       <span className="setting-value">
                                         {restaurant.priceRange || "Not set"}
+                                      </span>
+                                    </div>
+                                    <div className="setting-item full-width">
+                                      <span className="setting-label">Catering Hours</span>
+                                      <span className="setting-value">
+                                        {formatCateringHours(restaurant.cateringOperatingHours)}
                                       </span>
                                     </div>
                                     {restaurant.tags && restaurant.tags.length > 0 && (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { CateringOrder } from "../types/catering.types";
 import cateringService, { type SendPaymentLinkDto } from "../services/catering.service";
+import refundService from "../services/refund.service";
 import { Modal } from "../components/Modal";
 
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
@@ -20,6 +21,13 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     publicNote: "",
     internalNote: "",
     preview: false,
+  });
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [isIssuingRefund, setIsIssuingRefund] = useState(false);
+  const [refundForm, setRefundForm] = useState({
+    restaurantId: "",
+    amount: "",
+    reason: "",
   });
   const [reviewForm, setReviewForm] = useState<{
     finalTotal: string;
@@ -282,6 +290,45 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
         "Failed to send payment link. Please try again.";
       alert(`Failed to send payment link: ${serverMessage}`);
       setIsSendingPaymentLink(false);
+    }
+  };
+
+  const handleIssueRefund = async () => {
+    const amount = parseFloat(refundForm.amount);
+
+    if (!refundForm.restaurantId) {
+      alert("Select a restaurant.");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      alert("Enter a valid refund amount.");
+      return;
+    }
+
+    setIsIssuingRefund(true);
+    try {
+      const result = await refundService.issueAdminRefund({
+        cateringOrderId: order.id,
+        restaurantId: refundForm.restaurantId,
+        amount,
+        reason: refundForm.reason || undefined,
+      });
+
+      setIsIssuingRefund(false);
+      setShowRefundModal(false);
+      if (onOrderUpdated) onOrderUpdated();
+
+      if (result.status === "processed") {
+        alert("Refund processed successfully via Stripe.");
+      } else {
+        alert(
+          "Refund recorded, but no Stripe charge was found on this order — you'll need to refund the customer manually.",
+        );
+      }
+    } catch (err: any) {
+      console.error("Error issuing refund:", err);
+      setIsIssuingRefund(false);
+      alert(err?.response?.data?.message || "Failed to issue refund");
     }
   };
 
@@ -949,6 +996,19 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   Cancel Order
                 </button>
 
+                {/* Refund button - available once the order has restaurants to refund */}
+                {order.restaurants && order.restaurants.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setRefundForm({ restaurantId: "", amount: "", reason: "" });
+                      setShowRefundModal(true);
+                    }}
+                    className="flex-1 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+                  >
+                    Refund
+                  </button>
+                )}
+
                 {/* Send Payment Link button */}
                 {canSendPaymentLink && (
                   <button
@@ -1100,6 +1160,96 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               </div>
             </div>
           </Modal>
+
+        {/* Refund Modal */}
+        <Modal open={showRefundModal} onClose={() => setShowRefundModal(false)} overlayOpacity={60} closeOnOverlayClick={false}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 my-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4 text-gray-900">
+              Issue Refund
+            </h3>
+
+            {!order.stripePaymentIntentId && !order.stripeInvoiceId && (
+              <div className="mb-4 bg-amber-50 border border-amber-300 rounded-lg p-3 text-sm text-amber-800">
+                No Stripe charge found on this order — this refund will be recorded and
+                deducted from the restaurant's balance, but you'll need to refund the
+                customer manually.
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Restaurant
+                </label>
+                <select
+                  value={refundForm.restaurantId}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, restaurantId: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Select a restaurant</option>
+                  {(order.restaurants || []).map((restaurant) => (
+                    <option key={restaurant.restaurantId} value={restaurant.restaurantId}>
+                      {restaurant.restaurantName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount (£)
+                </label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={refundForm.amount}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, amount: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  Order total: £{Number(order.finalTotal ?? 0).toFixed(2)}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reason (optional)
+                </label>
+                <textarea
+                  value={refundForm.reason}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, reason: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  rows={2}
+                  placeholder="Internal note — why this refund is being issued"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowRefundModal(false)}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleIssueRefund}
+                disabled={isIssuingRefund}
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-amber-300 disabled:cursor-not-allowed"
+              >
+                {isIssuingRefund ? "Processing..." : "Issue Refund"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </Modal>
   );

@@ -128,6 +128,7 @@ const RestaurantAdminDashboard = () => {
       restaurant_description: restaurant.restaurant_description || "",
       commission: restaurant.commission ?? 20,
       showOnSite: restaurant.showOnSite ?? true,
+      featured: restaurant.featured ?? false,
       fsa: restaurant.fsa ?? undefined,
       fsaLink: restaurant.fsaLink || "",
       status: restaurant.status ?? "inactive",
@@ -678,6 +679,31 @@ const RestaurantAdminDashboard = () => {
                                         />
                                         <span className="checkbox-label-text">
                                           Show on site
+                                        </span>
+                                      </label>
+                                    </div>
+
+                                    <div className="form-field">
+                                      <label className="field-label">
+                                        Featured
+                                        <span className="field-hint">
+                                          Show this restaurant first in the catering browse list
+                                        </span>
+                                      </label>
+                                      <label className="checkbox-label restaurant-type-toggle">
+                                        <input
+                                          type="checkbox"
+                                          checked={editForm.featured ?? false}
+                                          onChange={(e) =>
+                                            setEditForm({
+                                              ...editForm,
+                                              featured: e.target.checked,
+                                            })
+                                          }
+                                          className="form-checkbox"
+                                        />
+                                        <span className="checkbox-label-text">
+                                          Featured restaurant
                                         </span>
                                       </label>
                                     </div>

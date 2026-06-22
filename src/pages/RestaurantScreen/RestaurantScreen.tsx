@@ -87,6 +87,40 @@ const formatCateringHours = (
     .join(" | ");
 };
 
+const HOURS_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+type HoursDay = (typeof HOURS_DAYS)[number];
+
+interface HoursSlot {
+  open: string;
+  close: string;
+}
+
+interface HoursDaySchedule {
+  enabled: boolean;
+  slots: HoursSlot[];
+}
+
+const generateHoursTimeOptions = (): { label: string; value: string }[] => {
+  const times: { label: string; value: string }[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const value = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      times.push({ label: formatCateringHoursTime(value), value });
+    }
+  }
+  return times;
+};
+
+const HOURS_TIME_OPTIONS = generateHoursTimeOptions();
+
+const createDefaultHoursSchedule = (): Record<HoursDay, HoursDaySchedule> => {
+  const schedule: Record<string, HoursDaySchedule> = {};
+  for (const day of HOURS_DAYS) {
+    schedule[day] = { enabled: false, slots: [] };
+  }
+  return schedule as Record<HoursDay, HoursDaySchedule>;
+};
+
 const RestaurantAdminDashboard = () => {
   const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +138,13 @@ const RestaurantAdminDashboard = () => {
   // separately from the rest of the form.
   const [editVatNumber, setEditVatNumber] = useState<string>("");
   const [originalVatNumber, setOriginalVatNumber] = useState<string>("");
+
+  // Catering hours editing state - kept separate from editForm since it's a
+  // day-by-day structure, converted to the flat cateringOperatingHours array
+  // only when saving.
+  const [hoursSchedule, setHoursSchedule] = useState<Record<HoursDay, HoursDaySchedule>>(
+    createDefaultHoursSchedule()
+  );
 
   // Delete modal state
   const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
@@ -196,6 +237,60 @@ const RestaurantAdminDashboard = () => {
     });
     setEditVatNumber(restaurant.vatNumber || "");
     setOriginalVatNumber(restaurant.vatNumber || "");
+
+    const newSchedule = createDefaultHoursSchedule();
+    const existingHours = restaurant.cateringOperatingHours;
+    if (existingHours && Array.isArray(existingHours)) {
+      for (const entry of existingHours) {
+        const dayKey = HOURS_DAYS.find((d) => d.toLowerCase() === entry.day.toLowerCase());
+        if (!dayKey) continue;
+        if (entry.enabled && entry.open && entry.close) {
+          newSchedule[dayKey].enabled = true;
+          newSchedule[dayKey].slots.push({ open: entry.open, close: entry.close });
+        }
+      }
+      // Ensure enabled days with no valid slots still show as enabled with one default slot
+      for (const day of HOURS_DAYS) {
+        if (newSchedule[day].enabled && newSchedule[day].slots.length === 0) {
+          newSchedule[day].slots.push({ open: "09:00", close: "17:00" });
+        }
+      }
+    }
+    setHoursSchedule(newSchedule);
+  };
+
+  const toggleHoursDay = (day: HoursDay) => {
+    setHoursSchedule((prev) => {
+      const current = prev[day];
+      if (current.enabled) {
+        return { ...prev, [day]: { enabled: false, slots: [] } };
+      }
+      return { ...prev, [day]: { enabled: true, slots: [{ open: "09:00", close: "17:00" }] } };
+    });
+  };
+
+  const addHoursSlot = (day: HoursDay) => {
+    setHoursSchedule((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], slots: [...prev[day].slots, { open: "09:00", close: "17:00" }] },
+    }));
+  };
+
+  const removeHoursSlot = (day: HoursDay, slotIndex: number) => {
+    setHoursSchedule((prev) => {
+      const newSlots = prev[day].slots.filter((_, i) => i !== slotIndex);
+      return { ...prev, [day]: { enabled: newSlots.length > 0, slots: newSlots } };
+    });
+  };
+
+  const updateHoursSlot = (day: HoursDay, slotIndex: number, field: "open" | "close", value: string) => {
+    setHoursSchedule((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        slots: prev[day].slots.map((slot, i) => (i === slotIndex ? { ...slot, [field]: value } : slot)),
+      },
+    }));
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -292,9 +387,22 @@ const RestaurantAdminDashboard = () => {
     setEditingId(null);
     setEditForm({});
     setPendingAddress(null);
+    setHoursSchedule(createDefaultHoursSchedule());
   };
 
   const saveChanges = async (restaurantId: string) => {
+    // Validate operating hours before saving - closing time must be after opening time
+    for (const day of HOURS_DAYS) {
+      const dayData = hoursSchedule[day];
+      if (!dayData.enabled) continue;
+      for (const slot of dayData.slots) {
+        if (slot.close <= slot.open) {
+          alert(`${day}: closing time must be after opening time for each slot`);
+          return;
+        }
+      }
+    }
+
     try {
       setSavingId(restaurantId);
 
@@ -312,11 +420,25 @@ const RestaurantAdminDashboard = () => {
         }
       }
 
+      // Build cateringOperatingHours from the day-by-day schedule editor
+      const cateringOperatingHours: { day: string; open: string | null; close: string | null; enabled: boolean }[] = [];
+      for (const day of HOURS_DAYS) {
+        const dayData = hoursSchedule[day];
+        if (dayData.enabled && dayData.slots.length > 0) {
+          for (const slot of dayData.slots) {
+            cateringOperatingHours.push({ day, open: slot.open, close: slot.close, enabled: true });
+          }
+        } else {
+          cateringOperatingHours.push({ day, open: null, close: null, enabled: false });
+        }
+      }
+
       // Prepare payload - convert images string to array for API
       const { images: imageStr, ...restForm } = editForm;
       const payload = {
         ...restForm,
         images: imageStr ? [imageStr] : [],  // Empty array to clear images
+        cateringOperatingHours,
       };
       await updateRestaurant(restaurantId, payload as any);
 
@@ -343,6 +465,7 @@ const RestaurantAdminDashboard = () => {
             ? {
                 ...r,
                 ...restForm,
+                cateringOperatingHours,
                 ...(vatUpdate ? {
                   vatNumber: vatUpdate.vatNumber,
                   vatNumberAddedAt: vatUpdate.vatNumberAddedAt,
@@ -368,6 +491,7 @@ const RestaurantAdminDashboard = () => {
       setEditingId(null);
       setEditForm({});
       setPendingAddress(null);
+      setHoursSchedule(createDefaultHoursSchedule());
     } catch (err) {
       alert(`Error: ${err instanceof Error ? err.message : "Failed to update restaurant"}`);
     } finally {
@@ -763,6 +887,88 @@ const RestaurantAdminDashboard = () => {
                                           Featured restaurant
                                         </span>
                                       </label>
+                                    </div>
+
+                                    <div className="form-field full-width">
+                                      <label className="field-label">
+                                        Catering Hours
+                                        <span className="field-hint">
+                                          Weekly schedule used for catering ordering availability
+                                        </span>
+                                      </label>
+                                      <div className="hours-editor">
+                                        {HOURS_DAYS.map((day) => {
+                                          const dayData = hoursSchedule[day];
+                                          return (
+                                            <div key={day} className="hours-editor-day">
+                                              <div className="hours-editor-day-header">
+                                                <label className="checkbox-label restaurant-type-toggle">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={dayData.enabled}
+                                                    onChange={() => toggleHoursDay(day)}
+                                                    className="form-checkbox"
+                                                  />
+                                                  <span className="checkbox-label-text">{day}</span>
+                                                </label>
+                                                {dayData.enabled && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => addHoursSlot(day)}
+                                                    className="hours-editor-add-slot"
+                                                  >
+                                                    + Add slot
+                                                  </button>
+                                                )}
+                                              </div>
+                                              {!dayData.enabled && (
+                                                <p className="hours-editor-closed">Closed</p>
+                                              )}
+                                              {dayData.enabled &&
+                                                dayData.slots.map((slot, slotIdx) => (
+                                                  <div key={slotIdx} className="hours-editor-slot">
+                                                    <select
+                                                      value={slot.open}
+                                                      onChange={(e) =>
+                                                        updateHoursSlot(day, slotIdx, "open", e.target.value)
+                                                      }
+                                                      className="form-input"
+                                                    >
+                                                      {HOURS_TIME_OPTIONS.map((opt) => (
+                                                        <option key={opt.value} value={opt.value}>
+                                                          {opt.label}
+                                                        </option>
+                                                      ))}
+                                                    </select>
+                                                    <span>-</span>
+                                                    <select
+                                                      value={slot.close}
+                                                      onChange={(e) =>
+                                                        updateHoursSlot(day, slotIdx, "close", e.target.value)
+                                                      }
+                                                      className="form-input"
+                                                    >
+                                                      {HOURS_TIME_OPTIONS.map((opt) => (
+                                                        <option key={opt.value} value={opt.value}>
+                                                          {opt.label}
+                                                        </option>
+                                                      ))}
+                                                    </select>
+                                                    {dayData.slots.length > 1 && (
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => removeHoursSlot(day, slotIdx)}
+                                                        className="tag-chip-remove"
+                                                      >
+                                                        ×
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
 
                                     <div className="form-field full-width">

@@ -304,6 +304,15 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
       alert("Enter a valid refund amount.");
       return;
     }
+    const selectedRestaurant = (order.restaurants || []).find(
+      (r) => r.restaurantId === refundForm.restaurantId,
+    );
+    if (selectedRestaurant && amount > selectedRestaurant.customerTotal) {
+      alert(
+        `Refund amount can't exceed what this restaurant was paid for this order (£${selectedRestaurant.customerTotal.toFixed(2)}).`,
+      );
+      return;
+    }
 
     setIsIssuingRefund(true);
     try {
@@ -338,10 +347,13 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const canPreviewVAT = !["pending_review", "cancelled"].includes(order.status);
   const canRefund =
     order.status !== "cancelled" &&
-    !!order.restaurants && order.restaurants.length > 0;
+    (order.restaurants || []).some((r) => !r.hasRefund);
   const canShowOtherActionButtons =
     !showConfirmComplete && !showConfirmCancel && !showConfirmReview &&
     (!["completed", "cancelled"].includes(order.status) || canRefund);
+  const selectedRefundRestaurant = (order.restaurants || []).find(
+    (r) => r.restaurantId === refundForm.restaurantId,
+  );
 
   const handlePreviewVAT = async () => {
     setIsLoadingVATPreview(true);
@@ -1042,7 +1054,13 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               !showConfirmComplete && !showConfirmCancel && !showConfirmReview && (
                 <button
                   onClick={() => {
-                    setRefundForm({ restaurantId: "", amount: "", reason: "" });
+                    const refundable = (order.restaurants || []).filter((r) => !r.hasRefund);
+                    const onlyRestaurant = refundable.length === 1 ? refundable[0] : null;
+                    setRefundForm({
+                      restaurantId: onlyRestaurant?.restaurantId || "",
+                      amount: onlyRestaurant ? String(onlyRestaurant.customerTotal) : "",
+                      reason: "",
+                    });
                     setShowRefundModal(true);
                   }}
                   className="flex-1 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
@@ -1194,15 +1212,28 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 </label>
                 <select
                   value={refundForm.restaurantId}
-                  onChange={(e) =>
-                    setRefundForm({ ...refundForm, restaurantId: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const restaurantId = e.target.value;
+                    const selected = (order.restaurants || []).find(
+                      (r) => r.restaurantId === restaurantId,
+                    );
+                    setRefundForm({
+                      ...refundForm,
+                      restaurantId,
+                      amount: selected ? String(selected.customerTotal) : "",
+                    });
+                  }}
                   className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">Select a restaurant</option>
                   {(order.restaurants || []).map((restaurant) => (
-                    <option key={restaurant.restaurantId} value={restaurant.restaurantId}>
+                    <option
+                      key={restaurant.restaurantId}
+                      value={restaurant.restaurantId}
+                      disabled={restaurant.hasRefund}
+                    >
                       {restaurant.restaurantName}
+                      {restaurant.hasRefund ? " (already refunded)" : ""}
                     </option>
                   ))}
                 </select>
@@ -1216,6 +1247,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   type="number"
                   min="0.01"
                   step="0.01"
+                  max={selectedRefundRestaurant?.customerTotal}
                   value={refundForm.amount}
                   onChange={(e) =>
                     setRefundForm({ ...refundForm, amount: e.target.value })
@@ -1224,7 +1256,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   placeholder="0.00"
                 />
                 <p className="text-xs text-gray-600 mt-1">
-                  Order total: £{Number(order.finalTotal ?? 0).toFixed(2)}
+                  {selectedRefundRestaurant
+                    ? `${selectedRefundRestaurant.restaurantName} total: £${Number(selectedRefundRestaurant.customerTotal).toFixed(2)}`
+                    : `Order total: £${Number(order.finalTotal ?? 0).toFixed(2)}`}
                 </p>
               </div>
 

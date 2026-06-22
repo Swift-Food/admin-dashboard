@@ -118,6 +118,9 @@ export interface PricingOrderItem {
   sessionName?: string; // ✅ NEW: For multi-meal orders
   sessionDate?: string; // ✅ NEW: For multi-meal orders
   sessionTime?: string; // ✅ NEW: For multi-meal orders
+
+  // Whether this restaurant already has a refund recorded for this order
+  hasRefund?: boolean;
 }
 
 // Legacy interface - kept for backward compatibility with old data

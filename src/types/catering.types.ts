@@ -187,6 +187,8 @@ export interface CateringOrder {
   restaurantsTotalNet?: number;
   estimatedTotal?: number;
   finalTotal?: number;
+  stripePaymentIntentId?: string | null;
+  stripeInvoiceId?: string | null;
   depositAmount?: number | string;
   subtotal?: number;
   serviceCharge?: number;
@@ -211,7 +213,6 @@ export interface CateringOrder {
   // ============================================================
   // PAYMENT
   // ============================================================
-  stripePaymentIntentId?: string;
   paid?: boolean;
   paymentLinkUrl?: string;
   paymentLinkSentAt?: string;

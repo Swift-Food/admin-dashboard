@@ -336,6 +336,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     order.status === "restaurant_reviewed" ||
     order.status === "payment_link_sent";
   const canPreviewVAT = !["pending_review", "cancelled"].includes(order.status);
+  const canRefund =
+    order.status !== "cancelled" &&
+    !!order.restaurants && order.restaurants.length > 0;
+  const canShowOtherActionButtons =
+    !showConfirmComplete && !showConfirmCancel && !showConfirmReview &&
+    (!["completed", "cancelled"].includes(order.status) || canRefund);
 
   const handlePreviewVAT = async () => {
     setIsLoadingVATPreview(true);
@@ -996,19 +1002,6 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   Cancel Order
                 </button>
 
-                {/* Refund button - available once the order has restaurants to refund */}
-                {order.restaurants && order.restaurants.length > 0 && (
-                  <button
-                    onClick={() => {
-                      setRefundForm({ restaurantId: "", amount: "", reason: "" });
-                      setShowRefundModal(true);
-                    }}
-                    className="flex-1 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
-                  >
-                    Refund
-                  </button>
-                )}
-
                 {/* Send Payment Link button */}
                 {canSendPaymentLink && (
                   <button
@@ -1040,9 +1033,27 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 )}
               </>
             )}
+
+            {/* Refund button - available for any order with restaurants to
+                refund, including completed ones (that's typically exactly
+                when a refund is needed - cancelled orders are excluded since
+                they were never fulfilled). */}
+            {canRefund &&
+              !showConfirmComplete && !showConfirmCancel && !showConfirmReview && (
+                <button
+                  onClick={() => {
+                    setRefundForm({ restaurantId: "", amount: "", reason: "" });
+                    setShowRefundModal(true);
+                  }}
+                  className="flex-1 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+                >
+                  Refund
+                </button>
+              )}
+
             <button
               onClick={onClose}
-              className={`${["completed", "cancelled"].includes(order.status) || showConfirmComplete || showConfirmCancel || showConfirmReview ? "w-full" : "flex-1"} bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm`}
+              className={`${canShowOtherActionButtons ? "flex-1" : "w-full"} bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm`}
             >
               Close
             </button>

@@ -59,6 +59,14 @@ interface RestaurantResponse {
   tags?: string[];
   vatNumber?: string | null;
   vatNumberAddedAt?: string | null;
+  cateringOperatingHours?:
+    | {
+        day: string;
+        open: string | null;
+        close: string | null;
+        enabled: boolean;
+      }[]
+    | null;
 }
 
 // CreateRestaurantDto

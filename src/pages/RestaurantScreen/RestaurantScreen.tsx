@@ -145,6 +145,7 @@ const RestaurantAdminDashboard = () => {
   const [hoursSchedule, setHoursSchedule] = useState<Record<HoursDay, HoursDaySchedule>>(
     createDefaultHoursSchedule()
   );
+  const [hoursEditorExpanded, setHoursEditorExpanded] = useState(false);
 
   // Delete modal state
   const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
@@ -257,6 +258,7 @@ const RestaurantAdminDashboard = () => {
       }
     }
     setHoursSchedule(newSchedule);
+    setHoursEditorExpanded(false);
   };
 
   const toggleHoursDay = (day: HoursDay) => {
@@ -890,12 +892,27 @@ const RestaurantAdminDashboard = () => {
                                     </div>
 
                                     <div className="form-field full-width">
-                                      <label className="field-label">
-                                        Catering Hours
-                                        <span className="field-hint">
-                                          Weekly schedule used for catering ordering availability
-                                        </span>
-                                      </label>
+                                      <div className="hours-editor-header">
+                                        <label className="field-label">
+                                          Catering Hours
+                                          <span className="field-hint">
+                                            Weekly schedule used for catering ordering availability
+                                          </span>
+                                        </label>
+                                        <button
+                                          type="button"
+                                          onClick={() => setHoursEditorExpanded((prev) => !prev)}
+                                          className="hours-editor-toggle"
+                                        >
+                                          {hoursEditorExpanded ? "Collapse" : "Edit Hours"}
+                                        </button>
+                                      </div>
+                                      {!hoursEditorExpanded && (
+                                        <p className="hours-editor-summary">
+                                          {formatCateringHours(restaurant.cateringOperatingHours)}
+                                        </p>
+                                      )}
+                                      {hoursEditorExpanded && (
                                       <div className="hours-editor">
                                         {HOURS_DAYS.map((day) => {
                                           const dayData = hoursSchedule[day];
@@ -969,6 +986,7 @@ const RestaurantAdminDashboard = () => {
                                           );
                                         })}
                                       </div>
+                                      )}
                                     </div>
 
                                     <div className="form-field full-width">

@@ -1,0 +1,58 @@
+<h2>Mode Toggle with 3 Modes</h2>
+<p class="subtitle">How should the Swift / Prismo / Coworking toggle look when expanded and collapsed?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Three-button pill (same pattern as today)</h3>
+      <p>Just add a third button. Expanded: <code>[ Swift | Prismo | Coworking ]</code>. Collapsed: cycle through S → P → C on click.</p>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; background:#f3f4f6; border-radius:8px; padding:3px; gap:2px;">
+          <div style="padding:6px 10px; background:#dbeafe; color:#1d4ed8; border-radius:6px; font-size:12px; font-weight:600;">Swift</div>
+          <div style="padding:6px 10px; color:#6b7280; border-radius:6px; font-size:12px;">Prismo</div>
+          <div style="padding:6px 10px; color:#6b7280; border-radius:6px; font-size:12px;">Cowork</div>
+        </div>
+        <span style="color:#9ca3af; font-size:11px;">← expanded</span>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <div style="width:28px; height:28px; border-radius:50%; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#1d4ed8;">S</div>
+        <span style="color:#9ca3af; font-size:11px;">← collapsed (click cycles S→P→C)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Icon tabs — one icon per mode, always visible</h3>
+      <p>Replace the text pill with 3 small icon buttons in a row. Works at both expanded and collapsed widths. Each mode gets a distinct icon and color.</p>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; background:#f3f4f6; border-radius:8px; padding:4px; gap:4px;">
+          <div style="width:36px; height:36px; border-radius:6px; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-size:16px;" title="Swift">🍽️</div>
+          <div style="width:36px; height:36px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:16px;" title="Prismo">🎪</div>
+          <div style="width:36px; height:36px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:16px;" title="Coworking">🏢</div>
+        </div>
+        <span style="color:#9ca3af; font-size:11px;">← same at both widths, with label when expanded</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Dropdown selector</h3>
+      <p>Replace the toggle with a dropdown that shows the active mode. Scales to any number of modes. Expanded: shows current mode with chevron. Collapsed: shows mode initial.</p>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; align-items:center; gap:6px; background:#dbeafe; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600; color:#1d4ed8;">
+          Swift ▾
+        </div>
+        <span style="color:#9ca3af; font-size:11px;">← expanded (click opens dropdown)</span>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <div style="width:28px; height:28px; border-radius:50%; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#1d4ed8;">S</div>
+        <span style="color:#9ca3af; font-size:11px;">← collapsed (click opens dropdown)</span>
+      </div>
+    </div>
+  </div>
+</div>

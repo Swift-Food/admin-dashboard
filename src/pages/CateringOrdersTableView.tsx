@@ -1013,16 +1013,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             {canRefund &&
               !showConfirmComplete && !showConfirmCancel && !showConfirmReview && (
                 <button
-                  onClick={() => {
-                    const refundable = (order.restaurants || []).filter((r) => !r.hasRefund);
-                    const onlyRestaurant = refundable.length === 1 ? refundable[0] : null;
-                    setRefundForm({
-                      restaurantId: onlyRestaurant?.restaurantId || "",
-                      amount: onlyRestaurant ? String(onlyRestaurant.customerTotal) : "",
-                      reason: "",
-                    });
-                    setShowRefundModal(true);
-                  }}
+                  onClick={() => setShowRefundModal(true)}
                   className="flex-1 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
                 >
                   Refund

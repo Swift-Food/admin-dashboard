@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal } from "../Modal";
 import refundService from "../../services/refund.service";
 import { RefundHistoryList } from "./RefundHistoryList";
@@ -41,6 +41,20 @@ export function RefundModal({ order, open, onClose, onIssued }: Props) {
 
   const restaurants = order.restaurants || [];
   const selected = restaurants.find((r) => r.restaurantId === restaurantId);
+
+  // When the modal opens, if there's exactly one refundable restaurant on
+  // the order, pre-select it + prefill amount to their subtotal. Saves the
+  // admin a click on the common case.
+  useEffect(() => {
+    if (!open) return;
+    if (restaurantId) return;
+    const refundable = restaurants.filter((r) => !r.hasRefund);
+    if (refundable.length === 1) {
+      const only = refundable[0];
+      setRestaurantId(only.restaurantId);
+      setAmount(String(only.customerTotal));
+    }
+  }, [open, restaurantId, restaurants]);
   const stripeAttached = Boolean(
     order.stripePaymentIntentId || order.stripeInvoiceId,
   );

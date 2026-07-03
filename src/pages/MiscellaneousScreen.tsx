@@ -8,10 +8,17 @@ interface Restaurant {
   restaurant_name: string;
 }
 
+interface OrderRestaurant {
+  restaurantId: string;
+  restaurantName: string;
+  customerTotal: number;
+  commissionRate?: number;
+}
 interface CateringOrder {
   id: string;
   customerName: string;
   eventDate: string;
+  restaurants?: OrderRestaurant[];
 }
 
 const MiscellaneousScreen: React.FC = () => {
@@ -33,6 +40,9 @@ const MiscellaneousScreen: React.FC = () => {
   const [previewOrderSearch, setPreviewOrderSearch] = useState<string>("");
   const [previewLoadingType, setPreviewLoadingType] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  // Which restaurant on the picked order to preview per-restaurant docs
+  // for. Auto-set when the order has exactly one non-Swift restaurant.
+  const [previewRestaurantId, setPreviewRestaurantId] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,6 +114,13 @@ const MiscellaneousScreen: React.FC = () => {
     label: string;
     description: string;
     endpoint: ((orderId: string) => string) | null;
+    /**
+     * When true this doc is rendered PER RESTAURANT — the preview endpoint
+     * accepts a ?restaurantId= query param and returns one doc for that
+     * restaurant. Multi-restaurant orders require the admin to pick which
+     * one before the button becomes actionable.
+     */
+    perRestaurant?: boolean;
   };
   const invoiceTypes: InvoiceType[] = [
     {
@@ -121,22 +138,61 @@ const MiscellaneousScreen: React.FC = () => {
     {
       key: "restaurant-payout",
       label: "Restaurant Payout Receipt",
-      description: "Per-restaurant payout receipt (first supplier in order)",
+      description: "Per-restaurant payout receipt (pick which restaurant above)",
       endpoint: (id) => `catering-orders/${id}/preview-payout-receipt-pdf`,
+      perRestaurant: true,
     },
     {
       key: "commission-tax",
       label: "Monthly Commission Tax Invoice",
       description: "Swift's tax invoice for the supplier's commission (month of event)",
       endpoint: (id) => `catering-orders/${id}/preview-commission-pdf`,
+      perRestaurant: true,
     },
     {
       key: "delivery-note",
       label: "Order Checklist",
       description: "Per-restaurant packing checklist — items, add-ons & cutlery, no prices",
       endpoint: (id) => `catering-orders/${id}/preview-delivery-note-pdf`,
+      perRestaurant: true,
     },
   ];
+
+  // Restaurants on the currently-picked order (Swift-owned lines at 100%
+  // commission are filtered out — those don't have a payout receipt or a
+  // commission tax invoice of their own).
+  const previewSelectedOrder = orders.find((o) => o.id === previewOrderId);
+  const previewOrderRestaurants: OrderRestaurant[] =
+    (previewSelectedOrder?.restaurants || []).filter(
+      (r) => (r.commissionRate ?? 0) < 100,
+    );
+  const previewNeedsRestaurantPicker = previewOrderRestaurants.length > 1;
+  const previewSelectedRestaurant = previewOrderRestaurants.find(
+    (r) => r.restaurantId === previewRestaurantId,
+  );
+
+  // When the picked order changes, reset / auto-populate the restaurant
+  // selector. If there's exactly one restaurant on the order the picker
+  // stays hidden and the id is pre-set so the buttons work immediately.
+  useEffect(() => {
+    if (previewOrderRestaurants.length === 1) {
+      setPreviewRestaurantId(previewOrderRestaurants[0].restaurantId);
+    } else if (
+      previewRestaurantId &&
+      !previewOrderRestaurants.some(
+        (r) => r.restaurantId === previewRestaurantId,
+      )
+    ) {
+      // Switched to a different order where the previously-picked
+      // restaurant doesn't exist — clear so the admin picks again.
+      setPreviewRestaurantId("");
+    } else if (previewOrderRestaurants.length === 0) {
+      setPreviewRestaurantId("");
+    }
+    // We deliberately only re-run when the order id changes; the picker
+    // reset is tied to that transition, not to keystrokes on the search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewOrderId]);
 
   const handlePreviewInvoice = async (type: InvoiceType) => {
     if (!previewOrderId) {
@@ -144,10 +200,21 @@ const MiscellaneousScreen: React.FC = () => {
       return;
     }
     if (!type.endpoint) return;
+    if (type.perRestaurant && !previewRestaurantId) {
+      setPreviewError(
+        "Pick which restaurant you want the preview for — this order has more than one supplier.",
+      );
+      return;
+    }
     setPreviewError(null);
     setPreviewLoadingType(type.key);
     try {
-      const res = await http.get(type.endpoint(previewOrderId), {
+      const endpoint = type.perRestaurant && previewRestaurantId
+        ? `${type.endpoint(previewOrderId)}?restaurantId=${encodeURIComponent(
+            previewRestaurantId,
+          )}`
+        : type.endpoint(previewOrderId);
+      const res = await http.get(endpoint, {
         responseType: "blob",
       });
       const blob = res.data as Blob;
@@ -155,9 +222,9 @@ const MiscellaneousScreen: React.FC = () => {
       const blobType =
         type.key === "commission-tax" ? "text/html" : "application/pdf";
       const typedBlob = blob.type ? blob : new Blob([blob], { type: blobType });
-      const url = URL.createObjectURL(typedBlob);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      const objectUrl = URL.createObjectURL(typedBlob);
+      window.open(objectUrl, "_blank");
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
     } catch (err: any) {
       // Blob error responses come back as Blob even when the server sent JSON.
       let message =
@@ -562,10 +629,109 @@ const MiscellaneousScreen: React.FC = () => {
           </select>
         </div>
 
+        {/* Restaurant picker — only appears when the picked order has
+            more than one non-Swift restaurant. Single-restaurant orders
+            skip this UI entirely so admins aren't clicking through
+            unnecessary chrome. */}
+        {previewNeedsRestaurantPicker && (
+          <div style={{ marginBottom: 16 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 14,
+                fontWeight: 500,
+                marginBottom: 6,
+                color: "#475569",
+              }}
+            >
+              Restaurant
+            </label>
+            <p style={{ color: "#64748b", fontSize: 12, marginBottom: 8 }}>
+              This order has {previewOrderRestaurants.length} restaurants.
+              Pick which one to preview payout receipt / commission tax
+              invoice / order checklist for.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {previewOrderRestaurants.map((r) => {
+                const isSelected =
+                  r.restaurantId === previewRestaurantId;
+                return (
+                  <button
+                    key={r.restaurantId}
+                    onClick={() => setPreviewRestaurantId(r.restaurantId)}
+                    style={{
+                      textAlign: "left",
+                      padding: "10px 14px",
+                      borderRadius: 8,
+                      border: isSelected
+                        ? "2px solid #2563eb"
+                        : "1px solid #e2e8f0",
+                      background: isSelected ? "#eff6ff" : "#fff",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      fontSize: 14,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 16,
+                          height: 16,
+                          borderRadius: 8,
+                          border: isSelected
+                            ? "5px solid #2563eb"
+                            : "2px solid #cbd5e1",
+                          boxSizing: "border-box",
+                          background: "#fff",
+                        }}
+                      />
+                      <span
+                        style={{
+                          color: isSelected ? "#1e40af" : "#1e293b",
+                          fontWeight: isSelected ? 600 : 500,
+                        }}
+                      >
+                        {r.restaurantName}
+                      </span>
+                    </div>
+                    <span style={{ color: "#64748b", fontSize: 13 }}>
+                      £{Number(r.customerTotal || 0).toFixed(2)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {previewSelectedOrder &&
+          previewOrderRestaurants.length === 1 && (
+            <div
+              style={{
+                marginBottom: 16,
+                fontSize: 12,
+                color: "#64748b",
+                fontStyle: "italic",
+              }}
+            >
+              Single restaurant on this order:{" "}
+              <span style={{ color: "#1e293b", fontWeight: 500 }}>
+                {previewOrderRestaurants[0].restaurantName}
+              </span>{" "}
+              — per-restaurant previews will use this restaurant.
+            </div>
+          )}
+
         {/* Invoice-type buttons */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {invoiceTypes.map((type) => {
-            const isDisabled = !type.endpoint || !previewOrderId;
+            const needsRestaurant =
+              !!type.perRestaurant && !previewRestaurantId;
+            const isDisabled =
+              !type.endpoint || !previewOrderId || needsRestaurant;
             const isLoading = previewLoadingType === type.key;
             return (
               <button
@@ -594,9 +760,23 @@ const MiscellaneousScreen: React.FC = () => {
                     }}
                   >
                     {type.label}
+                    {type.perRestaurant && previewSelectedRestaurant && (
+                      <span
+                        style={{
+                          fontWeight: 500,
+                          fontSize: 13,
+                          color: "#2563eb",
+                          marginLeft: 8,
+                        }}
+                      >
+                        · {previewSelectedRestaurant.restaurantName}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                    {type.description}
+                    {needsRestaurant
+                      ? "Pick a restaurant above to enable this preview."
+                      : type.description}
                   </div>
                 </div>
                 <span

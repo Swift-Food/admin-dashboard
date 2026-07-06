@@ -155,6 +155,7 @@ const CateringSettingsScreen: React.FC = () => {
               }
               onChange={(e) =>
                 setDraft({
+                  ...draft,
                   collectionLeadMinutes:
                     e.target.value === '' ? NaN : Number(e.target.value),
                 })

@@ -44,11 +44,12 @@ const bookCourier = async (
 
 const getPricePreview = async (
   mealSessionId: string,
-  packages: PackageCounts
+  packages: PackageCounts,
+  pickupRestaurantId?: string
 ): Promise<DeliveryPricePreview> => {
   const res = await http.post<DeliveryPricePreview>(
     `catering-delivery/admin/sessions/${mealSessionId}/price`,
-    { packages }
+    { packages, pickupRestaurantId }
   );
   return res.data;
 };

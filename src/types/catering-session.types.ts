@@ -60,6 +60,18 @@ export interface PackageCounts {
 
 export type BookingState = "active" | "cancelled" | "completed" | "failed";
 
+export interface BookingAddressSnapshot {
+  location: string;
+  postcode: string;
+  city: string;
+  country: string;
+  geolocation: [number, number];
+  recipientName?: string;
+  recipientPhone?: string;
+  recipientEmail?: string;
+  notes?: string;
+}
+
 export interface CateringDeliveryBooking {
   id: string;
   mealSessionId: string;
@@ -75,13 +87,14 @@ export interface CateringDeliveryBooking {
   packages: PackageCounts;
   startDate: string;
   endDate: string;
-  pickupSnapshot: { location: string; postcode: string };
-  dropSnapshot: { location: string; postcode: string };
+  pickupSnapshot: BookingAddressSnapshot;
+  dropSnapshot: BookingAddressSnapshot;
   lastWebhookAt: string | null;
   createdBy: string;
   cancelledAt: string | null;
   cancelReason: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CateringMealSession {

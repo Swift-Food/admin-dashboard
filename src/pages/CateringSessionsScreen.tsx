@@ -149,7 +149,11 @@ const SessionDetailModal = ({
         <div className="p-6">
           <div className="space-y-6">
               {/* Courier Booking */}
-              <CourierBookingSection entry={entry} onChanged={onChanged} />
+              <CourierBookingSection
+                key={entry.activeBooking?.id ?? "no-booking"}
+                entry={entry}
+                onChanged={onChanged}
+              />
 
               {/* Session Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

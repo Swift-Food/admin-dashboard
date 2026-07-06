@@ -154,9 +154,10 @@ const CourierBookingSection = ({
                   type="number"
                   min={0}
                   value={packages[size]}
-                  onChange={(e) =>
-                    setPackages({ ...packages, [size]: Math.max(0, Number(e.target.value)) })
-                  }
+                  onChange={(e) => {
+                    setPrice(null);
+                    setPackages({ ...packages, [size]: Math.max(0, Number(e.target.value)) });
+                  }}
                   className="mt-1 block w-20 border border-gray-300 rounded px-2 py-1"
                 />
               </label>

@@ -19,6 +19,13 @@ const CateringSettingsScreen: React.FC = () => {
     min: 0,
     max: 600,
   });
+  const [autoBookLimits, setAutoBookLimits] = useState<{
+    min: number;
+    max: number;
+  }>({
+    min: 1,
+    max: 72,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{
@@ -36,6 +43,7 @@ const CateringSettingsScreen: React.FC = () => {
         setDraft(res.settings);
         setDefaults(res.defaults);
         setLimits(res.limits.collectionLeadMinutes);
+        setAutoBookLimits(res.limits.autoBookLeadHours);
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -61,13 +69,22 @@ const CateringSettingsScreen: React.FC = () => {
     draft.collectionLeadMinutes >= limits.min &&
     draft.collectionLeadMinutes <= limits.max;
 
+  const autoBookLeadHoursValid =
+    draft != null &&
+    (!draft.autoBookCourier ||
+      (Number.isFinite(draft.autoBookLeadHours) &&
+        draft.autoBookLeadHours >= autoBookLimits.min &&
+        draft.autoBookLeadHours <= autoBookLimits.max));
+
   const handleSave = async () => {
-    if (!draft || !leadValid) return;
+    if (!draft || !leadValid || !autoBookLeadHoursValid) return;
     setSaving(true);
     setMessage(null);
     try {
       const res = await cateringSettingsService.update({
         collectionLeadMinutes: Math.round(draft.collectionLeadMinutes),
+        autoBookCourier: draft.autoBookCourier,
+        autoBookLeadHours: Math.round(draft.autoBookLeadHours),
       });
       setSaved(res.settings);
       setDraft(res.settings);
@@ -174,6 +191,78 @@ const CateringSettingsScreen: React.FC = () => {
           </div>
 
           <div
+            style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}
+          >
+            <input
+              type="checkbox"
+              id="autoBookCourier"
+              checked={draft.autoBookCourier}
+              onChange={(e) =>
+                setDraft({ ...draft, autoBookCourier: e.target.checked })
+              }
+            />
+            <label
+              htmlFor="autoBookCourier"
+              style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4b5563' }}
+            >
+              Auto-book courier (Pedivan)
+            </label>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '4px 0 14px' }}>
+            When on, sessions are booked automatically N hours before collection.
+            Leave OFF for manual booking from Catering Sessions.
+          </p>
+
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: '#4b5563',
+              marginBottom: 4,
+            }}
+          >
+            Auto-book lead (hours)
+          </label>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <input
+              type="number"
+              min={autoBookLimits.min}
+              max={autoBookLimits.max}
+              step={1}
+              disabled={!draft.autoBookCourier}
+              value={
+                Number.isFinite(draft.autoBookLeadHours)
+                  ? draft.autoBookLeadHours
+                  : ''
+              }
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  autoBookLeadHours:
+                    e.target.value === '' ? NaN : Number(e.target.value),
+                })
+              }
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${
+                  !draft.autoBookCourier || autoBookLeadHoursValid
+                    ? '#d1d5db'
+                    : '#dc2626'
+                }`,
+                fontSize: '0.9rem',
+                width: 120,
+                background: draft.autoBookCourier ? '#fff' : '#e5e7eb',
+                color: draft.autoBookCourier ? undefined : '#9ca3af',
+              }}
+            />
+            <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+              hours ({autoBookLimits.min}–{autoBookLimits.max})
+            </span>
+          </div>
+
+          <div
             style={{
               display: 'flex',
               gap: 12,
@@ -183,16 +272,22 @@ const CateringSettingsScreen: React.FC = () => {
           >
             <button
               onClick={handleSave}
-              disabled={!dirty || !leadValid || saving}
+              disabled={!dirty || !leadValid || !autoBookLeadHoursValid || saving}
               style={{
                 padding: '10px 18px',
-                background: !dirty || !leadValid || saving ? '#9ca3af' : '#051661',
+                background:
+                  !dirty || !leadValid || !autoBookLeadHoursValid || saving
+                    ? '#9ca3af'
+                    : '#051661',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,
                 fontSize: '0.9rem',
                 fontWeight: 600,
-                cursor: !dirty || !leadValid || saving ? 'not-allowed' : 'pointer',
+                cursor:
+                  !dirty || !leadValid || !autoBookLeadHoursValid || saving
+                    ? 'not-allowed'
+                    : 'pointer',
               }}
             >
               {saving ? 'Saving…' : 'Save changes'}

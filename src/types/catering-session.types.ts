@@ -1,12 +1,12 @@
-// Types for Catering Driver / Meal Session Delivery
+// Types for Catering Delivery / Meal Session Delivery
 
 export type MealSessionDeliveryStatus =
-  | "finding_driver"
-  | "driver_assigned"
-  | "awaiting_pickup"
+  | "pending"
+  | "awaiting_booking"
+  | "booked"
   | "out_for_delivery"
-  | "at_collection_point"
-  | "delivered";
+  | "delivered"
+  | "failed";
 
 export interface SessionMenuItem {
   quantity: number;
@@ -52,116 +52,81 @@ export interface CateringOrderInfo {
   estimatedTotal?: string;
 }
 
+export interface PackageCounts {
+  small: number;
+  medium: number;
+  large: number;
+}
+
+export type BookingState = "active" | "cancelled" | "completed" | "failed";
+
+export interface CateringDeliveryBooking {
+  id: string;
+  mealSessionId: string;
+  state: BookingState;
+  pedivanOrderId: string;
+  pedivanReference: string | null;
+  pedivanStatus: string | null;
+  pickupStatus: string | null;
+  dropStatus: string | null;
+  trackingUrl: string | null;
+  quotedPrice: string | null;
+  currency: string | null;
+  packages: PackageCounts;
+  startDate: string;
+  endDate: string;
+  pickupSnapshot: { location: string; postcode: string };
+  dropSnapshot: { location: string; postcode: string };
+  lastWebhookAt: string | null;
+  createdBy: string;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  createdAt: string;
+}
+
 export interface CateringMealSession {
   id: string;
-  cateringOrderId: string;
-
-  // Session Details
   sessionName: string;
-  sessionOrder: number;
   sessionDate: string;
   eventTime: string;
   collectionTime: string;
-  guestCount?: number;
-  specialRequirements?: string;
-
-  // Order Items (restaurants)
-  orderItems: SessionOrderItem[];
-  restaurantCollectionTimes?: Record<string, string>;
-
-  // Pricing
-  subtotal: string;
-  deliveryFee: string;
-  serviceCharge: string;
-  promoDiscount: string;
-  promotionDiscount: string;
-  sessionTotal: string;
-
-  // Driver Info (flat fields)
-  driverId?: string;
-  driverNames?: string[];
-  deliveryMethod?: string;
-  driverAssignedAt?: string;
-
-  // Delivery Status
+  totalDeliveryPortions: number | string;
   deliveryStatus: MealSessionDeliveryStatus;
-
-  // Timestamps
-  pickupStartedAt?: string;
-  outForDeliveryAt?: string;
-  arrivedAtDestinationAt?: string;
-  deliveredAt?: string;
-  estimatedDeliveryTime?: string;
-
-  // Proof Images
-  pickupProofImageUrl?: string;
-  deliveryProofImageUrl?: string;
-  driverNotes?: string;
-
-  // Delay info
-  isDelayed?: boolean;
-  delayMinutes?: number;
-
-  // Reminders
-  reminder24HourSent?: boolean;
-  reminder1HourSent?: boolean;
-
-  // Nested catering order with customer/delivery info
+  estimatedDeliveryTime: string | null;
+  outForDeliveryAt: string | null;
+  deliveredAt: string | null;
+  restaurantPickupAddresses?: Record<
+    string,
+    {
+      name: string;
+      addressLine1: string;
+      addressLine2?: string;
+      city: string;
+      zipcode: string;
+      location: { latitude: number; longitude: number };
+    }
+  >;
   cateringOrder?: CateringOrderInfo;
-
-  // Timestamps
-  createdAt: string;
-  updatedAt: string;
 }
 
-export interface CateringSessionTrackingDetails {
+export interface AdminDeliverySession {
   session: CateringMealSession;
-  route?: CollectionRoute;
-  estimatedArrival?: string;
-  distanceRemaining?: number;
+  bookings: CateringDeliveryBooking[];
+  activeBooking: CateringDeliveryBooking | null;
+  suggestedPackages: PackageCounts;
+  needsRebooking: boolean;
 }
 
-export interface CollectionRoute {
-  sessionId: string;
-  stops: RouteStop[];
-  totalDistance?: number;
-  totalDuration?: number;
-  optimizedOrder?: number[];
+export interface DeliveryPricePreview {
+  currency: string;
+  price: number;
+  starting_price: number;
+  meter: number;
+  miles: number;
 }
 
-export interface RouteStop {
-  type: "PICKUP" | "DELIVERY";
-  restaurantId?: string;
-  restaurantName?: string;
-  address: string;
-  latitude?: number;
-  longitude?: number;
-  scheduledTime?: string;
-  estimatedArrival?: string;
-  actualArrival?: string;
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
-  order: number;
-}
-
-// API Response types
 export interface GetAllSessionsParams {
   status?: MealSessionDeliveryStatus;
-  driverId?: string;
   startDate?: string;
   endDate?: string;
-}
-
-// WebSocket admin update types
-export interface AdminCateringUpdate {
-  type:
-    | 'driver_joined'
-    | 'driver_left'
-    | 'restaurant_collected'
-    | 'status_changed'
-    | 'delivery_confirmed'
-    | 'order_completed';
-  sessionId?: string;
-  orderId?: string;
-  data: any;
-  timestamp: string;
 }

@@ -71,10 +71,9 @@ const CateringSettingsScreen: React.FC = () => {
 
   const autoBookLeadHoursValid =
     draft != null &&
-    (!draft.autoBookCourier ||
-      (Number.isFinite(draft.autoBookLeadHours) &&
-        draft.autoBookLeadHours >= autoBookLimits.min &&
-        draft.autoBookLeadHours <= autoBookLimits.max));
+    Number.isFinite(draft.autoBookLeadHours) &&
+    draft.autoBookLeadHours >= autoBookLimits.min &&
+    draft.autoBookLeadHours <= autoBookLimits.max;
 
   const handleSave = async () => {
     if (!draft || !leadValid || !autoBookLeadHoursValid) return;
@@ -247,9 +246,7 @@ const CateringSettingsScreen: React.FC = () => {
                 padding: '8px 10px',
                 borderRadius: 8,
                 border: `1px solid ${
-                  !draft.autoBookCourier || autoBookLeadHoursValid
-                    ? '#d1d5db'
-                    : '#dc2626'
+                  autoBookLeadHoursValid ? '#d1d5db' : '#dc2626'
                 }`,
                 fontSize: '0.9rem',
                 width: 120,

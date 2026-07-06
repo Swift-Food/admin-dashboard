@@ -104,6 +104,7 @@ const SessionDetailModal = ({
   const pickupRestaurants = Object.entries(
     session.restaurantPickupAddresses ?? {}
   );
+  const orderItems = session.orderItems ?? [];
 
   return (
     <Modal open={true} onClose={onClose} overlayOpacity={50}>
@@ -198,6 +199,16 @@ const SessionDetailModal = ({
                         {session.cateringOrder?.guestCount ?? "N/A"}
                       </span>
                     </p>
+                    {session.sessionTotal != null && (
+                      <p className="text-sm">
+                        <span className="font-medium text-gray-600">
+                          Session Total:
+                        </span>{" "}
+                        <span className="text-gray-900 font-semibold">
+                          £{Number(session.sessionTotal).toFixed(2)}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -255,6 +266,63 @@ const SessionDetailModal = ({
                 </div>
               </div>
 
+              {/* Restaurant Orders */}
+              {orderItems.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Restaurants ({orderItems.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {orderItems.map((item, idx) => (
+                      <div
+                        key={item.restaurantId}
+                        className="p-4 rounded-xl border-2 bg-white border-gray-200"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-gray-500">
+                                #{idx + 1}
+                              </span>
+                              <p className="font-semibold text-gray-900">
+                                {item.restaurantName}
+                              </p>
+                            </div>
+                            {item.collectionTime && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Collection: {item.collectionTime}
+                              </p>
+                            )}
+                            <div className="mt-2 space-y-1">
+                              {item.menuItems.map((menuItem, menuIdx) => (
+                                <p key={menuIdx} className="text-sm text-gray-600">
+                                  {menuItem.quantity}x {menuItem.menuItemName} - £
+                                  {menuItem.customerTotalPrice.toFixed(2)}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-gray-900">
+                              £{item.customerTotal.toFixed(2)}
+                            </p>
+                            <span
+                              className={`mt-1 px-2 py-1 text-xs font-semibold rounded-full ${
+                                item.status === "confirmed"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Pickup Restaurants */}
               {pickupRestaurants.length > 0 && (
                 <div>
@@ -282,12 +350,22 @@ const SessionDetailModal = ({
               )}
 
               {/* Timeline */}
-              {(session.outForDeliveryAt || session.deliveredAt) && (
+              {(session.createdAt ||
+                session.outForDeliveryAt ||
+                session.deliveredAt) && (
                 <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
                     Timeline
                   </h3>
                   <div className="space-y-2 text-sm">
+                    {session.createdAt && (
+                      <p>
+                        <span className="font-medium text-gray-600">
+                          Created:
+                        </span>{" "}
+                        {formatDateTime(session.createdAt)}
+                      </p>
+                    )}
                     {session.outForDeliveryAt && (
                       <p>
                         <span className="font-medium text-gray-600">

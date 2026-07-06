@@ -108,6 +108,14 @@ export interface CateringMealSession {
   estimatedDeliveryTime: string | null;
   outForDeliveryAt: string | null;
   deliveredAt: string | null;
+  /** jsonb column — full per-restaurant order breakdown */
+  orderItems?: SessionOrderItem[];
+  /** TypeORM decimal columns arrive as strings */
+  sessionTotal?: number | string;
+  subtotal?: number | string;
+  deliveryFee?: number | string;
+  createdAt?: string;
+  updatedAt?: string;
   restaurantPickupAddresses?: Record<
     string,
     {

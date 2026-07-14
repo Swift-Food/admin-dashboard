@@ -269,7 +269,23 @@ const PartnerSpacesScreen = () => {
       // uploader in this app uploads a re-wrapped in-memory File. Preserve the
       // original mime type so PNG/SVG logos keep transparency.
       const buffer = await file.arrayBuffer();
-      const safeFile = new File([buffer], file.name || "logo", { type: file.type });
+      // Diagnostic: confirm the file actually has bytes on the client. If this
+      // is non-empty but the server still reports an empty buffer, the problem
+      // is in transport, not the file.
+      console.log("[logo upload]", {
+        name: file.name,
+        type: file.type,
+        fileSize: file.size,
+        bufferBytes: buffer.byteLength,
+      });
+      if (buffer.byteLength === 0) {
+        throw new Error(
+          `Selected file is empty (0 bytes read). Try re-selecting or a different file.`,
+        );
+      }
+      const safeFile = new File([buffer], file.name || "logo", {
+        type: file.type || "image/png",
+      });
       const url = await uploadImage(safeFile);
       apply(url);
     } catch (err) {

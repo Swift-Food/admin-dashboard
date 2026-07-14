@@ -53,11 +53,20 @@ interface RestaurantResponse {
   createdAt?: Date;
   updatedAt?: Date;
   images?: string[];
+  logoImageUrl?: string;
   showOnSite?: boolean;
   priceRange?: string;
   tags?: string[];
   vatNumber?: string | null;
   vatNumberAddedAt?: string | null;
+  cateringOperatingHours?:
+    | {
+        day: string;
+        open: string | null;
+        close: string | null;
+        enabled: boolean;
+      }[]
+    | null;
 }
 
 // CreateRestaurantDto

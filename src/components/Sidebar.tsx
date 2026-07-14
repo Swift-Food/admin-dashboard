@@ -11,7 +11,6 @@ import {
   faChevronDown,
   faUtensils,
   faTags,
-  faReceipt,
   faMoneyBillWave,
   faUsers,
   faLayerGroup,
@@ -59,6 +58,7 @@ export type SidebarPage =
   | "chatbot-logs"
   | "feedback-issues"
   | "catering-ai-config"
+  | "catering-settings"
   | "miscellaneous"
   | "cache";
 
@@ -136,11 +136,6 @@ const navSections: NavSection[] = [
     mode: "swift",
     items: [
       {
-        id: "orders",
-        label: "Orders",
-        icon: <FontAwesomeIcon icon={faReceipt} style={iconCommonStyle} />,
-      },
-      {
         id: "catering",
         label: "Catering Orders",
         icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,
@@ -189,6 +184,11 @@ const navSections: NavSection[] = [
     label: "Management",
     mode: "swift",
     items: [
+      {
+        id: "catering-settings" as SidebarPage,
+        label: "Catering Settings",
+        icon: <FontAwesomeIcon icon={faSliders} style={iconCommonStyle} />,
+      },
       {
         id: "restaurant",
         label: "Restaurants",
@@ -330,7 +330,7 @@ const navSections: NavSection[] = [
     items: [
       {
         id: "cache",
-        label: "Cache Handling",
+        label: "Cache Control",
         icon: <FontAwesomeIcon icon={faDatabase} style={iconCommonStyle} />,
       },
     ],

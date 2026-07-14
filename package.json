@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke:catering-hours": "node scripts/smoke-test-catering-hours.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.0.0",

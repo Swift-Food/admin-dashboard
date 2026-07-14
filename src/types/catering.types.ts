@@ -118,6 +118,9 @@ export interface PricingOrderItem {
   sessionName?: string; // ✅ NEW: For multi-meal orders
   sessionDate?: string; // ✅ NEW: For multi-meal orders
   sessionTime?: string; // ✅ NEW: For multi-meal orders
+
+  // Whether this restaurant already has a refund recorded for this order
+  hasRefund?: boolean;
 }
 
 // Legacy interface - kept for backward compatibility with old data
@@ -187,6 +190,8 @@ export interface CateringOrder {
   restaurantsTotalNet?: number;
   estimatedTotal?: number;
   finalTotal?: number;
+  stripePaymentIntentId?: string | null;
+  stripeInvoiceId?: string | null;
   depositAmount?: number | string;
   subtotal?: number;
   serviceCharge?: number;
@@ -211,7 +216,6 @@ export interface CateringOrder {
   // ============================================================
   // PAYMENT
   // ============================================================
-  stripePaymentIntentId?: string;
   paid?: boolean;
   paymentLinkUrl?: string;
   paymentLinkSentAt?: string;
@@ -238,6 +242,18 @@ export interface CateringOrder {
       selectedAt?: string;
     };
   };
+
+  // ============================================================
+  // SHARED ACCESS (customer dashboard users)
+  // Per-user accessToken is only populated by the admin list endpoint.
+  // ============================================================
+  sharedAccessUsers?: Array<{
+    userId: string;
+    email: string;
+    name?: string;
+    role: "viewer" | "editor";
+    accessToken?: string;
+  }>;
 
   // ============================================================
   // PARTNER SPACE (embed partner that submitted the order, if any)

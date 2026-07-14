@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import type {
-  CateringMealSession,
+  AdminDeliverySession,
   MealSessionDeliveryStatus,
-  AdminCateringUpdate,
 } from "../types/catering-session.types";
-import cateringSessionService from "../services/catering-session.service";
-import useSocket from "../hooks/useSocket";
+import cateringDeliveryService from "../services/catering-delivery.service";
+import CourierBookingSection from "../components/CourierBookingSection";
 import { Modal } from "../components/Modal";
 
 // Status configuration
@@ -13,23 +12,23 @@ const STATUS_CONFIG: Record<
   MealSessionDeliveryStatus,
   { label: string; color: string; bgColor: string; borderColor: string }
 > = {
-  finding_driver: {
-    label: "Finding Driver",
+  pending: {
+    label: "Pending Payment",
+    color: "text-gray-700",
+    bgColor: "bg-gray-100",
+    borderColor: "border-gray-300",
+  },
+  awaiting_booking: {
+    label: "Awaiting Booking",
     color: "text-yellow-800",
     bgColor: "bg-yellow-100",
     borderColor: "border-yellow-300",
   },
-  driver_assigned: {
-    label: "Driver Assigned",
+  booked: {
+    label: "Courier Booked",
     color: "text-blue-800",
     bgColor: "bg-blue-100",
     borderColor: "border-blue-300",
-  },
-  awaiting_pickup: {
-    label: "Awaiting Pickup",
-    color: "text-orange-800",
-    bgColor: "bg-orange-100",
-    borderColor: "border-orange-300",
   },
   out_for_delivery: {
     label: "Out for Delivery",
@@ -37,35 +36,34 @@ const STATUS_CONFIG: Record<
     bgColor: "bg-purple-100",
     borderColor: "border-purple-300",
   },
-  at_collection_point: {
-    label: "At Collection Point",
-    color: "text-indigo-800",
-    bgColor: "bg-indigo-100",
-    borderColor: "border-indigo-300",
-  },
   delivered: {
     label: "Delivered",
     color: "text-green-800",
     bgColor: "bg-green-100",
     borderColor: "border-green-300",
   },
+  failed: {
+    label: "Delivery Failed",
+    color: "text-red-800",
+    bgColor: "bg-red-100",
+    borderColor: "border-red-300",
+  },
 };
 
 // Tab configuration
 const TABS = [
   {
-    id: "available",
-    label: "Available",
-    statuses: ["finding_driver"] as MealSessionDeliveryStatus[],
+    id: "to_book",
+    label: "To Book",
+    statuses: ["awaiting_booking"] as MealSessionDeliveryStatus[],
   },
   {
     id: "in_progress",
-    label: "In Progress",
+    label: "Booked / In Progress",
     statuses: [
-      "driver_assigned",
-      "awaiting_pickup",
+      "booked",
       "out_for_delivery",
-      "at_collection_point",
+      "failed",
     ] as MealSessionDeliveryStatus[],
   },
   {
@@ -77,19 +75,22 @@ const TABS = [
 
 // Session Detail Modal
 const SessionDetailModal = ({
-  session,
+  entry,
   isOpen,
   onClose,
+  onChanged,
 }: {
-  session: CateringMealSession | null;
+  entry: AdminDeliverySession | null;
   isOpen: boolean;
   onClose: () => void;
+  onChanged: () => void;
 }) => {
-  if (!isOpen || !session) return null;
+  if (!isOpen || !entry) return null;
 
+  const { session } = entry;
   const statusConfig = STATUS_CONFIG[session.deliveryStatus];
 
-  const formatDateTime = (dateStr?: string) => {
+  const formatDateTime = (dateStr?: string | null) => {
     if (!dateStr) return "N/A";
     const date = new Date(dateStr);
     return date.toLocaleString();
@@ -100,6 +101,10 @@ const SessionDetailModal = ({
   const customerEmail = session.cateringOrder?.customerEmail;
   const customerPhone = session.cateringOrder?.customerPhone;
   const deliveryAddress = session.cateringOrder?.deliveryAddress || "N/A";
+  const pickupRestaurants = Object.entries(
+    session.restaurantPickupAddresses ?? {}
+  );
+  const orderItems = session.orderItems ?? [];
 
   return (
     <Modal open={true} onClose={onClose} overlayOpacity={50}>
@@ -143,6 +148,13 @@ const SessionDetailModal = ({
 
         <div className="p-6">
           <div className="space-y-6">
+              {/* Courier Booking */}
+              <CourierBookingSection
+                key={entry.activeBooking?.id ?? "no-booking"}
+                entry={entry}
+                onChanged={onChanged}
+              />
+
               {/* Session Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
@@ -188,17 +200,19 @@ const SessionDetailModal = ({
                         Guest Count:
                       </span>{" "}
                       <span className="text-gray-900">
-                        {session.guestCount || session.cateringOrder?.guestCount || "N/A"}
+                        {session.cateringOrder?.guestCount ?? "N/A"}
                       </span>
                     </p>
-                    <p className="text-sm">
-                      <span className="font-medium text-gray-600">
-                        Session Total:
-                      </span>{" "}
-                      <span className="text-gray-900 font-semibold">
-                        £{session.sessionTotal}
-                      </span>
-                    </p>
+                    {session.sessionTotal != null && (
+                      <p className="text-sm">
+                        <span className="font-medium text-gray-600">
+                          Session Total:
+                        </span>{" "}
+                        <span className="text-gray-900 font-semibold">
+                          £{Number(session.sessionTotal).toFixed(2)}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -227,43 +241,6 @@ const SessionDetailModal = ({
                   </div>
                 </div>
               </div>
-
-              {/* Driver Info */}
-              {session.driverId && (
-                <div className="bg-blue-50 p-5 rounded-xl border-2 border-blue-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                      <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
-                    </svg>
-                    Assigned Driver
-                  </h3>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xl">
-                      {session.driverNames?.[0]?.charAt(0).toUpperCase() || "D"}
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {session.driverNames?.join(", ") || "Unknown Driver"}
-                      </p>
-                      {session.deliveryMethod && (
-                        <p className="text-sm text-gray-500">
-                          {session.deliveryMethod}
-                        </p>
-                      )}
-                      {session.driverAssignedAt && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          Assigned: {formatDateTime(session.driverAssignedAt)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Delivery Destination */}
               <div className="bg-green-50 p-5 rounded-xl border-2 border-green-200">
@@ -294,141 +271,118 @@ const SessionDetailModal = ({
               </div>
 
               {/* Restaurant Orders */}
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Restaurants ({session.orderItems.length})
-                </h3>
-                <div className="space-y-3">
-                  {session.orderItems.map((item, idx) => (
-                    <div
-                      key={item.restaurantId}
-                      className="p-4 rounded-xl border-2 bg-white border-gray-200"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-500">
-                              #{idx + 1}
-                            </span>
-                            <p className="font-semibold text-gray-900">
-                              {item.restaurantName}
-                            </p>
-                          </div>
-                          {item.collectionTime && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Collection: {item.collectionTime}
-                            </p>
-                          )}
-                          <div className="mt-2 space-y-1">
-                            {item.menuItems.map((menuItem, menuIdx) => (
-                              <p key={menuIdx} className="text-sm text-gray-600">
-                                {menuItem.quantity}x {menuItem.menuItemName} - £
-                                {menuItem.customerTotalPrice.toFixed(2)}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-900">
-                            £{item.customerTotal.toFixed(2)}
-                          </p>
-                          <span
-                            className={`mt-1 px-2 py-1 text-xs font-semibold rounded-full ${
-                              item.status === "confirmed"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Timestamps */}
-              <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Timeline
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="font-medium text-gray-600">Created:</span>{" "}
-                    {formatDateTime(session.createdAt)}
-                  </p>
-                  {session.driverAssignedAt && (
-                    <p>
-                      <span className="font-medium text-gray-600">
-                        Driver Assigned:
-                      </span>{" "}
-                      {formatDateTime(session.driverAssignedAt)}
-                    </p>
-                  )}
-                  {session.pickupStartedAt && (
-                    <p>
-                      <span className="font-medium text-gray-600">
-                        Pickup Started:
-                      </span>{" "}
-                      {formatDateTime(session.pickupStartedAt)}
-                    </p>
-                  )}
-                  {session.outForDeliveryAt && (
-                    <p>
-                      <span className="font-medium text-gray-600">
-                        Out for Delivery:
-                      </span>{" "}
-                      {formatDateTime(session.outForDeliveryAt)}
-                    </p>
-                  )}
-                  {session.arrivedAtDestinationAt && (
-                    <p>
-                      <span className="font-medium text-gray-600">
-                        Arrived at Destination:
-                      </span>{" "}
-                      {formatDateTime(session.arrivedAtDestinationAt)}
-                    </p>
-                  )}
-                  {session.deliveredAt && (
-                    <p className="text-green-700 font-semibold">
-                      <span className="font-medium">Delivered:</span>{" "}
-                      {formatDateTime(session.deliveredAt)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Proof Images */}
-              {(session.pickupProofImageUrl || session.deliveryProofImageUrl) && (
+              {orderItems.length > 0 && (
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    Proof Images
+                    Restaurants ({orderItems.length})
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {session.pickupProofImageUrl && (
-                      <div className="relative rounded-xl overflow-hidden border-2 border-gray-200">
-                        <img
-                          src={session.pickupProofImageUrl}
-                          alt="Pickup proof"
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2">
-                          <p className="text-sm font-semibold">Pickup Proof</p>
+                  <div className="space-y-3">
+                    {orderItems.map((item, idx) => (
+                      <div
+                        key={item.restaurantId}
+                        className="p-4 rounded-xl border-2 bg-white border-gray-200"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-gray-500">
+                                #{idx + 1}
+                              </span>
+                              <p className="font-semibold text-gray-900">
+                                {item.restaurantName}
+                              </p>
+                            </div>
+                            {item.collectionTime && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Collection: {item.collectionTime}
+                              </p>
+                            )}
+                            <div className="mt-2 space-y-1">
+                              {item.menuItems.map((menuItem, menuIdx) => (
+                                <p key={menuIdx} className="text-sm text-gray-600">
+                                  {menuItem.quantity}x {menuItem.menuItemName} - £
+                                  {menuItem.customerTotalPrice.toFixed(2)}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-gray-900">
+                              £{item.customerTotal.toFixed(2)}
+                            </p>
+                            <span
+                              className={`mt-1 px-2 py-1 text-xs font-semibold rounded-full ${
+                                item.status === "confirmed"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pickup Restaurants */}
+              {pickupRestaurants.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Pickup Restaurants ({pickupRestaurants.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {pickupRestaurants.map(([restaurantId, addr]) => (
+                      <div
+                        key={restaurantId}
+                        className="p-4 rounded-xl border-2 bg-white border-gray-200"
+                      >
+                        <p className="font-semibold text-gray-900">
+                          {addr.name}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {addr.addressLine1}
+                          {addr.addressLine2 ? `, ${addr.addressLine2}` : ""},{" "}
+                          {addr.city} {addr.zipcode}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Timeline */}
+              {(session.createdAt ||
+                session.outForDeliveryAt ||
+                session.deliveredAt) && (
+                <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Timeline
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    {session.createdAt && (
+                      <p>
+                        <span className="font-medium text-gray-600">
+                          Created:
+                        </span>{" "}
+                        {formatDateTime(session.createdAt)}
+                      </p>
                     )}
-                    {session.deliveryProofImageUrl && (
-                      <div className="relative rounded-xl overflow-hidden border-2 border-gray-200">
-                        <img
-                          src={session.deliveryProofImageUrl}
-                          alt="Delivery proof"
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2">
-                          <p className="text-sm font-semibold">Delivery Proof</p>
-                        </div>
-                      </div>
+                    {session.outForDeliveryAt && (
+                      <p>
+                        <span className="font-medium text-gray-600">
+                          Out for Delivery:
+                        </span>{" "}
+                        {formatDateTime(session.outForDeliveryAt)}
+                      </p>
+                    )}
+                    {session.deliveredAt && (
+                      <p className="text-green-700 font-semibold">
+                        <span className="font-medium">Delivered:</span>{" "}
+                        {formatDateTime(session.deliveredAt)}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -452,21 +406,21 @@ const SessionDetailModal = ({
 
 // Main Screen Component
 const CateringSessionsScreen = () => {
-  const [allSessions, setAllSessions] = useState<CateringMealSession[]>([]);
+  const [allSessions, setAllSessions] = useState<AdminDeliverySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
-  const [activeTab, setActiveTab] = useState<string>("in_progress");
+  const [activeTab, setActiveTab] = useState<string>("to_book");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [driverFilter, setDriverFilter] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedSession, setSelectedSession] =
-    useState<CateringMealSession | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
 
   const fetchSessions = useCallback(async () => {
     try {
-      const sessions = await cateringSessionService.getAllSessions({
+      const sessions = await cateringDeliveryService.getSessions({
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       });
@@ -485,71 +439,23 @@ const CateringSessionsScreen = () => {
     fetchSessions();
   }, [fetchSessions]);
 
-  // Real-time updates via WebSocket
-  const { data: socketUpdate } = useSocket<AdminCateringUpdate>("admin_update", {
-    namespace: "/catering",
-    query: { role: "admin" },
-  });
-
+  // Poll for updates (replaces the old admin_update websocket feed)
   useEffect(() => {
-    if (!socketUpdate || !socketUpdate.sessionId) return;
+    const interval = setInterval(() => {
+      fetchSessions();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchSessions]);
 
-    setAllSessions((prev) =>
-      prev.map((session) => {
-        if (session.id !== socketUpdate.sessionId) return session;
-
-        switch (socketUpdate.type) {
-          case "driver_joined":
-            return {
-              ...session,
-              driverNames: socketUpdate.data.driverNames,
-              deliveryStatus: "driver_assigned" as MealSessionDeliveryStatus,
-            };
-          case "driver_left":
-            return {
-              ...session,
-              driverNames: [],
-              driverId: undefined,
-              deliveryStatus: "finding_driver" as MealSessionDeliveryStatus,
-            };
-          case "status_changed":
-            return {
-              ...session,
-              deliveryStatus: socketUpdate.data.deliveryStatus,
-              pickupStartedAt: socketUpdate.data.pickupStartedAt ?? session.pickupStartedAt,
-              outForDeliveryAt: socketUpdate.data.outForDeliveryAt ?? session.outForDeliveryAt,
-              arrivedAtDestinationAt: socketUpdate.data.arrivedAtDestinationAt ?? session.arrivedAtDestinationAt,
-              deliveredAt: socketUpdate.data.deliveredAt ?? session.deliveredAt,
-            };
-          case "restaurant_collected":
-            return {
-              ...session,
-              deliveryStatus: socketUpdate.data.deliveryStatus ?? session.deliveryStatus,
-            };
-          case "delivery_confirmed":
-            return {
-              ...session,
-              deliveryStatus: socketUpdate.data.deliveryStatus,
-              deliveredAt: socketUpdate.data.deliveredAt ?? session.deliveredAt,
-            };
-          default:
-            return session;
-        }
-      })
-    );
-  }, [socketUpdate]);
-
-  // Get unique drivers for filter dropdown
-  const uniqueDrivers = Array.from(
-    new Map(
-      allSessions
-        .filter((s) => s.driverId && s.driverNames?.length)
-        .map((s) => [s.driverId!, { id: s.driverId!, name: s.driverNames!.join(", ") }])
-    ).values()
-  );
+  // Keep the open modal's data in sync with the latest fetch/poll results
+  const selectedEntry =
+    allSessions.find((entry) => entry.session.id === selectedSessionId) ??
+    null;
 
   // Filter sessions based on active tab and filters
-  const filteredSessions = allSessions.filter((session) => {
+  const filteredSessions = allSessions.filter((entry) => {
+    const { session } = entry;
+
     // Tab filter
     const currentTab = TABS.find((t) => t.id === activeTab);
     if (currentTab && !currentTab.statuses.includes(session.deliveryStatus)) {
@@ -561,23 +467,18 @@ const CateringSessionsScreen = () => {
       return false;
     }
 
-    // Driver filter
-    if (driverFilter && session.driverId !== driverFilter) {
-      return false;
-    }
-
     // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
+      const restaurantNames = Object.values(
+        session.restaurantPickupAddresses ?? {}
+      ).map((r) => r.name.toLowerCase());
       const matchesSearch =
         session.sessionName.toLowerCase().includes(search) ||
         session.id.toLowerCase().includes(search) ||
         session.cateringOrder?.customerName?.toLowerCase().includes(search) ||
-        session.cateringOrderId?.toLowerCase().includes(search) ||
-        session.driverNames?.some(name => name.toLowerCase().includes(search)) ||
-        session.orderItems.some((item) =>
-          item.restaurantName.toLowerCase().includes(search)
-        );
+        session.cateringOrder?.id?.toLowerCase().includes(search) ||
+        restaurantNames.some((name) => name.includes(search));
       if (!matchesSearch) return false;
     }
 
@@ -586,15 +487,15 @@ const CateringSessionsScreen = () => {
 
   // Sort by scheduled time (most recent first for completed, soonest first for others)
   const sortedSessions = [...filteredSessions].sort((a, b) => {
-    const dateA = new Date(a.sessionDate).getTime();
-    const dateB = new Date(b.sessionDate).getTime();
+    const dateA = new Date(a.session.sessionDate).getTime();
+    const dateB = new Date(b.session.sessionDate).getTime();
     return activeTab === "completed" ? dateB - dateA : dateA - dateB;
   });
 
   // Count sessions per tab
   const tabCounts = TABS.reduce((acc, tab) => {
-    acc[tab.id] = allSessions.filter((s) =>
-      tab.statuses.includes(s.deliveryStatus)
+    acc[tab.id] = allSessions.filter((entry) =>
+      tab.statuses.includes(entry.session.deliveryStatus)
     ).length;
     return acc;
   }, {} as Record<string, number>);
@@ -639,7 +540,7 @@ const CateringSessionsScreen = () => {
               }}
               className={`px-6 py-3 rounded-xl font-bold text-base transition-all ${
                 activeTab === tab.id
-                  ? tab.id === "available"
+                  ? tab.id === "to_book"
                     ? "bg-yellow-600 text-white shadow-lg"
                     : tab.id === "in_progress"
                     ? "bg-blue-600 text-white shadow-lg"
@@ -658,7 +559,7 @@ const CateringSessionsScreen = () => {
           <div className="grid grid-cols-6 gap-4 mb-6">
             {Object.entries(STATUS_CONFIG).map(([status, config]) => {
               const count = allSessions.filter(
-                (s) => s.deliveryStatus === status
+                (entry) => entry.session.deliveryStatus === status
               ).length;
               return (
                 <div
@@ -677,12 +578,12 @@ const CateringSessionsScreen = () => {
           </div>
 
           {/* Filter Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="md:col-span-2">
               <input
                 type="text"
-                placeholder="Search sessions, orders, customers, drivers..."
+                placeholder="Search sessions, orders, customers, restaurants..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900"
@@ -699,20 +600,6 @@ const CateringSessionsScreen = () => {
               {TABS.find((t) => t.id === activeTab)?.statuses.map((status) => (
                 <option key={status} value={status}>
                   {STATUS_CONFIG[status].label}
-                </option>
-              ))}
-            </select>
-
-            {/* Driver Filter */}
-            <select
-              value={driverFilter}
-              onChange={(e) => setDriverFilter(e.target.value)}
-              className="px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium transition-all text-gray-900"
-            >
-              <option value="">All Drivers</option>
-              {uniqueDrivers.map((driver) => (
-                <option key={driver.id} value={driver.id}>
-                  {driver.name}
                 </option>
               ))}
             </select>
@@ -774,16 +661,17 @@ const CateringSessionsScreen = () => {
                     Status
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Driver
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {sortedSessions.map((session) => {
+                {sortedSessions.map((entry) => {
+                  const { session } = entry;
                   const statusConfig = STATUS_CONFIG[session.deliveryStatus];
+                  const pickupRestaurants = Object.values(
+                    session.restaurantPickupAddresses ?? {}
+                  );
                   return (
                     <tr
                       key={session.id}
@@ -816,21 +704,21 @@ const CateringSessionsScreen = () => {
 
                       {/* Restaurants */}
                       <td className="px-6 py-5">
-                        {session.orderItems.length === 0 ? (
+                        {pickupRestaurants.length === 0 ? (
                           <span className="text-sm text-gray-400">
                             No restaurants
                           </span>
-                        ) : session.orderItems.length === 1 ? (
+                        ) : pickupRestaurants.length === 1 ? (
                           <div className="text-sm font-medium text-gray-900">
-                            {session.orderItems[0].restaurantName}
+                            {pickupRestaurants[0].name}
                           </div>
                         ) : (
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {session.orderItems[0].restaurantName}
+                              {pickupRestaurants[0].name}
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
-                              +{session.orderItems.length - 1} more
+                              +{pickupRestaurants.length - 1} more
                             </div>
                           </div>
                         )}
@@ -845,37 +733,35 @@ const CateringSessionsScreen = () => {
 
                       {/* Status */}
                       <td className="px-6 py-5 whitespace-nowrap">
-                        <span
-                          className={`px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}
-                        >
-                          {statusConfig.label}
-                        </span>
-                      </td>
-
-                      {/* Driver */}
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        {session.driverNames ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
-                              {session.driverNames[0].charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {session.driverNames.join(", ")}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 italic">
-                            Not assigned
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}
+                          >
+                            {statusConfig.label}
                           </span>
-                        )}
+                          {entry.needsRebooking && (
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-amber-100 text-amber-800">
+                              Rebook
+                            </span>
+                          )}
+                          {entry.activeBooking?.trackingUrl && (
+                            <a
+                              href={entry.activeBooking.trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Live tracking"
+                              className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
+                            >
+                              Live ↗
+                            </a>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
                       <td className="px-6 py-5 whitespace-nowrap text-sm">
                         <button
-                          onClick={() => setSelectedSession(session)}
+                          onClick={() => setSelectedSessionId(session.id)}
                           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm"
                         >
                           View Details
@@ -900,9 +786,10 @@ const CateringSessionsScreen = () => {
 
       {/* Session Detail Modal */}
       <SessionDetailModal
-        session={selectedSession}
-        isOpen={!!selectedSession}
-        onClose={() => setSelectedSession(null)}
+        entry={selectedEntry}
+        isOpen={!!selectedSessionId}
+        onClose={() => setSelectedSessionId(null)}
+        onChanged={fetchSessions}
       />
     </div>
   );

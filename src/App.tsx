@@ -33,12 +33,13 @@ import CalendarsScreen from "./pages/CalendarsScreen/CalendarsScreen";
 import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import ChatbotLogsScreen from "./pages/ChatbotLogsScreen";
 import CateringAiConfigScreen from "./pages/CateringAiConfigScreen";
+import CateringSettingsScreen from "./pages/CateringSettingsScreen";
 import FeedbackIssuesScreen from "./pages/FeedbackIssuesScreen";
 import PrismoDashboard from "./pages/PrismoDashboard/PrismoDashboard";
 import CoworkingSpacesScreen from "./pages/CoworkingSpacesScreen/CoworkingSpacesScreen";
 import PendingTransfersScreen from "./pages/PendingTransfersScreen";
 import PartnerSpacesScreen from "./pages/PartnerSpacesScreen/PartnerSpacesScreen";
-import CacheHandlingScreen from "./pages/CacheHandlingScreen";
+import CacheControlScreen from "./pages/CacheControlScreen";
 import authService from "./services/auth.service";
 import LoginScreen from "./pages/LoginScreen";
 
@@ -51,6 +52,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   "chatbot-logs": "chatbot-logs",
   "feedback-issues": "feedback-issues",
   "catering-ai-config": "catering-ai-config",
+  "catering-settings": "catering-settings",
   "catering-financials": "catering-financials",
   "order-financials": "order-financials",
   "corporate-orders": "corporate",
@@ -84,6 +86,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "chatbot-logs": "chatbot-logs",
   "feedback-issues": "feedback-issues",
   "catering-ai-config": "catering-ai-config",
+  "catering-settings": "catering-settings",
   "catering-financials": "catering-financials",
   "order-financials": "order-financials",
   corporate: "corporate-orders",
@@ -117,6 +120,7 @@ const swiftPages: SidebarPage[] = [
   "chatbot-logs",
   "feedback-issues",
   "catering-ai-config",
+  "catering-settings",
   "catering-financials",
   "order-financials",
   "corporate",
@@ -200,6 +204,8 @@ function PageRenderer() {
         return <ChatbotLogsScreen />;
       case "catering-ai-config":
         return <CateringAiConfigScreen />;
+      case "catering-settings":
+        return <CateringSettingsScreen />;
       case "feedback-issues":
         return <FeedbackIssuesScreen />;
       case "catering-financials":
@@ -243,7 +249,7 @@ function PageRenderer() {
       case "partner-spaces":
         return <PartnerSpacesScreen />;
       case "cache":
-        return <CacheHandlingScreen />;
+        return <CacheControlScreen />;
       case "home":
         if (adminMode === "coworking") return <CoworkingSpacesScreen />;
         if (adminMode === "prismo") return <PrismoDashboard />;

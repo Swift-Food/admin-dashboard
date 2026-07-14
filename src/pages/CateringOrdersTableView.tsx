@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import type { CateringOrder } from "../types/catering.types";
 import cateringService, { type SendPaymentLinkDto } from "../services/catering.service";
 import { Modal } from "../components/Modal";
+import { RefundModal } from "../components/refund/RefundModal";
+import { RefundHistoryList } from "../components/refund/RefundHistoryList";
 
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
   
@@ -21,6 +23,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     internalNote: "",
     preview: false,
   });
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundHistoryToken, setRefundHistoryToken] = useState(0);
   const [reviewForm, setReviewForm] = useState<{
     finalTotal: string;
     collectionTime: string;
@@ -285,10 +289,21 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     }
   };
 
+  const handleRefundIssued = () => {
+    setRefundHistoryToken((n) => n + 1);
+    if (onOrderUpdated) onOrderUpdated();
+  };
+
   const canSendPaymentLink =
     order.status === "restaurant_reviewed" ||
     order.status === "payment_link_sent";
   const canPreviewVAT = !["pending_review", "cancelled"].includes(order.status);
+  const canRefund =
+    order.status !== "cancelled" &&
+    (order.restaurants || []).some((r) => !r.hasRefund);
+  const canShowOtherActionButtons =
+    !showConfirmComplete && !showConfirmCancel && !showConfirmReview &&
+    (!["completed", "cancelled"].includes(order.status) || canRefund);
 
   const handlePreviewVAT = async () => {
     setIsLoadingVATPreview(true);
@@ -372,6 +387,49 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               </div>
             </div>
           )}
+
+          {/* Customer Dashboard Access */}
+          {order.sharedAccessUsers && order.sharedAccessUsers.length > 0 && (
+            <div className="bg-purple-50/60 border border-purple-200/70 rounded-xl px-4 py-3 mb-3">
+              <h3 className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider mb-2">Customer Dashboard Access</h3>
+              <div className="space-y-2">
+                {order.sharedAccessUsers.map((u, idx) => (
+                  <div key={u.accessToken || u.email || idx} className="flex items-center justify-between gap-3 bg-white border border-purple-100 rounded-lg px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{u.name || u.email}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {u.email}
+                        {u.role && <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-purple-100 text-purple-700">{u.role}</span>}
+                      </p>
+                    </div>
+                    {u.accessToken ? (
+                      <a
+                        href={`https://swiftfood.uk/event-order/view/${u.accessToken}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        View Customer Dashboard
+                      </a>
+                    ) : (
+                      <span className="flex-shrink-0 text-xs text-gray-400">No access link</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Refunds */}
+          <div className="mb-6">
+            <h3 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider mb-3">Refunds</h3>
+            <RefundHistoryList
+              orderId={order.id}
+              reloadToken={refundHistoryToken}
+              emptyMessage="No refunds issued on this order."
+            />
+          </div>
 
           {/* Financial Summary */}
           <div className="bg-gradient-to-br from-emerald-50 to-green-50/60 p-4 rounded-xl mb-3 border border-emerald-200/70">
@@ -947,9 +1005,24 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 )}
               </>
             )}
+
+            {/* Refund button - available for any order with restaurants to
+                refund, including completed ones (that's typically exactly
+                when a refund is needed - cancelled orders are excluded since
+                they were never fulfilled). */}
+            {canRefund &&
+              !showConfirmComplete && !showConfirmCancel && !showConfirmReview && (
+                <button
+                  onClick={() => setShowRefundModal(true)}
+                  className="flex-1 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+                >
+                  Refund
+                </button>
+              )}
+
             <button
               onClick={onClose}
-              className={`${["completed", "cancelled"].includes(order.status) || showConfirmComplete || showConfirmCancel || showConfirmReview ? "w-full" : "flex-1"} bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm`}
+              className={`${canShowOtherActionButtons ? "flex-1" : "w-full"} bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm`}
             >
               Close
             </button>
@@ -1067,6 +1140,13 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               </div>
             </div>
           </Modal>
+
+        <RefundModal
+          order={order as any}
+          open={showRefundModal}
+          onClose={() => setShowRefundModal(false)}
+          onIssued={handleRefundIssued}
+        />
       </div>
     </Modal>
   );
@@ -1074,6 +1154,214 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
 type SortColumn = "orderId" | "customer" | "restaurant" | "eventDate" | "guests" | "total" | "status" | "payment" | "createdAt";
 type SortDirection = "asc" | "desc";
+
+const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+const CalendarView = ({
+  orders,
+  onOrderClick,
+  getStatusColor,
+  formatCurrency,
+}: {
+  orders: CateringOrder[];
+  onOrderClick: (order: CateringOrder) => void;
+  getStatusColor: (status: string) => string;
+  formatCurrency: (amount?: number | string) => string;
+}) => {
+  const today = new Date();
+  const [calYear, setCalYear] = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  // Build a map of date string (YYYY-MM-DD) -> orders
+  const ordersByDate = orders.reduce<Record<string, CateringOrder[]>>((acc, order) => {
+    if (!order.eventDate) return acc;
+    const key = order.eventDate.slice(0, 10);
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(order);
+    return acc;
+  }, {});
+
+  const firstDayOfMonth = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
+    else setCalMonth(m => m - 1);
+    setSelectedDay(null);
+  };
+  const nextMonth = () => {
+    if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
+    else setCalMonth(m => m + 1);
+    setSelectedDay(null);
+  };
+
+  const selectedOrders = selectedDay ? (ordersByDate[selectedDay] || []) : [];
+
+  // Build grid cells: nulls for leading blanks, then day numbers
+  const cells: (number | null)[] = [
+    ...Array(firstDayOfMonth).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // Pad to full rows
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <div className="flex gap-4" style={{ minHeight: "520px" }}>
+      {/* Left: Calendar */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex-shrink-0" style={{ width: "480px" }}>
+        {/* Month nav */}
+        <div className="flex items-center justify-between mb-5">
+          <button onClick={prevMonth} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600 font-bold text-xl leading-none transition-colors">‹</button>
+          <span className="text-lg font-bold text-gray-900">{MONTH_NAMES[calMonth]} {calYear}</span>
+          <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600 font-bold text-xl leading-none transition-colors">›</button>
+        </div>
+
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-2">
+          {DAYS_OF_WEEK.map(d => (
+            <div key={d} className="text-center text-xs font-bold text-gray-400 uppercase tracking-wide py-1">{d}</div>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, idx) => {
+            if (day === null) return <div key={`blank-${idx}`} />;
+            const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const dayOrders = ordersByDate[dateStr] || [];
+            const count = dayOrders.length;
+            const isToday = dateStr === todayStr;
+            const isSelected = dateStr === selectedDay;
+
+            return (
+              <button
+                key={dateStr}
+                onClick={() => setSelectedDay(isSelected ? null : dateStr)}
+                className={`flex flex-col items-center justify-center rounded-xl py-2 transition-all
+                  ${isSelected ? "bg-blue-600 shadow-md" : isToday ? "bg-blue-50 border-2 border-blue-400" : count > 0 ? "hover:bg-blue-50" : "hover:bg-gray-50"}
+                `}
+                style={{ minHeight: "56px" }}
+              >
+                <span className={`text-base font-bold leading-tight
+                  ${isSelected ? "text-white" : isToday ? "text-blue-700" : count > 0 ? "text-gray-900" : "text-gray-400"}
+                `}>
+                  {day}
+                </span>
+                {count > 0 && (
+                  <span className={`mt-1 min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full text-xs font-bold leading-none
+                    ${isSelected ? "bg-blue-400 text-white" : "bg-blue-600 text-white"}
+                  `}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center gap-3">
+          <span className="flex items-center gap-1"><span className="font-bold text-blue-600">3</span> = orders on date</span>
+          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-blue-50 border border-blue-300 inline-block" /> = today</span>
+        </div>
+      </div>
+
+      {/* Right: Orders for selected day */}
+      <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+          {selectedDay ? (
+            <div>
+              <h3 className="text-base font-bold text-gray-900">
+                {new Date(selectedDay + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+              </h3>
+              <p className="text-sm text-gray-500 mt-0.5">{selectedOrders.length} order{selectedOrders.length !== 1 ? "s" : ""}</p>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-base font-bold text-gray-400">Select a date</h3>
+              <p className="text-sm text-gray-400 mt-0.5">Click a date on the calendar to see orders</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {!selectedDay && (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
+              <span className="text-4xl mb-3">📅</span>
+              <p className="text-sm">No date selected</p>
+            </div>
+          )}
+
+          {selectedDay && selectedOrders.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
+              <span className="text-4xl mb-3">📭</span>
+              <p className="text-sm">No orders on this date</p>
+              {!ordersByDate[selectedDay] && <p className="text-xs mt-1">(filtered out by current view settings)</p>}
+            </div>
+          )}
+
+          {selectedOrders.length > 0 && (
+            <div className="divide-y divide-gray-100">
+              {selectedOrders.map(order => {
+                const restaurants = order.restaurants || order.orderItems || [];
+                return (
+                  <div
+                    key={order.id}
+                    onClick={() => onOrderClick(order)}
+                    className="px-5 py-4 hover:bg-blue-50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-gray-900">#{order.id.slice(0, 8).toUpperCase()}</span>
+                          {order.orderReference && (
+                            <span className="text-xs text-gray-500">{order.orderReference}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-sm font-semibold text-gray-800">{order.customerName}</span>
+                          {!!(order as any).isCoworkingOrder && (
+                            <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700 border border-purple-300">Coworking</span>
+                          )}
+                          {order.partnerSpace && (
+                            <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">{order.partnerSpace.name}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">{order.customerEmail}</div>
+                        {restaurants.length > 0 && (
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {restaurants[0].restaurantName}{restaurants.length > 1 ? ` +${restaurants.length - 1} more` : ""}
+                          </div>
+                        )}
+                        {order.eventTime && (
+                          <div className="text-xs text-gray-500 mt-0.5">🕐 {order.eventTime}</div>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${getStatusColor(order.status)}`}>
+                          {order.status.replace(/_/g, " ").toUpperCase()}
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">{formatCurrency(order.customerFinalTotal)}</span>
+                        {order.paid ? (
+                          <span className="text-xs font-semibold text-green-700">✓ Paid</span>
+                        ) : (
+                          <span className="text-xs font-semibold text-gray-500">⏳ Unpaid</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CateringOrdersScreen = () => {
   const [allOrders, setAllOrders] = useState<CateringOrder[]>([]);
@@ -1083,6 +1371,7 @@ const CateringOrdersScreen = () => {
   const [selectedOrder, setSelectedOrder] = useState<CateringOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"active" | "completed" | "all">("active");
+  const [displayView, setDisplayView] = useState<"table" | "calendar">("table");
   const [sortColumn, setSortColumn] = useState<SortColumn>("status");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
@@ -1435,6 +1724,42 @@ const CateringOrdersScreen = () => {
           )}
         </div>
 
+        {/* Display view toggle */}
+        <div className="flex items-center mb-2">
+          <div className="flex gap-1 bg-white border-2 border-gray-200 rounded-lg p-0.5">
+            <button
+              onClick={() => setDisplayView("table")}
+              className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-all ${
+                displayView === "table"
+                  ? "bg-gray-800 text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              ☰ Table
+            </button>
+            <button
+              onClick={() => setDisplayView("calendar")}
+              className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-all ${
+                displayView === "calendar"
+                  ? "bg-gray-800 text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              📅 Calendar
+            </button>
+          </div>
+        </div>
+
+        {displayView === "calendar" && (
+          <CalendarView
+            orders={filteredOrders}
+            onOrderClick={handleOrderClick}
+            getStatusColor={getStatusColor}
+            formatCurrency={formatCurrency}
+          />
+        )}
+
+        {displayView === "table" && (
         <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1539,6 +1864,7 @@ const CateringOrdersScreen = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <CateringOrderDetailsModal

@@ -8,6 +8,9 @@ import type {
   AiPipelineVariant,
 } from "../../types/partner-spaces.types";
 import "./PartnerSpacesScreen.css";
+import CateringImageUpload from "../../components/CateringImageUpload";
+import ColorField from "../../components/ColorField/ColorField";
+import { uploadImage } from "../../services/imageUpload.service";
 
 // Mirrors the backend's @Matches regex on CreatePartnerSpaceDto.allowedOrigins.
 // scheme://host[:port], no path, no trailing slash.
@@ -48,6 +51,8 @@ const parseApiErrors = (
 
 interface CreateFormState extends CreatePartnerSpaceDto {
   allowedOrigins: string[];
+  logoImageUrl: string;
+  themePrimary: string;
 }
 
 const emptyCreate: CreateFormState = {
@@ -56,6 +61,8 @@ const emptyCreate: CreateFormState = {
   contactEmail: "",
   webhookUrl: "",
   allowedOrigins: [],
+  logoImageUrl: "",
+  themePrimary: "#fa43ad",
 };
 
 const WebhookDetails = () => (
@@ -206,6 +213,8 @@ const PartnerSpacesScreen = () => {
     isActive: boolean;
     aiChatEnabled: boolean;
     aiPipelineVariant: AiPipelineVariant;
+    logoImageUrl: string;
+    themePrimary: string;
   }>({
     name: "",
     slug: "",
@@ -215,6 +224,8 @@ const PartnerSpacesScreen = () => {
     isActive: true,
     aiChatEnabled: false,
     aiPipelineVariant: "legacy",
+    logoImageUrl: "",
+    themePrimary: "#fa43ad",
   });
   const [saving, setSaving] = useState(false);
   const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
@@ -222,6 +233,7 @@ const PartnerSpacesScreen = () => {
   const [copiedKey, setCopiedKey] = useState(false);
   const [showRotateConfirm, setShowRotateConfirm] = useState(false);
   const [rotating, setRotating] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const handleCopyKey = async () => {
     if (!selectedSpace) return;
@@ -231,6 +243,33 @@ const PartnerSpacesScreen = () => {
       setTimeout(() => setCopiedKey(false), 2000);
     } catch {
       setEditGeneralError("Could not copy to clipboard. Please copy the key manually.");
+    }
+  };
+
+  const handleLogoSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    apply: (url: string) => void,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
+    if (!allowed.includes(file.type)) {
+      alert("Please select a valid image (JPEG, PNG, WebP, GIF, or SVG)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Logo must be less than 5MB");
+      return;
+    }
+    try {
+      setUploadingLogo(true);
+      const url = await uploadImage(file);
+      apply(url);
+    } catch (err) {
+      alert(`Failed to upload logo: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = "";
     }
   };
 
@@ -248,6 +287,10 @@ const PartnerSpacesScreen = () => {
       isActive: editForm.isActive,
       aiChatEnabled: editForm.aiChatEnabled,
       aiPipelineVariant: editForm.aiPipelineVariant,
+      logoImageUrl: editForm.logoImageUrl || null,
+      theme: /^#[0-9a-fA-F]{6}$/.test(editForm.themePrimary)
+        ? { primary: editForm.themePrimary }
+        : null,
     };
 
     try {
@@ -279,6 +322,8 @@ const PartnerSpacesScreen = () => {
       isActive: space.isActive,
       aiChatEnabled: space.aiChatEnabled ?? false,
       aiPipelineVariant: space.aiPipelineVariant ?? "legacy",
+      logoImageUrl: space.logoImageUrl ?? "",
+      themePrimary: space.theme?.primary ?? "#fa43ad",
     });
     setEditFieldErrors({});
     setEditGeneralError(null);
@@ -321,6 +366,10 @@ const PartnerSpacesScreen = () => {
       contactEmail: createForm.contactEmail.trim(),
       ...(createForm.webhookUrl?.trim() ? { webhookUrl: createForm.webhookUrl.trim() } : {}),
       ...(createForm.allowedOrigins.length ? { allowedOrigins: createForm.allowedOrigins } : {}),
+      logoImageUrl: createForm.logoImageUrl || undefined,
+      theme: /^#[0-9a-fA-F]{6}$/.test(createForm.themePrimary)
+        ? { primary: createForm.themePrimary }
+        : undefined,
     };
 
     try {
@@ -570,6 +619,32 @@ const PartnerSpacesScreen = () => {
                     fieldError={createFieldErrors.allowedOrigins}
                   />
                 </div>
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">Logo</label>
+                  <CateringImageUpload
+                    imageUrl={createForm.logoImageUrl || undefined}
+                    isUploading={uploadingLogo}
+                    onImageSelect={(e) =>
+                      handleLogoSelect(e, (url) =>
+                        setCreateForm((p) => ({ ...p, logoImageUrl: url })),
+                      )
+                    }
+                    onImageRemove={() =>
+                      setCreateForm((p) => ({ ...p, logoImageUrl: "" }))
+                    }
+                  />
+                  <p className="ps-form-hint">
+                    Shown on the branded catering page header. Optional.
+                  </p>
+                </div>
+
+                <ColorField
+                  label="Accent color"
+                  value={createForm.themePrimary}
+                  onChange={(hex) => setCreateForm((p) => ({ ...p, themePrimary: hex }))}
+                  hint="Primary color applied to the branded catering widget."
+                />
               </div>
 
               <div className="ps-modal-actions">
@@ -684,6 +759,30 @@ const PartnerSpacesScreen = () => {
                   fieldError={editFieldErrors.allowedOrigins}
                 />
               </div>
+
+              <div className="ps-form-group">
+                <label className="ps-form-label">Logo</label>
+                <CateringImageUpload
+                  imageUrl={editForm.logoImageUrl || undefined}
+                  isUploading={uploadingLogo}
+                  onImageSelect={(e) =>
+                    handleLogoSelect(e, (url) =>
+                      setEditForm((p) => ({ ...p, logoImageUrl: url })),
+                    )
+                  }
+                  onImageRemove={() => setEditForm((p) => ({ ...p, logoImageUrl: "" }))}
+                />
+                <p className="ps-form-hint">
+                  Shown on the branded catering page header. Optional.
+                </p>
+              </div>
+
+              <ColorField
+                label="Accent color"
+                value={editForm.themePrimary}
+                onChange={(hex) => setEditForm((p) => ({ ...p, themePrimary: hex }))}
+                hint="Primary color applied to the branded catering widget."
+              />
 
               <p className="ps-section-label">Publishable Key</p>
               <div className="ps-key-box">

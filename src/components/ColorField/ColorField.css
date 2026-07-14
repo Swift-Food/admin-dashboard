@@ -1,0 +1,20 @@
+.color-field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.color-field-swatch {
+  width: 42px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.color-field-hex {
+  max-width: 140px;
+}

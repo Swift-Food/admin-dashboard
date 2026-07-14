@@ -3,6 +3,10 @@
  *  pipeline. Flag-gated rollout — flip per partner via the admin form. */
 export type AiPipelineVariant = 'legacy' | 'pipeline_v1';
 
+export interface PartnerSpaceTheme {
+  primary?: string;
+}
+
 export interface PartnerSpace {
   id: string;
   name: string;
@@ -14,6 +18,8 @@ export interface PartnerSpace {
   contactEmail: string;
   webhookUrl: string | null;
   allowedOrigins: string[];
+  logoImageUrl: string | null;
+  theme: PartnerSpaceTheme | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +32,8 @@ export interface CreatePartnerSpaceDto {
   allowedOrigins?: string[];
   aiChatEnabled?: boolean;
   aiPipelineVariant?: AiPipelineVariant;
+  logoImageUrl?: string;
+  theme?: PartnerSpaceTheme;
 }
 
 export interface UpdatePartnerSpaceDto {
@@ -37,4 +45,6 @@ export interface UpdatePartnerSpaceDto {
   isActive?: boolean;
   aiChatEnabled?: boolean;
   aiPipelineVariant?: AiPipelineVariant;
+  logoImageUrl?: string | null;
+  theme?: PartnerSpaceTheme | null;
 }

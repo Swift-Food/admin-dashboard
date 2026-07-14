@@ -263,7 +263,14 @@ const PartnerSpacesScreen = () => {
     }
     try {
       setUploadingLogo(true);
-      const url = await uploadImage(file);
+      // Read the file fully into memory and re-wrap it as a fresh File before
+      // uploading. Uploading a raw <input> File directly can transmit an empty
+      // body (sharp then fails with "Input Buffer is empty"); every other image
+      // uploader in this app uploads a re-wrapped in-memory File. Preserve the
+      // original mime type so PNG/SVG logos keep transparency.
+      const buffer = await file.arrayBuffer();
+      const safeFile = new File([buffer], file.name || "logo", { type: file.type });
+      const url = await uploadImage(safeFile);
       apply(url);
     } catch (err) {
       alert(`Failed to upload logo: ${err instanceof Error ? err.message : "Unknown error"}`);

@@ -10,7 +10,7 @@ import type {
 import "./PartnerSpacesScreen.css";
 import CateringImageUpload from "../../components/CateringImageUpload";
 import ColorField from "../../components/ColorField/ColorField";
-import { uploadImage } from "../../services/imageUpload.service";
+import { uploadImage } from "../../services/bundles.service";
 
 // Mirrors the backend's @Matches regex on CreatePartnerSpaceDto.allowedOrigins.
 // scheme://host[:port], no path, no trailing slash.

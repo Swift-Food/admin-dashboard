@@ -64,6 +64,20 @@ const fetchPreviewVatPdf = async (orderId: string): Promise<Blob> => {
   return res.data as Blob;
 };
 
+export type VatDocumentType = "receipts" | "supplier-invoices";
+
+const downloadVatDocumentsZip = async (
+  from: string,
+  to: string,
+  types: VatDocumentType[]
+): Promise<Blob> => {
+  const res = await http.get("catering-orders/admin/vat-documents-zip", {
+    params: { from, to, types: types.join(",") },
+    responseType: "blob",
+  });
+  return res.data as Blob;
+};
+
 export default {
   getOrders,
   reviewOrder,
@@ -72,4 +86,5 @@ export default {
   completeOrder,
   bulkUpdateAdminNotes,
   fetchPreviewVatPdf,
+  downloadVatDocumentsZip,
 };

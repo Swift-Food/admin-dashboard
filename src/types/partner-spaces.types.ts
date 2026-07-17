@@ -29,6 +29,8 @@ export interface CreatePartnerSpaceDto {
   name: string;
   slug: string;
   contactEmail: string;
+  adminEmail: string;
+  adminName: string;
   webhookUrl?: string;
   allowedOrigins?: string[];
   aiChatEnabled?: boolean;

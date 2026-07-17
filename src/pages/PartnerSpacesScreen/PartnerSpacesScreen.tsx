@@ -59,6 +59,8 @@ const emptyCreate: CreateFormState = {
   name: "",
   slug: "",
   contactEmail: "",
+  adminEmail: "",
+  adminName: "",
   webhookUrl: "",
   allowedOrigins: [],
   logoImageUrl: "",
@@ -385,6 +387,8 @@ const PartnerSpacesScreen = () => {
       name: createForm.name.trim(),
       slug: createForm.slug.trim(),
       contactEmail: createForm.contactEmail.trim(),
+      adminEmail: createForm.adminEmail.trim(),
+      adminName: createForm.adminName.trim(),
       ...(createForm.webhookUrl?.trim() ? { webhookUrl: createForm.webhookUrl.trim() } : {}),
       ...(createForm.allowedOrigins.length ? { allowedOrigins: createForm.allowedOrigins } : {}),
       logoImageUrl: createForm.logoImageUrl || undefined,
@@ -642,6 +646,40 @@ const PartnerSpacesScreen = () => {
                   {createFieldErrors.contactEmail && (
                     <p className="ps-field-error">{createFieldErrors.contactEmail}</p>
                   )}
+                </div>
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">
+                    Partner Admin Name <span className="ps-required">*</span>
+                  </label>
+                  <input
+                    className={`ps-form-input${createFieldErrors.adminName ? " ps-input-error" : ""}`}
+                    value={createForm.adminName}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, adminName: e.target.value }))}
+                    placeholder="e.g. Jane Smith"
+                  />
+                  {createFieldErrors.adminName && (
+                    <p className="ps-field-error">{createFieldErrors.adminName}</p>
+                  )}
+                </div>
+
+                <div className="ps-form-group">
+                  <label className="ps-form-label">
+                    Partner Admin Login Email <span className="ps-required">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    className={`ps-form-input${createFieldErrors.adminEmail ? " ps-input-error" : ""}`}
+                    value={createForm.adminEmail}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, adminEmail: e.target.value }))}
+                    placeholder="admin@venue.com"
+                  />
+                  {createFieldErrors.adminEmail && (
+                    <p className="ps-field-error">{createFieldErrors.adminEmail}</p>
+                  )}
+                  <p className="ps-form-hint">
+                    This person receives an email to set their password and sign in to the partner dashboard.
+                  </p>
                 </div>
 
                 <div className="ps-form-group">

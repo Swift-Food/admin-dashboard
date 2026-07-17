@@ -20,6 +20,7 @@ export interface PartnerSpace {
   allowedOrigins: string[];
   logoImageUrl: string | null;
   theme: PartnerSpaceTheme | null;
+  commission: number;
   createdAt: string;
   updatedAt: string;
 }

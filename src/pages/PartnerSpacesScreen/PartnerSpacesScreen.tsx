@@ -234,6 +234,9 @@ const PartnerSpacesScreen = () => {
   const [showRotateConfirm, setShowRotateConfirm] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [commissionInput, setCommissionInput] = useState("0");
+  const [savingCommission, setSavingCommission] = useState(false);
+  const [commissionError, setCommissionError] = useState<string | null>(null);
 
   const handleCopyKey = async () => {
     if (!selectedSpace) return;
@@ -345,6 +348,8 @@ const PartnerSpacesScreen = () => {
     setEditGeneralError(null);
     setShowRotateConfirm(false);
     setCopiedKey(false);
+    setCommissionInput(String(Number(space.commission) || 0));
+    setCommissionError(null);
   };
 
   const closeDetail = () => {
@@ -427,6 +432,34 @@ const PartnerSpacesScreen = () => {
     }
   };
 
+  const handleSaveCommission = async () => {
+    if (!selectedSpace) return;
+    const value = Number(commissionInput);
+    if (Number.isNaN(value) || value < 0 || value > 100) {
+      setCommissionError("Commission must be a number between 0 and 100.");
+      return;
+    }
+    try {
+      setSavingCommission(true);
+      setCommissionError(null);
+      const result = await partnerSpacesService.updateCommission(
+        selectedSpace.id,
+        value
+      );
+      const commission = Number(result.commission) || 0;
+      setSelectedSpace((prev) => (prev ? { ...prev, commission } : prev));
+      setSpaces((prev) =>
+        prev.map((s) => (s.id === selectedSpace.id ? { ...s, commission } : s))
+      );
+      setCommissionInput(String(commission));
+    } catch (err) {
+      const { general } = parseApiErrors(err);
+      setCommissionError(general);
+    } finally {
+      setSavingCommission(false);
+    }
+  };
+
   const fetchSpaces = async () => {
     try {
       setLoading(true);
@@ -497,6 +530,7 @@ const PartnerSpacesScreen = () => {
                   <th>Slug</th>
                   <th>Contact Email</th>
                   <th>Origins</th>
+                  <th>Commission</th>
                   <th>Status</th>
                   <th>Created</th>
                 </tr>
@@ -522,6 +556,13 @@ const PartnerSpacesScreen = () => {
                           <span title={space.allowedOrigins.join(", ")}>
                             {originCount} {originCount === 1 ? "origin" : "origins"}
                           </span>
+                        )}
+                      </td>
+                      <td>
+                        {Number(space.commission) > 0 ? (
+                          `${Number(space.commission).toFixed(2)}%`
+                        ) : (
+                          <span className="ps-origin-count-empty">No fee</span>
                         )}
                       </td>
                       <td>
@@ -851,6 +892,47 @@ const PartnerSpacesScreen = () => {
                   <option value="legacy">legacy (single Pro call)</option>
                   <option value="pipeline_v1">pipeline_v1 (multi-stage Flash)</option>
                 </select>
+              </div>
+
+              <p className="ps-section-label" style={{ marginTop: "1.5rem" }}>Commission</p>
+              <div className="ps-commission-section">
+                <p className="ps-commission-current">
+                  Current rate:{" "}
+                  <strong>{Number(selectedSpace.commission).toFixed(2)}%</strong>{" "}
+                  <span
+                    className={`ps-badge ${
+                      Number(selectedSpace.commission) > 0 ? "ps-badge-active" : "ps-badge-inactive"
+                    }`}
+                  >
+                    {Number(selectedSpace.commission) > 0 ? "Active" : "Disabled"}
+                  </span>
+                </p>
+                <div className="ps-commission-input-row">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    className={`ps-form-input${commissionError ? " ps-input-error" : ""}`}
+                    value={commissionInput}
+                    onChange={(e) => {
+                      setCommissionInput(e.target.value);
+                      if (commissionError) setCommissionError(null);
+                    }}
+                  />
+                  <span className="ps-commission-percent">%</span>
+                  <button
+                    type="button"
+                    className="ps-btn ps-btn-sm ps-btn-secondary"
+                    disabled={savingCommission}
+                    onClick={handleSaveCommission}
+                  >
+                    {savingCommission ? "Saving..." : "Save commission"}
+                  </button>
+                </div>
+                {commissionError && (
+                  <p className="ps-field-error">{commissionError}</p>
+                )}
               </div>
 
               <p className="ps-section-label" style={{ marginTop: "1.5rem" }}>Danger Zone</p>

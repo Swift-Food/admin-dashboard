@@ -408,6 +408,39 @@
   gap: 0.5rem;
 }
 
+/* Commission */
+.ps-commission-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.ps-commission-current {
+  font-size: 0.875rem;
+  color: #374151;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ps-commission-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ps-commission-input-row .ps-form-input {
+  width: 100px;
+  flex: none;
+}
+
+.ps-commission-percent {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
 /* Section separator */
 .ps-section-label {
   font-size: 0.75rem;

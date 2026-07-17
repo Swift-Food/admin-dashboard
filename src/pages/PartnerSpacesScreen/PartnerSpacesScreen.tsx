@@ -235,6 +235,8 @@ const PartnerSpacesScreen = () => {
   const [copiedKey, setCopiedKey] = useState(false);
   const [showRotateConfirm, setShowRotateConfirm] = useState(false);
   const [rotating, setRotating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [commissionInput, setCommissionInput] = useState("0");
   const [savingCommission, setSavingCommission] = useState(false);
@@ -349,6 +351,7 @@ const PartnerSpacesScreen = () => {
     setEditFieldErrors({});
     setEditGeneralError(null);
     setShowRotateConfirm(false);
+    setShowDeleteConfirm(false);
     setCopiedKey(false);
     setCommissionInput(String(Number(space.commission) || 0));
     setCommissionError(null);
@@ -357,6 +360,7 @@ const PartnerSpacesScreen = () => {
   const closeDetail = () => {
     setSelectedSpace(null);
     setShowRotateConfirm(false);
+    setShowDeleteConfirm(false);
   };
 
   const openCreate = () => {
@@ -433,6 +437,29 @@ const PartnerSpacesScreen = () => {
       setShowRotateConfirm(false);
     } finally {
       setRotating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedSpace) return;
+    try {
+      setDeleting(true);
+      setEditGeneralError(null);
+      await partnerSpacesService.remove(selectedSpace.id);
+      closeDetail();
+      fetchSpaces().catch(() => {
+        setError("Partner deleted, but failed to refresh the list. Please reload.");
+      });
+    } catch (err) {
+      const anyErr = err as any;
+      const msg =
+        anyErr?.response?.data?.message ||
+        anyErr?.message ||
+        "Failed to delete partner";
+      setEditGeneralError(typeof msg === "string" ? msg : "Failed to delete partner");
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1004,6 +1031,43 @@ const PartnerSpacesScreen = () => {
                       onClick={handleRotateKey}
                     >
                       {rotating ? "Rotating..." : "Confirm Rotate"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!showDeleteConfirm ? (
+                <button
+                  type="button"
+                  className="ps-btn ps-btn-danger ps-btn-sm"
+                  style={{ marginTop: "0.75rem" }}
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 size={14} />
+                  Delete Partner
+                </button>
+              ) : (
+                <div className="ps-rotate-warning">
+                  <p className="ps-rotate-warning-text">
+                    This removes the partner from the dashboard and disables
+                    their embed and login. Order history is preserved.
+                  </p>
+                  <div className="ps-rotate-actions">
+                    <button
+                      type="button"
+                      className="ps-btn ps-btn-sm ps-btn-secondary"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={deleting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="ps-btn ps-btn-sm ps-btn-danger"
+                      disabled={deleting}
+                      onClick={handleDelete}
+                    >
+                      {deleting ? "Deleting..." : "Delete Partner"}
                     </button>
                   </div>
                 </div>

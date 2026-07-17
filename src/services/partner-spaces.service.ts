@@ -45,6 +45,10 @@ const partnerSpacesService = {
     );
     return { commission: Number(data.commission) || 0 };
   },
+
+  remove: async (id: string): Promise<void> => {
+    await http.delete(`/admin/partner-spaces/${id}`);
+  },
 };
 
 export default partnerSpacesService;

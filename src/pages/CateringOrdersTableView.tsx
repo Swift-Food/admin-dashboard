@@ -96,6 +96,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
         - Number(session.promotionDiscount || 0);
       total += sessionTotal;
     }
+    // Venue Service Fee (partner commission) is order-level and part of finalTotal
+    total += Number(order.partnerCommissionFee || 0);
     return total;
   })();
 
@@ -160,9 +162,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
     setIsReviewing(true);
     try {
+      // Only send a finalTotal when the admin explicitly typed a custom one.
+      // The backend derives the total (incl. Venue Service Fee) itself; sending
+      // the client-side computed total would be pinned as a manualAdjustment.
       const finalTotal = reviewForm.finalTotal
         ? parseFloat(reviewForm.finalTotal)
-        : computedTotal;
+        : undefined;
   
       // Convert single session time to per-restaurant format for the backend
       const sessionRestaurantCollectionTimes: { [sessionId: string]: { [restaurantId: string]: string } } = {};
@@ -199,7 +204,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
       await cateringService.reviewOrder({
         orderId: order.id,
-        finalTotal: typeof finalTotal === 'string' ? parseFloat(finalTotal) : finalTotal,
+        finalTotal,
         collectionTime: reviewForm.collectionTime || undefined,
         sessionRestaurantCollectionTimes,
         sessionDeliveryFeeOverrides: Object.keys(sessionDeliveryFeeOverrides).length > 0

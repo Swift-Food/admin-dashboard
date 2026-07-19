@@ -133,6 +133,8 @@ const CateringOrderDetailsModal = ({
         - Number(session.promotionDiscount || 0);
       total += sessionTotal;
     }
+    // Venue Service Fee (partner commission) is order-level and part of finalTotal
+    total += Number(order.partnerCommissionFee || 0);
     return total;
   })();
 
@@ -246,9 +248,12 @@ const CateringOrderDetailsModal = ({
         }
       }
 
+      // No finalTotal here: there is no editable total in this modal, and the
+      // backend's single total authority derives the same number from the
+      // delivery overrides (sending a stale client-side total would be pinned
+      // as a manualAdjustment and could cancel the Venue Service Fee).
       await cateringService.reviewOrder({
         orderId: order.id,
-        finalTotal: computedTotal,
         sessionRestaurantCollectionTimes,
         sessionDeliveryFeeOverrides: Object.keys(sessionDeliveryFeeOverrides).length > 0
           ? sessionDeliveryFeeOverrides
@@ -581,6 +586,14 @@ const CateringOrderDetailsModal = ({
                   {formatCurrency(order.deliveryFee)}
                 </span>
               </div>
+              {parseFloat((order.partnerCommissionFee ?? 0).toString()) > 0 && (
+                <div className="flex justify-between">
+                  <span>Venue Service Fee:</span>
+                  <span className="font-medium">
+                    {formatCurrency(order.partnerCommissionFee)}
+                  </span>
+                </div>
+              )}
               {parseFloat(order.promoDiscount as string) > 0 && (
                 <div className="flex justify-between text-green-700">
                   <span>Promo Discount:</span>
@@ -1049,6 +1062,12 @@ const CateringOrderDetailsModal = ({
                     <span className="text-gray-700">Delivery Fee:</span>
                     <span className="font-medium text-gray-900">{formatCurrency(order.deliveryFee)}</span>
                   </div>
+                  {order.partnerCommissionFee && parseFloat(order.partnerCommissionFee.toString()) > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700">Venue Service Fee:</span>
+                      <span className="font-medium text-gray-900">{formatCurrency(order.partnerCommissionFee)}</span>
+                    </div>
+                  )}
                   {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
                     <div className="flex justify-between text-sm text-green-700">
                       <span>Promo Discount:</span>

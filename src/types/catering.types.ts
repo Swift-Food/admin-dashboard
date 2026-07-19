@@ -190,6 +190,9 @@ export interface CateringOrder {
   restaurantsTotalNet?: number;
   estimatedTotal?: number;
   finalTotal?: number;
+  /** Partner space commission ("Venue Service Fee") — included in finalTotal */
+  partnerCommissionFee?: number;
+  partnerCommissionRate?: number;
   stripePaymentIntentId?: string | null;
   stripeInvoiceId?: string | null;
   depositAmount?: number | string;

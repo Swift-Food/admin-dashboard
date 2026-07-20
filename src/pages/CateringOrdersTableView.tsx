@@ -464,6 +464,11 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                     Was {formatCurrency((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0) + parseFloat(order.promoDiscount.toString()))}
                   </p>
                 )}
+                {order.partnerCommissionFee && parseFloat(order.partnerCommissionFee.toString()) > 0 && (
+                  <p className="text-[11px] text-emerald-600 mt-0.5">
+                    incl. Venue Service Fee {formatCurrency(order.partnerCommissionFee)}
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mb-0.5">Net Commission</p>

@@ -528,8 +528,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {isCatering && (
-            <select
+          {isCatering ? <select
               className="filter-select"
               value={filterRestaurant}
               onChange={(e) => setFilterRestaurant(e.target.value)}
@@ -540,8 +539,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                   {r.name}
                 </option>
               ))}
-            </select>
-          )}
+            </select> : null}
           <select
             className="filter-select"
             value={filterStatus}
@@ -572,8 +570,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
         ) : (
           Array.from(groupedBundles.entries()).map(([groupKey, group]) => (
             <div key={groupKey} className="bundle-group">
-              {isCatering && (
-                <div className="bundle-group-header">
+              {isCatering ? <div className="bundle-group-header">
                   <div
                     className="bundle-group-title"
                     onClick={() => toggleGroupCollapsed(groupKey)}
@@ -615,8 +612,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                       </button>
                     )}
                   </div>
-                </div>
-              )}
+                </div> : null}
 
               {!collapsedGroups.has(groupKey) && (
                 <div className="bundle-group-items">
@@ -652,17 +648,13 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                                 {bundle.isActive ? "Active" : "Inactive"}
                               </span>
                             </div>
-                            {bundle.description && (
-                              <p className="bundle-description">
+                            {bundle.description ? <p className="bundle-description">
                                 {bundle.description}
-                              </p>
-                            )}
+                              </p> : null}
                             <div className="bundle-meta">
-                              {!isCatering && bundle.restaurantName && (
-                                <span className="bundle-restaurant">
+                              {!isCatering && bundle.restaurantName ? <span className="bundle-restaurant">
                                   {bundle.restaurantName}
-                                </span>
-                              )}
+                                </span> : null}
                               <span className="bundle-price">
                                 £{bundle.pricePerPerson}/person
                               </span>
@@ -740,8 +732,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
         )}
       </div>
 
-      {showModal && (
-        <div className="modal-overlay" onClick={closeModal}>
+      {showModal ? <div className="modal-overlay" onClick={closeModal}>
           <div
             className="modal-content large"
             onClick={(e) => e.stopPropagation()}
@@ -773,8 +764,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
               </div>
 
               {/* Restaurant selector for catering bundles */}
-              {isCatering && (
-                <div className="form-group">
+              {isCatering ? <div className="form-group">
                   <label className="form-label">
                     Restaurant <span className="required">*</span>
                   </label>
@@ -791,19 +781,15 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                       </option>
                     ))}
                   </select>
-                  {editingBundle && (
-                    <p className="form-hint">
+                  {editingBundle ? <p className="form-hint">
                       Restaurant cannot be changed after creation
-                    </p>
-                  )}
-                </div>
-              )}
+                    </p> : null}
+                </div> : null}
 
               <div className="form-group">
                 <label className="form-label">Bundle Image</label>
                 <div className="image-upload-section">
-                  {formData.imageUrl && (
-                    <div className="image-preview-container">
+                  {formData.imageUrl ? <div className="image-preview-container">
                       <img
                         src={formData.imageUrl}
                         alt="Bundle preview"
@@ -819,8 +805,7 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                         <X size={14} />
                         Remove
                       </button>
-                    </div>
-                  )}
+                    </div> : null}
                   <div className="image-upload-controls">
                     <input
                       ref={fileInputRef}
@@ -921,18 +906,16 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
                     type="button"
                     className="btn btn-sm btn-secondary"
                     onClick={handleAddItem}
-                    disabled={isCatering && !formData.restaurantId}
+                    disabled={!!isCatering && !formData.restaurantId}
                   >
                     <Plus size={16} />
                     Add Item
                   </button>
                 </div>
 
-                {isCatering && !formData.restaurantId && (
-                  <div className="empty-items">
+                {isCatering && !formData.restaurantId ? <div className="empty-items">
                     <p>Select a restaurant first to add menu items.</p>
-                  </div>
-                )}
+                  </div> : null}
 
                 {(!isCatering || formData.restaurantId) &&
                 formData.items.length === 0 ? (
@@ -1025,17 +1008,14 @@ const BundlesScreen = ({ bundleType }: BundlesScreenProps) => {
               </div>
             </form>
           </div>
-        </div>
-      )}
+        </div> : null}
 
-      {imageToCrop && (
-        <ImageCropper
+      {imageToCrop ? <ImageCropper
           imageSrc={imageToCrop}
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
           aspectRatio={4 / 3}
-        />
-      )}
+        /> : null}
     </div>
   );
 };

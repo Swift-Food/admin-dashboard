@@ -248,11 +248,9 @@ const CorporateOrderDetailsModal = ({
                 <span>{formatCurrency(order.customerFinalTotal)}</span>
               </div>
             </div>
-            {order.paidAt && (
-              <div className="mt-3 text-sm text-green-700 font-medium">
+            {order.paidAt ? <div className="mt-3 text-sm text-green-700 font-medium">
                 Paid: {new Date(order.paidAt).toLocaleString()}
-              </div>
-            )}
+              </div> : null}
           </div>
 
           {/* Restaurant Breakdown */}
@@ -318,11 +316,9 @@ const CorporateOrderDetailsModal = ({
                           <p className="text-sm text-gray-600">
                             {subOrder.employeeEmail}
                           </p>
-                          {subOrder.jobTitle && (
-                            <p className="text-xs text-gray-500">
+                          {subOrder.jobTitle ? <p className="text-xs text-gray-500">
                               {subOrder.jobTitle}
-                            </p>
-                          )}
+                            </p> : null}
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-gray-900">
@@ -333,19 +329,15 @@ const CorporateOrderDetailsModal = ({
                           </p>
                         </div>
                       </div>
-                      {subOrder.specialInstructions && (
-                        <p className="text-sm text-gray-700 italic mt-2">
+                      {subOrder.specialInstructions ? <p className="text-sm text-gray-700 italic mt-2">
                           Note: {subOrder.specialInstructions}
-                        </p>
-                      )}
+                        </p> : null}
                       {subOrder.dietaryRestrictions &&
-                        subOrder.dietaryRestrictions.length > 0 && (
-                          <div className="mt-2">
+                        subOrder.dietaryRestrictions.length > 0 ? <div className="mt-2">
                             <p className="text-xs text-gray-600">
                               Dietary: {subOrder.dietaryRestrictions.join(", ")}
                             </p>
-                          </div>
-                        )}
+                          </div> : null}
                     </div>
                   ))}
                 </div>
@@ -354,32 +346,25 @@ const CorporateOrderDetailsModal = ({
           })()}
 
           {/* Delivery Info */}
-          {(order.driverId || order.trackingUrl) && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+          {(order.driverId || order.trackingUrl) ? <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
               <h3 className="font-semibold text-yellow-900 mb-2">
                 Delivery Info
               </h3>
-              {order.driverId && (
-                <p className="text-sm text-yellow-800">
+              {order.driverId ? <p className="text-sm text-yellow-800">
                   Driver ID: {order.driverId}
-                </p>
-              )}
-              {order.trackingUrl && (
-                <a
+                </p> : null}
+              {order.trackingUrl ? <a
                   href={order.trackingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-blue-600 underline hover:text-blue-800"
                 >
                   Track Order
-                </a>
-              )}
-            </div>
-          )}
+                </a> : null}
+            </div> : null}
 
           {/* Approval Info */}
-          {order.approvedBy && order.approvedAt && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          {order.approvedBy && order.approvedAt ? <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
               <h3 className="font-semibold mb-2 text-gray-900">
                 Approval Info
               </h3>
@@ -389,8 +374,7 @@ const CorporateOrderDetailsModal = ({
               <p className="text-sm text-gray-700">
                 Approved at: {new Date(order.approvedAt).toLocaleString()}
               </p>
-            </div>
-          )}
+            </div> : null}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
@@ -401,8 +385,7 @@ const CorporateOrderDetailsModal = ({
               Close
             </button>
 
-            {canUpdateStatus && (
-              <button
+            {canUpdateStatus ? <button
                 onClick={() => {
                   setStatusForm({
                     status: "" as CorporateOrderStatusType,
@@ -415,8 +398,7 @@ const CorporateOrderDetailsModal = ({
                 className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
               >
                 Update Status
-              </button>
-            )}
+              </button> : null}
           </div>
         </div>
       </div>
@@ -607,11 +589,9 @@ const CorporateOrderCard = ({
 
       <div className="flex justify-between items-center">
         <OrderTimer createdAt={order.createdAt} />
-        {order.paid && (
-          <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+        {order.paid ? <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
             PAID
-          </span>
-        )}
+          </span> : null}
       </div>
     </div>
   );

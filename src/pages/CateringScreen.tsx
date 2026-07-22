@@ -437,16 +437,14 @@ const CateringOrderDetailsModal = ({
           </div>
 
           {/* Special Requirements */}
-          {order.specialRequirements && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+          {order.specialRequirements ? <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
               <h3 className="font-semibold text-yellow-900 mb-2">
                 Special Requirements
               </h3>
               <p className="text-sm text-yellow-800">
                 {order.specialRequirements}
               </p>
-            </div>
-          )}
+            </div> : null}
 
           {/* Order Items */}
           {(() => {
@@ -473,8 +471,7 @@ const CateringOrderDetailsModal = ({
                           {session.orderItems.map((item, idx) => (
                             <div key={idx} className="border-l-4 border-blue-300 pl-4 py-2 bg-blue-50">
                               <h5 className="font-medium text-blue-900 mb-2">{item.restaurantName}</h5>
-                              {item.menuItems && item.menuItems.length > 0 && (
-                                <div className="space-y-1">
+                              {item.menuItems && item.menuItems.length > 0 ? <div className="space-y-1">
                                   {item.menuItems
                                     .filter((menuItem) => menuItem != null)
                                     .map((menuItem, menuIdx) => {
@@ -486,13 +483,10 @@ const CateringOrderDetailsModal = ({
                                         </div>
                                       );
                                     })}
-                                </div>
-                              )}
-                              {item.specialInstructions && (
-                                <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
+                                </div> : null}
+                              {item.specialInstructions ? <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
                                   <p className="text-sm text-yellow-900 italic">{item.specialInstructions}</p>
-                                </div>
-                              )}
+                                </div> : null}
                             </div>
                           ))}
                         </div>
@@ -521,8 +515,7 @@ const CateringOrderDetailsModal = ({
                       <h4 className="font-medium text-blue-900 mb-2">
                         {item.restaurantName}
                       </h4>
-                      {item.menuItems && item.menuItems.length > 0 && (
-                        <div className="space-y-1">
+                      {item.menuItems && item.menuItems.length > 0 ? <div className="space-y-1">
                           {item.menuItems
                             .filter((menuItem) => menuItem != null)
                             .map((menuItem, menuIdx) => {
@@ -546,15 +539,12 @@ const CateringOrderDetailsModal = ({
                               </div>
                             );
                           })}
-                        </div>
-                      )}
-                      {item.specialInstructions && (
-                        <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
+                        </div> : null}
+                      {item.specialInstructions ? <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-200">
                           <p className="text-sm text-yellow-900 italic">
                             {item.specialInstructions}
                           </p>
-                        </div>
-                      )}
+                        </div> : null}
                     </div>
                   ))}
                 </div>
@@ -618,8 +608,7 @@ const CateringOrderDetailsModal = ({
               </div>
             </div>
 
-            {order.paymentLinkUrl && (
-              <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
+            {order.paymentLinkUrl ? <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-200">
                 <p className="text-sm font-medium text-blue-900">
                   Payment Link
                 </p>
@@ -631,34 +620,25 @@ const CateringOrderDetailsModal = ({
                 >
                   {order.paymentLinkUrl}
                 </a>
-                {order.paymentLinkSentAt && (
-                  <p className="text-xs text-gray-600 mt-1">
+                {order.paymentLinkSentAt ? <p className="text-xs text-gray-600 mt-1">
                     Sent: {new Date(order.paymentLinkSentAt).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            )}
+                  </p> : null}
+              </div> : null}
 
-            {order.paidAt && (
-              <div className="mt-2 text-sm text-green-700 font-medium">
+            {order.paidAt ? <div className="mt-2 text-sm text-green-700 font-medium">
                 Paid: {new Date(order.paidAt).toLocaleString()}
-              </div>
-            )}
+              </div> : null}
           </div>
 
           {/* Admin Notes */}
-          {order.adminNotes && (
-            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+          {order.adminNotes ? <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
               <h3 className="font-semibold mb-2 text-gray-900">Admin Notes</h3>
               <p className="text-sm text-gray-800">{order.adminNotes}</p>
-              {order.reviewedBy && order.reviewedAt && (
-                <p className="text-xs text-gray-600 mt-2">
+              {order.reviewedBy && order.reviewedAt ? <p className="text-xs text-gray-600 mt-2">
                   Reviewed by {order.reviewedBy} on{" "}
                   {new Date(order.reviewedAt).toLocaleString()}
-                </p>
-              )}
-            </div>
-          )}
+                </p> : null}
+            </div> : null}
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
@@ -669,8 +649,7 @@ const CateringOrderDetailsModal = ({
               Close
             </button>
 
-            {canReview && (
-              <button
+            {canReview ? <button
                 onClick={() => {
                   setReviewForm({
                     depositAmount: "",
@@ -685,8 +664,7 @@ const CateringOrderDetailsModal = ({
                 className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors"
               >
                 Review Order
-              </button>
-            )}
+              </button> : null}
 
             {/* Confirm Order for paid orders */}
             {order.status === "paid" && (
@@ -699,8 +677,7 @@ const CateringOrderDetailsModal = ({
               </button>
             )}
 
-            {canSendPaymentLink && (
-              <button
+            {canSendPaymentLink ? <button
                 onClick={() => {
                   setPaymentLinkForm({
                     daysUntilDue: 7,
@@ -714,26 +691,21 @@ const CateringOrderDetailsModal = ({
                 className="flex-1 min-w-[120px] bg-purple-500 hover:bg-purple-600 text-black font-medium py-3 px-4 rounded-lg transition-colors"
               >
                 Send Payment Link
-              </button>
-            )}
-            {canPreviewVAT && (
-              <button
+              </button> : null}
+            {canPreviewVAT ? <button
                 onClick={handlePreviewVAT}
                 disabled={isLoadingVATPreview}
                 className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
               >
                 {isLoadingVATPreview ? "Loading..." : "Preview VAT PDF"}
-              </button>
-            )}
-            {canCancelOrder && (
-              <button
+              </button> : null}
+            {canCancelOrder ? <button
                 onClick={() => setShowCancelConfirm(true)}
                 disabled={isCancelling}
                 className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
               >
                 {isCancelling ? "Cancelling..." : "Cancel Order"}
-              </button>
-            )}
+              </button> : null}
 
             <Modal open={showSendPaymentModal} onClose={() => setShowSendPaymentModal(false)} overlayOpacity={60} closeOnOverlayClick={false}>
               <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 my-4 max-h-[90vh] overflow-y-auto">
@@ -966,11 +938,9 @@ const CateringOrderDetailsModal = ({
                               {session.orderItems.length} restaurant{session.orderItems.length !== 1 ? "s" : ""}
                               {session.totalDeliveryPortions ? ` — ${session.totalDeliveryPortions} delivery portions` : ""}
                             </p>
-                            {session.requiresCustomQuote && (
-                              <span className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-900">
+                            {session.requiresCustomQuote ? <span className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-900">
                                 Custom quote needed (&gt;5 miles)
-                              </span>
-                            )}
+                              </span> : null}
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 uppercase font-semibold">Session Total</p>
@@ -1052,28 +1022,22 @@ const CateringOrderDetailsModal = ({
                     <span className="text-gray-700">Subtotal:</span>
                     <span className="font-medium text-gray-900">{formatCurrency(order.subtotal)}</span>
                   </div>
-                  {order.serviceCharge && parseFloat(order.serviceCharge.toString()) > 0 && (
-                    <div className="flex justify-between text-sm">
+                  {order.serviceCharge && parseFloat(order.serviceCharge.toString()) > 0 ? <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Service Charge:</span>
                       <span className="font-medium text-gray-900">{formatCurrency(order.serviceCharge)}</span>
-                    </div>
-                  )}
+                    </div> : null}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-700">Delivery Fee:</span>
                     <span className="font-medium text-gray-900">{formatCurrency(order.deliveryFee)}</span>
                   </div>
-                  {order.partnerCommissionFee && parseFloat(order.partnerCommissionFee.toString()) > 0 && (
-                    <div className="flex justify-between text-sm">
+                  {order.partnerCommissionFee && parseFloat(order.partnerCommissionFee.toString()) > 0 ? <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Venue Service Fee:</span>
                       <span className="font-medium text-gray-900">{formatCurrency(order.partnerCommissionFee)}</span>
-                    </div>
-                  )}
-                  {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
-                    <div className="flex justify-between text-sm text-green-700">
+                    </div> : null}
+                  {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 ? <div className="flex justify-between text-sm text-green-700">
                       <span>Promo Discount:</span>
                       <span className="font-medium">-{formatCurrency(order.promoDiscount)}</span>
-                    </div>
-                  )}
+                    </div> : null}
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200 mt-3">
                   <h4 className="text-sm font-bold text-gray-900 mb-2">Collection Time</h4>
@@ -1093,7 +1057,7 @@ const CateringOrderDetailsModal = ({
                       className="px-3 py-2 text-sm border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                     <span className="text-xs text-gray-500">
-                      {order.eventTime && `Event at ${order.eventTime}`}
+                      {order.eventTime ? `Event at ${order.eventTime}` : null}
                     </span>
                   </div>
                 </div>
@@ -1276,12 +1240,10 @@ const CateringOrderCard = ({
         <div className="flex items-center text-sm mt-1 text-gray-800">
           <Users size={14} className="mr-1 text-blue-600" />
           <span>{order.guestCount} guests</span>
-          {order.eventType && (
-            <>
+          {order.eventType ? <>
               <span className="mx-2">•</span>
               <span className="text-xs">{order.eventType}</span>
-            </>
-          )}
+            </> : null}
         </div>
       </div>
 

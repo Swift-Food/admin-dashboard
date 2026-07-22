@@ -369,8 +369,7 @@ const MiscellaneousScreen: React.FC = () => {
             )}
           </div>
 
-          {showOrderDropdown && (
-            <div
+          {showOrderDropdown ? <div
               style={{
                 position: "absolute",
                 top: "100%",
@@ -441,8 +440,7 @@ const MiscellaneousScreen: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            </div> : null}
           <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
             Leave empty to export last 100 orders
           </p>
@@ -488,8 +486,7 @@ const MiscellaneousScreen: React.FC = () => {
           </p>
         </div>
 
-        {error && (
-          <div
+        {error ? <div
             style={{
               background: "#fef2f2",
               border: "1px solid #fecaca",
@@ -501,8 +498,7 @@ const MiscellaneousScreen: React.FC = () => {
             }}
           >
             {error}
-          </div>
-        )}
+          </div> : null}
 
         <button
           onClick={handleDownloadReceipts}
@@ -633,8 +629,7 @@ const MiscellaneousScreen: React.FC = () => {
             more than one non-Swift restaurant. Single-restaurant orders
             skip this UI entirely so admins aren't clicking through
             unnecessary chrome. */}
-        {previewNeedsRestaurantPicker && (
-          <div style={{ marginBottom: 16 }}>
+        {previewNeedsRestaurantPicker ? <div style={{ marginBottom: 16 }}>
             <label
               style={{
                 display: "block",
@@ -705,11 +700,9 @@ const MiscellaneousScreen: React.FC = () => {
                 );
               })}
             </div>
-          </div>
-        )}
+          </div> : null}
         {previewSelectedOrder &&
-          previewOrderRestaurants.length === 1 && (
-            <div
+          previewOrderRestaurants.length === 1 ? <div
               style={{
                 marginBottom: 16,
                 fontSize: 12,
@@ -722,8 +715,7 @@ const MiscellaneousScreen: React.FC = () => {
                 {previewOrderRestaurants[0].restaurantName}
               </span>{" "}
               — per-restaurant previews will use this restaurant.
-            </div>
-          )}
+            </div> : null}
 
         {/* Invoice-type buttons */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -760,8 +752,7 @@ const MiscellaneousScreen: React.FC = () => {
                     }}
                   >
                     {type.label}
-                    {type.perRestaurant && previewSelectedRestaurant && (
-                      <span
+                    {type.perRestaurant && previewSelectedRestaurant ? <span
                         style={{
                           fontWeight: 500,
                           fontSize: 13,
@@ -770,8 +761,7 @@ const MiscellaneousScreen: React.FC = () => {
                         }}
                       >
                         · {previewSelectedRestaurant.restaurantName}
-                      </span>
-                    )}
+                      </span> : null}
                   </div>
                   <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
                     {needsRestaurant
@@ -794,8 +784,7 @@ const MiscellaneousScreen: React.FC = () => {
           })}
         </div>
 
-        {previewError && (
-          <div
+        {previewError ? <div
             style={{
               background: "#fef2f2",
               border: "1px solid #fecaca",
@@ -807,8 +796,7 @@ const MiscellaneousScreen: React.FC = () => {
             }}
           >
             {previewError}
-          </div>
-        )}
+          </div> : null}
       </div>
 
       <style>

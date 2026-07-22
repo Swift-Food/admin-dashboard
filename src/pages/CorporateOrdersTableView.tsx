@@ -116,11 +116,9 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
               </h3>
               <p className="text-lg font-semibold text-gray-900">{new Date(order.deliveryDate).toLocaleDateString()}</p>
               <p className="text-sm text-gray-600 mt-1">{new Date(order.requestedDeliveryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-              {order.deliveryAddress && (
-                <p className="text-sm text-gray-600 mt-3 leading-relaxed">
+              {order.deliveryAddress ? <p className="text-sm text-gray-600 mt-3 leading-relaxed">
                   {order.deliveryAddress.street}, {order.deliveryAddress.city}, {order.deliveryAddress.postcode}
-                </p>
-              )}
+                </p> : null}
             </div>
           </div>
 
@@ -162,8 +160,7 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
                       <p className="text-2xl font-bold text-gray-900">{formatCurrency(subOrder.customerTotal)}</p>
                     </div>
                   </div>
-                  {subOrder.restaurants && subOrder.restaurants.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
+                  {subOrder.restaurants && subOrder.restaurants.length > 0 ? <div className="mt-4 pt-4 border-t border-gray-200">
                       <p className="text-sm font-semibold text-gray-700 mb-2">Items:</p>
                       <div className="space-y-1">
                         {subOrder.restaurants.flatMap(restaurant =>
@@ -175,8 +172,7 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
                           ))
                         )}
                       </div>
-                    </div>
-                  )}
+                    </div> : null}
                 </div>
               ))}
             </div>
@@ -185,8 +181,7 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
 
         <div className="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 p-6 rounded-b-xl">
           {/* Confirmation dialog */}
-          {showConfirmAction && (
-            <div className={`mb-4 ${
+          {showConfirmAction ? <div className={`mb-4 ${
               availableActions.find(a => a.status === showConfirmAction)?.color === 'green' ? 'bg-green-50 border-green-300' :
               availableActions.find(a => a.status === showConfirmAction)?.color === 'red' ? 'bg-red-50 border-red-300' :
               availableActions.find(a => a.status === showConfirmAction)?.color === 'orange' ? 'bg-orange-50 border-orange-300' :
@@ -220,8 +215,7 @@ const CorporateOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: 
                   Cancel
                 </button>
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Action buttons */}
           <div className="flex gap-3">
@@ -597,7 +591,7 @@ const CorporateOrdersScreen = () => {
                     </td>
                     <td className="px-6 py-5">
                       <div className="text-sm font-semibold text-gray-900">{order.organizationName}</div>
-                      {order.orderReference && <div className="text-xs text-gray-500 mt-1">Ref: {order.orderReference}</div>}
+                      {order.orderReference ? <div className="text-xs text-gray-500 mt-1">Ref: {order.orderReference}</div> : null}
                     </td>
                     <td className="px-6 py-5">
                       {(() => {

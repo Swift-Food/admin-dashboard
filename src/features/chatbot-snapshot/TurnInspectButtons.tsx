@@ -53,13 +53,11 @@ export function TurnInspectButtons({ turnEntries }: TurnInspectButtonsProps) {
         </button>
       ))}
 
-      {openEntry && (
-        <JsonModal
+      {openEntry ? <JsonModal
           title={`${openEntry.kind} — ${openEntry.label}`}
           value={openEntry.value}
           onClose={() => setOpenIdx(null)}
-        />
-      )}
+        /> : null}
     </div>
   );
 }

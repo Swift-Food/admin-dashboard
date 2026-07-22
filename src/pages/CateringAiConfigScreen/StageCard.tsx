@@ -65,14 +65,12 @@ const StageCard: React.FC<StageCardProps> = ({
       </div>
     </div>
 
-    {tools && (
-      <ToolOverridesEditor
+    {tools ? <ToolOverridesEditor
         overrides={value.toolOverrides ?? {}}
         tools={tools}
         models={models}
         onChange={(toolOverrides) => onChange({ ...value, toolOverrides })}
-      />
-    )}
+      /> : null}
   </div>
 );
 

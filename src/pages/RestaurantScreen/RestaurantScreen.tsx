@@ -590,9 +590,7 @@ const RestaurantAdminDashboard = () => {
                           <div className="restaurant-name">
                             {restaurant.restaurant_name}
                           </div>
-                          {restaurant.featured && (
-                            <span className="featured-badge">Featured</span>
-                          )}
+                          {restaurant.featured ? <span className="featured-badge">Featured</span> : null}
                         </div>
                       </td>
                       <td>
@@ -912,8 +910,7 @@ const RestaurantAdminDashboard = () => {
                                           {formatCateringHours(restaurant.cateringOperatingHours)}
                                         </p>
                                       )}
-                                      {hoursEditorExpanded && (
-                                      <div className="hours-editor">
+                                      {hoursEditorExpanded ? <div className="hours-editor">
                                         {HOURS_DAYS.map((day) => {
                                           const dayData = hoursSchedule[day];
                                           return (
@@ -928,21 +925,18 @@ const RestaurantAdminDashboard = () => {
                                                   />
                                                   <span className="checkbox-label-text">{day}</span>
                                                 </label>
-                                                {dayData.enabled && (
-                                                  <button
+                                                {dayData.enabled ? <button
                                                     type="button"
                                                     onClick={() => addHoursSlot(day)}
                                                     className="hours-editor-add-slot"
                                                   >
                                                     + Add slot
-                                                  </button>
-                                                )}
+                                                  </button> : null}
                                               </div>
                                               {!dayData.enabled && (
                                                 <p className="hours-editor-closed">Closed</p>
                                               )}
-                                              {dayData.enabled &&
-                                                dayData.slots.map((slot, slotIdx) => (
+                                              {dayData.enabled ? dayData.slots.map((slot, slotIdx) => (
                                                   <div key={slotIdx} className="hours-editor-slot">
                                                     <select
                                                       value={slot.open}
@@ -981,12 +975,11 @@ const RestaurantAdminDashboard = () => {
                                                       </button>
                                                     )}
                                                   </div>
-                                                ))}
+                                                )) : null}
                                             </div>
                                           );
                                         })}
-                                      </div>
-                                      )}
+                                      </div> : null}
                                     </div>
 
                                     <div className="form-field full-width">
@@ -1023,8 +1016,7 @@ const RestaurantAdminDashboard = () => {
                                             : ""
                                         }
                                       />
-                                      {(pendingAddress || restaurant.address) && (
-                                        <div className="address-preview">
+                                      {(pendingAddress || restaurant.address) ? <div className="address-preview">
                                           <div className="address-preview-grid">
                                             <div className="address-preview-item">
                                               <span className="address-preview-label">Street</span>
@@ -1062,14 +1054,11 @@ const RestaurantAdminDashboard = () => {
                                               </span>
                                             </div>
                                           </div>
-                                          {pendingAddress && (
-                                            <div className="address-changed-badge">
+                                          {pendingAddress ? <div className="address-changed-badge">
                                               <MapPin size={12} />
                                               Address updated — save to apply
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
+                                            </div> : null}
+                                        </div> : null}
                                     </div>
 
                                     <div className="form-field full-width">
@@ -1086,8 +1075,7 @@ const RestaurantAdminDashboard = () => {
                                       />
                                     </div>
 
-                                    {isEditingShowOnSite && (
-                                      <div className="form-field full-width">
+                                    {isEditingShowOnSite ? <div className="form-field full-width">
                                         <label className="field-label">
                                           Catering Image
                                           <span className="field-hint">Image shown on catering menu</span>
@@ -1098,8 +1086,7 @@ const RestaurantAdminDashboard = () => {
                                           onImageSelect={handleImageSelect}
                                           onImageRemove={() => setEditForm({ ...editForm, images: "" })}
                                         />
-                                      </div>
-                                    )}
+                                      </div> : null}
                                   </div>
                                 </div>
                               ) : (
@@ -1125,16 +1112,14 @@ const RestaurantAdminDashboard = () => {
                                         {restaurant.fsa !== undefined && restaurant.fsa !== null
                                           ? `${restaurant.fsa}/5`
                                           : "N/A"}
-                                        {restaurant.fsaLink && (
-                                          <a
+                                        {restaurant.fsaLink ? <a
                                             href={restaurant.fsaLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="fsa-link"
                                           >
                                             <ExternalLink size={12} />
-                                          </a>
-                                        )}
+                                          </a> : null}
                                       </span>
                                     </div>
                                     <div className="setting-item">
@@ -1159,47 +1144,39 @@ const RestaurantAdminDashboard = () => {
                                         {formatCateringHours(restaurant.cateringOperatingHours)}
                                       </span>
                                     </div>
-                                    {restaurant.tags && restaurant.tags.length > 0 && (
-                                      <div className="setting-item full-width">
+                                    {restaurant.tags && restaurant.tags.length > 0 ? <div className="setting-item full-width">
                                         <span className="setting-label">Tags</span>
                                         <div className="tags-display">
                                           {restaurant.tags.map((tag, i) => (
                                             <span key={i} className="tag-chip tag-chip-readonly">{tag}</span>
                                           ))}
                                         </div>
-                                      </div>
-                                    )}
+                                      </div> : null}
                                   </div>
 
-                                  {restaurant.showOnSite && restaurant.images?.[0] && (
-                                    <div className="catering-image-display">
+                                  {restaurant.showOnSite && restaurant.images?.[0] ? <div className="catering-image-display">
                                       <span className="setting-label">Catering Image</span>
                                       <img
                                         src={restaurant.images[0]}
                                         alt="Catering"
                                         className="catering-display-img"
                                       />
-                                    </div>
-                                  )}
+                                    </div> : null}
 
-                                  {restaurant.restaurant_description && (
-                                    <div className="description-display">
+                                  {restaurant.restaurant_description ? <div className="description-display">
                                       <span className="setting-label">Description</span>
                                       <p className="description-text">{restaurant.restaurant_description}</p>
-                                    </div>
-                                  )}
+                                    </div> : null}
 
-                                  {restaurant.address && (
-                                    <div className="address-display">
+                                  {restaurant.address ? <div className="address-display">
                                       <MapPin size={14} />
                                       <span>
                                         {restaurant.address.addressLine1}
-                                        {restaurant.address.addressLine2 && `, ${restaurant.address.addressLine2}`}
-                                        {restaurant.address.city && `, ${restaurant.address.city}`}
-                                        {restaurant.address.zipcode && ` ${restaurant.address.zipcode}`}
+                                        {restaurant.address.addressLine2 ? `, ${restaurant.address.addressLine2}` : null}
+                                        {restaurant.address.city ? `, ${restaurant.address.city}` : null}
+                                        {restaurant.address.zipcode ? ` ${restaurant.address.zipcode}` : null}
                                       </span>
-                                    </div>
-                                  )}
+                                    </div> : null}
 
                                   <button
                                     onClick={() => setDeleteModalRestaurant(restaurant)}
@@ -1245,23 +1222,19 @@ const RestaurantAdminDashboard = () => {
         onCancel={() => setDeleteModalRestaurant(null)}
       />
 
-      {imageToCrop && (
-        <ImageCropper
+      {imageToCrop ? <ImageCropper
           imageSrc={imageToCrop}
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
           aspectRatio={16 / 9}
-        />
-      )}
+        /> : null}
 
-      {logoImageToCrop && (
-        <ImageCropper
+      {logoImageToCrop ? <ImageCropper
           imageSrc={logoImageToCrop}
           onCropComplete={handleLogoCropComplete}
           onCancel={handleLogoCropCancel}
           aspectRatio={1}
-        />
-      )}
+        /> : null}
     </div>
   );
 };

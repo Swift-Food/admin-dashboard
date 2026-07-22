@@ -210,8 +210,7 @@ export function FullSessionModal({ turns, generalFeedback, onClose }: FullSessio
                 background: 'var(--paper)',
               }}
             >
-              {generalFeedback && generalFeedback.length > 0 && (
-                <div style={{
+              {generalFeedback && generalFeedback.length > 0 ? <div style={{
                   marginBottom: 12,
                   padding: '10px 12px',
                   borderRadius: 10,
@@ -231,8 +230,7 @@ export function FullSessionModal({ turns, generalFeedback, onClose }: FullSessio
                   {generalFeedback.map((fb) => (
                     <FeedbackPill key={fb.id} fb={fb} />
                   ))}
-                </div>
-              )}
+                </div> : null}
               {normalised.map((turn) => (
                 <TurnRow
                   key={turn.index}
@@ -289,13 +287,11 @@ function SuggestionsPane({ turn }: { turn: NormalisedTurn | undefined }) {
               onSelect={setActiveMealIdx}
             />
           )}
-          {activeMeal && (
-            <MealSessionCard
+          {activeMeal ? <MealSessionCard
               key={`ms-${activeMeal.id ?? safeMealIdx}`}
               part={activeMeal}
               hideHeader={meals.length > 1}
-            />
-          )}
+            /> : null}
         </>
       )}
     </>
@@ -402,8 +398,7 @@ function MealPicker({
       </button>
 
       {/* Dropdown */}
-      {open && (
-        <div
+      {open ? <div
           role="listbox"
           style={{
             position: 'absolute',
@@ -499,8 +494,7 @@ function MealPicker({
               </button>
             );
           })}
-        </div>
-      )}
+        </div> : null}
     </div>
   );
 }
@@ -534,8 +528,7 @@ function FeedbackPill({ fb }: { fb: NonNullable<SessionTurn['feedback']>[number]
       }}>
         {fb.source}
       </span>
-      {fb.isAddressed && (
-        <span style={{
+      {fb.isAddressed ? <span style={{
           fontSize: '0.6rem',
           fontWeight: 600,
           padding: '1px 5px',
@@ -544,13 +537,10 @@ function FeedbackPill({ fb }: { fb: NonNullable<SessionTurn['feedback']>[number]
           color: '#047857',
         }}>
           addressed
-        </span>
-      )}
-      {fb.note && (
-        <span style={{ fontSize: '0.75rem', color: '#374151', fontStyle: 'italic' }}>
+        </span> : null}
+      {fb.note ? <span style={{ fontSize: '0.75rem', color: '#374151', fontStyle: 'italic' }}>
           &ldquo;{fb.note}&rdquo;
-        </span>
-      )}
+        </span> : null}
     </div>
   );
 }
@@ -597,7 +587,7 @@ function TurnRow({
       {turn.textParts.map((text, i) => (
         <TextBubble key={`bt-${i}`} sender="bot" text={text} clickToCopy={isSelected} />
       ))}
-      {turn.hasSuggestions && (() => {
+      {turn.hasSuggestions ? (() => {
         const count = turn.structuredParts.length + turn.mealSessions.length;
         return (
           <div
@@ -612,7 +602,7 @@ function TurnRow({
             {count} {count === 1 ? 'suggestion' : 'suggestions'} — click to view
           </div>
         );
-      })()}
+      })() : null}
       {turn.feedback.length > 0 && (
         <div style={{ marginTop: 8 }}>
           {turn.feedback.map((fb) => (

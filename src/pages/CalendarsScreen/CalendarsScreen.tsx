@@ -424,8 +424,7 @@ const CalendarsScreen: React.FC = () => {
       )}
 
       {/* Edit Modal */}
-      {showEditModal && selectedCalendar && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+      {showEditModal && selectedCalendar ? <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Edit Calendar</h2>
@@ -486,12 +485,10 @@ const CalendarsScreen: React.FC = () => {
                     <ImagePlus size={15} />
                     {uploadingCover ? "Uploading..." : "Upload Image"}
                   </label>
-                  {editCalendarImage && (
-                    <button type="button" className="btn btn-secondary" onClick={() => setEditCalendarImage(null)}>
+                  {editCalendarImage ? <button type="button" className="btn btn-secondary" onClick={() => setEditCalendarImage(null)}>
                       <ImageOff size={15} />
                       Remove
-                    </button>
-                  )}
+                    </button> : null}
                 </div>
               </div>
             </div>
@@ -562,12 +559,10 @@ const CalendarsScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && selectedCalendar && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+      {showDeleteModal && selectedCalendar ? <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Delete Calendar</h2>
@@ -613,17 +608,14 @@ const CalendarsScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
-      {imageToCrop && (
-        <ImageCropper
+      {imageToCrop ? <ImageCropper
           imageSrc={imageToCrop}
           onCropComplete={handleCalendarCoverCropComplete}
           onCancel={() => setImageToCrop(null)}
           aspectRatio={1}
-        />
-      )}
+        /> : null}
     </div>
   );
 };

@@ -719,8 +719,7 @@ const CategoriesScreen: React.FC = () => {
       </div>
 
       {/* Add Subcategory Modal */}
-      {showAddSubcategory && (
-        <div className="modal-overlay" onClick={() => setShowAddSubcategory(false)}>
+      {showAddSubcategory ? <div className="modal-overlay" onClick={() => setShowAddSubcategory(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Add Subcategory</h2>
             <div className="form-group">
@@ -749,12 +748,10 @@ const CategoriesScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Add by Group Title Modal */}
-      {showAddByGroupTitle && selectedSubcategory && (
-        <div className="modal-overlay" onClick={() => setShowAddByGroupTitle(false)}>
+      {showAddByGroupTitle && selectedSubcategory ? <div className="modal-overlay" onClick={() => setShowAddByGroupTitle(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Add Menu Items by Group Title</h2>
             <p className="modal-subtitle">
@@ -815,12 +812,10 @@ const CategoriesScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Move Menu Item Modal */}
-      {showMoveModal && selectedSubcategory && selectedMenuItem && (
-        <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
+      {showMoveModal && selectedSubcategory && selectedMenuItem ? <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Move Menu Item</h2>
             <p className="modal-subtitle">
@@ -859,12 +854,10 @@ const CategoriesScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Add Category Modal */}
-      {showAddCategory && (
-        <div className="modal-overlay" onClick={() => setShowAddCategory(false)}>
+      {showAddCategory ? <div className="modal-overlay" onClick={() => setShowAddCategory(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Add Category</h2>
             <div className="form-group">
@@ -902,11 +895,9 @@ const CategoriesScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
-      {showEditCategory && selectedCategory && (
-        <div
+      {showEditCategory && selectedCategory ? <div
           className="modal-overlay"
           onClick={closeEditCategoryModal}
         >
@@ -1007,17 +998,14 @@ const CategoriesScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
-      {imageToCrop && (
-        <ImageCropper
+      {imageToCrop ? <ImageCropper
           imageSrc={imageToCrop}
           onCropComplete={handleEditCategoryCropComplete}
           onCancel={() => setImageToCrop(null)}
           aspectRatio={1}
-        />
-      )}
+        /> : null}
     </div>
   );
 };

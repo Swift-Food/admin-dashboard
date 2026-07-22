@@ -252,8 +252,7 @@ const CoworkingSpacesScreen: React.FC = () => {
                                   </span>
                                 </div>
 
-                                {space.stripeAccountId && (
-                                  <div className="coworking-reset-stripe-section">
+                                {space.stripeAccountId ? <div className="coworking-reset-stripe-section">
                                     <button
                                       className="coworking-btn-reset-stripe"
                                       onClick={() =>
@@ -266,8 +265,7 @@ const CoworkingSpacesScreen: React.FC = () => {
                                       Clears Stripe account ID so the space can
                                       reconnect fresh.
                                     </p>
-                                  </div>
-                                )}
+                                  </div> : null}
                               </div>
                             </div>
                           </div>
@@ -289,8 +287,7 @@ const CoworkingSpacesScreen: React.FC = () => {
       </div>
 
       {/* Reset Stripe Confirmation Modal */}
-      {resetModalSpace && (
-        <div
+      {resetModalSpace ? <div
           className="coworking-modal-overlay"
           onClick={() => !resettingId && setResetModalSpace(null)}
         >
@@ -333,8 +330,7 @@ const CoworkingSpacesScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
     </div>
   );
 };

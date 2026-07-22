@@ -55,30 +55,23 @@ const CourierBookingSection = ({
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-gray-800">Courier (Pedivan)</h3>
-        {needsRebooking && (
-          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+        {needsRebooking ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
             Details changed — rebook needed
-          </span>
-        )}
+          </span> : null}
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 text-xs rounded px-3 py-2">
+      {error ? <div className="bg-red-50 border border-red-200 text-red-800 text-xs rounded px-3 py-2">
           {error}
-        </div>
-      )}
+        </div> : null}
 
-      {activeBooking && (
-        <div className="text-xs space-y-1 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+      {activeBooking ? <div className="text-xs space-y-1 bg-blue-50 border border-blue-200 rounded px-3 py-2">
           <p>
             <span className="font-semibold">Ref:</span>{" "}
             {activeBooking.pedivanReference ?? activeBooking.pedivanOrderId}
-            {activeBooking.quotedPrice && (
-              <span className="ml-2 font-semibold">
+            {activeBooking.quotedPrice ? <span className="ml-2 font-semibold">
                 {activeBooking.currency ?? "£"}
                 {activeBooking.quotedPrice}
-              </span>
-            )}
+              </span> : null}
           </p>
           <p>
             <span className="font-semibold">Pedivan status:</span>{" "}
@@ -92,16 +85,14 @@ const CourierBookingSection = ({
               : "never (no updates from Pedivan yet)"}
           </p>
           <div className="flex gap-2 pt-1">
-            {activeBooking.trackingUrl && (
-              <a
+            {activeBooking.trackingUrl ? <a
                 href={activeBooking.trackingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-2 py-1 rounded bg-blue-600 text-white font-semibold"
               >
                 Live tracking
-              </a>
-            )}
+              </a> : null}
             <button
               disabled={busy}
               onClick={() =>
@@ -128,8 +119,7 @@ const CourierBookingSection = ({
               Cancel courier
             </button>
           </div>
-          {riderPos && (
-            <p>
+          {riderPos ? <p>
               Rider at{" "}
               <a
                 href={`https://www.google.com/maps?q=${riderPos[0]},${riderPos[1]}`}
@@ -139,13 +129,10 @@ const CourierBookingSection = ({
               >
                 {riderPos[0].toFixed(5)}, {riderPos[1].toFixed(5)}
               </a>
-            </p>
-          )}
-        </div>
-      )}
+            </p> : null}
+        </div> : null}
 
-      {canBook && (
-        <div className="space-y-2">
+      {canBook ? <div className="space-y-2">
           <div className="flex gap-3">
             {(["small", "medium", "large"] as const).map((size) => (
               <label key={size} className="text-xs text-gray-700">
@@ -187,12 +174,10 @@ const CourierBookingSection = ({
             >
               Get price
             </button>
-            {price && (
-              <span className="text-xs font-semibold text-gray-700">
+            {price ? <span className="text-xs font-semibold text-gray-700">
                 {price.currency}
                 {price.price.toFixed(2)} ({price.miles.toFixed(1)} mi)
-              </span>
-            )}
+              </span> : null}
             <button
               disabled={busy}
               onClick={() =>
@@ -210,8 +195,7 @@ const CourierBookingSection = ({
               Book courier
             </button>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {bookings.length > (activeBooking ? 1 : 0) && (
         <details className="text-xs text-gray-600">

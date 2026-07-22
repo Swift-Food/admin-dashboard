@@ -143,8 +143,7 @@ const EventContinentsScreen: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {showAdd && (
-              <tr>
+            {showAdd ? <tr>
                 <td>
                   <input
                     type="text"
@@ -174,8 +173,7 @@ const EventContinentsScreen: React.FC = () => {
                     </button>
                   </div>
                 </td>
-              </tr>
-            )}
+              </tr> : null}
             {continents.map((c) => (
               <tr key={c.id}>
                 <td>

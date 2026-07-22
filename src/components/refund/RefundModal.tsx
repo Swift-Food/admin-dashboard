@@ -247,8 +247,7 @@ export function RefundModal({ order, open, onClose, onIssued }: Props) {
                 placeholder="0.00"
               />
             </div>
-            {selected && (
-              <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {selected ? <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-gray-500">
                   Up to {toCurrency(selected.customerTotal)}
                 </span>
@@ -264,8 +263,7 @@ export function RefundModal({ order, open, onClose, onIssued }: Props) {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              </div> : null}
           </div>
 
           {/* Reason */}
@@ -287,8 +285,7 @@ export function RefundModal({ order, open, onClose, onIssued }: Props) {
           </div>
 
           {/* Live preview */}
-          {selected && amountValid && (
-            <div className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm">
+          {selected && amountValid ? <div className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm">
               <div className="font-semibold text-purple-900 mb-1">
                 What will happen
               </div>
@@ -307,14 +304,11 @@ export function RefundModal({ order, open, onClose, onIssued }: Props) {
                   dashboards.
                 </li>
               </ul>
-            </div>
-          )}
+            </div> : null}
 
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
-            </div>
-          )}
+            </div> : null}
 
           {/* Refund history */}
           <div>

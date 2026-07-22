@@ -18,15 +18,13 @@ const DriverPicker: React.FC<DriverPickerProps> = ({
 
   return (
     <div className="outer-div">
-      {selectedDriver && (
-        <div className="selected-driver-display">
+      {selectedDriver ? <div className="selected-driver-display">
           <strong>Selected Driver:</strong>{" "}
           {selectedDriver.user?.username ||
             `Driver ${selectedDriver.id.slice(0, 8)}…`}
           <br />
           <small>ID: {selectedDriver.id}</small>
-        </div>
-      )}
+        </div> : null}
 
       <label className="driver_picker__label">Driver:</label>
       <select

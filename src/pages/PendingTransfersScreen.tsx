@@ -208,8 +208,7 @@ function CateringTable({ transfers }: { transfers: CateringTransfer[] }) {
                         {t.restaurantPayouts.length} restaurant
                         {t.restaurantPayouts.length !== 1 ? "s" : ""}
                       </button>
-                      {isExpanded && (
-                        <ul className="mt-2 space-y-1">
+                      {isExpanded ? <ul className="mt-2 space-y-1">
                           {t.restaurantPayouts.map((rp) => (
                             <li
                               key={rp.restaurantId}
@@ -221,8 +220,7 @@ function CateringTable({ transfers }: { transfers: CateringTransfer[] }) {
                               </span>
                             </li>
                           ))}
-                        </ul>
-                      )}
+                        </ul> : null}
                     </td>
                     <td className="px-4 py-3 text-gray-900 font-medium">
                       {formatGBP(t.totalRestaurantPayout)}

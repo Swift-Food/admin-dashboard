@@ -175,7 +175,7 @@ const RestaurantMultiSelect: React.FC<RestaurantMultiSelectProps> = ({
                     <span
                       className={`rms-check ${sel ? "rms-check-on" : ""}`}
                     >
-                      {sel && <Check size={12} strokeWidth={3} />}
+                      {sel ? <Check size={12} strokeWidth={3} /> : null}
                     </span>
                     <span className="rms-item-name">
                       {r.restaurant_name}

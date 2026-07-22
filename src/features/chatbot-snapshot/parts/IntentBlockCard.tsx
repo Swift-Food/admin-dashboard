@@ -61,9 +61,7 @@ export function IntentBlockCard({ part }: IntentBlockCardProps) {
         >
           {part.intent.phrase}
         </h3>
-        {part.intent.category && (
-          <span className="small-caps">{part.intent.category}</span>
-        )}
+        {part.intent.category ? <span className="small-caps">{part.intent.category}</span> : null}
       </div>
 
       {/* Picked-restaurant strip */}
@@ -80,8 +78,7 @@ export function IntentBlockCard({ part }: IntentBlockCardProps) {
             {selected.restaurant.cuisineTags.slice(0, 3).join(' · ')}
           </span>
         )}
-        {selected.pickedReason && (
-          <div
+        {selected.pickedReason ? <div
             style={{
               fontSize: '0.75rem',
               color: 'var(--ink-faint)',
@@ -90,8 +87,7 @@ export function IntentBlockCard({ part }: IntentBlockCardProps) {
             }}
           >
             {selected.pickedReason}
-          </div>
-        )}
+          </div> : null}
       </div>
 
       {/* Group sections */}
@@ -124,11 +120,9 @@ function SectionBlock({
 }) {
   return (
     <section style={{ marginBottom: 14 }}>
-      {section.title && (
-        <div className="small-caps" style={{ marginBottom: 6 }}>
+      {section.title ? <div className="small-caps" style={{ marginBottom: 6 }}>
           {section.title}
-        </div>
-      )}
+        </div> : null}
       <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
         {section.itemIndexes.map((idx) => {
           const item = items[idx];
@@ -159,8 +153,7 @@ function SectionBlock({
                 >
                   {item.name}
                 </div>
-                {item.description && (
-                  <div
+                {item.description ? <div
                     style={{
                       fontSize: '0.75rem',
                       color: 'var(--ink-faint)',
@@ -170,8 +163,7 @@ function SectionBlock({
                     }}
                   >
                     {item.description}
-                  </div>
-                )}
+                  </div> : null}
               </div>
               <div
                 style={{

@@ -250,8 +250,7 @@ const MapScreen: React.FC = () => {
       </div>
 
       {/* Error banner */}
-      {error && (
-        <div style={{
+      {error ? <div style={{
           position: 'absolute',
           top: 100,
           left: 16,
@@ -265,8 +264,7 @@ const MapScreen: React.FC = () => {
           fontSize: 14
         }}>
           {error}
-        </div>
-      )}
+        </div> : null}
 
       {/* Map Container */}
       <MapContainer

@@ -37,7 +37,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           <AlertCircle size={48} color="#ef4444" />
           <p>Are you sure you want to delete this item?</p>
           <p className="delete-item-name">{itemName}</p>
-          {description && <p className="delete-note">{description}</p>}
+          {description ? <p className="delete-note">{description}</p> : null}
         </div>
 
         <div className="modal-actions">

@@ -347,11 +347,9 @@ const EventsScreen: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
               />
-              {searchQuery && (
-                <button type="button" className="search-clear" onClick={() => { setSearchQuery(""); setPage(0); }}>
+              {searchQuery ? <button type="button" className="search-clear" onClick={() => { setSearchQuery(""); setPage(0); }}>
                   <X size={14} />
-                </button>
-              )}
+                </button> : null}
             </div>
           </form>
         </div>
@@ -395,12 +393,10 @@ const EventsScreen: React.FC = () => {
             </div>
           </div>
 
-          {(hasActiveFilters || searchQuery) && (
-            <button className="btn-clear-filters" onClick={clearAllFilters}>
+          {(hasActiveFilters || searchQuery) ? <button className="btn-clear-filters" onClick={clearAllFilters}>
               <X size={12} />
               Clear
-            </button>
-          )}
+            </button> : null}
         </div>
 
         <div className="status-pills">
@@ -445,7 +441,7 @@ const EventsScreen: React.FC = () => {
                 <span className="status-badge" style={{ backgroundColor: STATUS_COLORS[event.status] }}>
                   {event.status}
                 </span>
-                {event.isPrivate && <span className="private-badge-overlay">Private</span>}
+                {event.isPrivate ? <span className="private-badge-overlay">Private</span> : null}
               </div>
               <div className="event-card-body">
                 <h3 className="event-card-name">{event.name}</h3>
@@ -457,13 +453,11 @@ const EventsScreen: React.FC = () => {
                     <Calendar size={13} />
                     {formatDate(event.startDateTime)}
                   </span>
-                  {event.locationNames && event.locationNames.length > 0 && (
-                    <span className="event-card-location">
+                  {event.locationNames && event.locationNames.length > 0 ? <span className="event-card-location">
                       <MapPin size={13} />
                       {event.locationNames[0]}
                       {event.locationNames.length > 1 && ` +${event.locationNames.length - 1}`}
-                    </span>
-                  )}
+                    </span> : null}
                 </div>
                 <div className="event-card-footer">
                   <div className="event-card-stats">
@@ -509,8 +503,7 @@ const EventsScreen: React.FC = () => {
       )}
 
       {/* Edit Modal */}
-      {showEditModal && selectedEvent && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+      {showEditModal && selectedEvent ? <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Edit Event</h2>
@@ -571,12 +564,10 @@ const EventsScreen: React.FC = () => {
                     <ImagePlus size={15} />
                     {uploadingCover ? "Uploading..." : "Upload Image"}
                   </label>
-                  {editEventImage && (
-                    <button type="button" className="btn btn-secondary" onClick={() => setEditEventImage(null)}>
+                  {editEventImage ? <button type="button" className="btn btn-secondary" onClick={() => setEditEventImage(null)}>
                       <ImageOff size={15} />
                       Remove
-                    </button>
-                  )}
+                    </button> : null}
                 </div>
               </div>
             </div>
@@ -685,12 +676,10 @@ const EventsScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && selectedEvent && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+      {showDeleteModal && selectedEvent ? <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Delete Event</h2>
@@ -730,17 +719,14 @@ const EventsScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
-      {imageToCrop && (
-        <ImageCropper
+      {imageToCrop ? <ImageCropper
           imageSrc={imageToCrop}
           onCropComplete={handleEventCoverCropComplete}
           onCancel={() => setImageToCrop(null)}
           aspectRatio={1}
-        />
-      )}
+        /> : null}
     </div>
   );
 };

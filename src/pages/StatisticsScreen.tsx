@@ -193,8 +193,7 @@ const StatisticsScreen: React.FC = () => {
         </div>
 
         {/* Error Display */}
-        {error && (
-          <div style={{
+        {error ? <div style={{
             backgroundColor: '#fef2f2',
             border: '1px solid #fecaca',
             color: '#dc2626',
@@ -204,12 +203,10 @@ const StatisticsScreen: React.FC = () => {
             fontSize: 14
           }}>
             ❌ {error}
-          </div>
-        )}
+          </div> : null}
 
         {/* Loading State */}
-        {loading && (
-          <div style={{ 
+        {loading ? <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
             alignItems: 'center', 
@@ -222,8 +219,7 @@ const StatisticsScreen: React.FC = () => {
             <div style={{ fontSize: 18, color: '#6b7280' }}>
               📊 Loading statistics for {selectedDriverIds.length} driver(s)...
             </div>
-          </div>
-        )}
+          </div> : null}
 
         {/* Driver Statistics - Vertical Layout */}
         {selectedDriverIds.length > 0 && Object.keys(allDriverStats).length > 0 && (

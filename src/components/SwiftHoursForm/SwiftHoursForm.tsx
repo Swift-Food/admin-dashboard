@@ -205,12 +205,10 @@ export function SwiftHoursForm({ restaurantId }: { restaurantId: string }) {
                   {swiftHour.happyHour.discount}% OFF
                 </span>
               </p>
-              {swiftHour.happyHour.freeDrink && (
-                <p>
+              {swiftHour.happyHour.freeDrink ? <p>
                   <strong>Bonus:</strong>{" "}
                   <span className="swift-hours-discount">Free Drink</span>
-                </p>
-              )}
+                </p> : null}
             </div>
 
             <div className="swift-hours-timer-group">

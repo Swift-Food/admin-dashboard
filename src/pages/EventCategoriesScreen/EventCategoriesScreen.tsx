@@ -264,7 +264,7 @@ const EventCategoriesScreen: React.FC = () => {
                 </div>
                 <div className="event-category-details">
                   <span className="event-category-name">{formatCategoryName(category.name)}</span>
-                  {category.description && <span className="event-category-description">{category.description}</span>}
+                  {category.description ? <span className="event-category-description">{category.description}</span> : null}
                 </div>
                 <span className="event-category-count">{category.eventCount} events</span>
                 <span className="event-category-subcategories">{category.subcategories.length} subcategories</span>
@@ -297,7 +297,7 @@ const EventCategoriesScreen: React.FC = () => {
                           </div>
                           <div className="event-subcategory-details">
                             <span className="event-subcategory-name">{subcategory.name}</span>
-                            {subcategory.description && <span className="event-subcategory-description">{subcategory.description}</span>}
+                            {subcategory.description ? <span className="event-subcategory-description">{subcategory.description}</span> : null}
                           </div>
                           <span className="event-subcategory-order">#{subcategory.displayOrder}</span>
                         </div>

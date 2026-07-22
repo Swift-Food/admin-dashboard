@@ -38,11 +38,8 @@ export function DraftItemRow({ item, restaurantName }: DraftItemRowProps) {
         >
           {item.name}
         </div>
-        {restaurantName && (
-          <span className="item-restaurant-badge">from {restaurantName}</span>
-        )}
-        {item.description && (
-          <div
+        {restaurantName ? <span className="item-restaurant-badge">from {restaurantName}</span> : null}
+        {item.description ? <div
             style={{
               fontSize: '0.78rem',
               color: 'var(--ink-soft)',
@@ -51,13 +48,10 @@ export function DraftItemRow({ item, restaurantName }: DraftItemRowProps) {
             }}
           >
             {item.description}
-          </div>
-        )}
-        {item.reason && (
-          <div style={{ marginTop: 4 }}>
+          </div> : null}
+        {item.reason ? <div style={{ marginTop: 4 }}>
             <Reason>{item.reason}</Reason>
-          </div>
-        )}
+          </div> : null}
         {(dietary.length > 0 || allergens.length > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
             {dietary.map((d) => (

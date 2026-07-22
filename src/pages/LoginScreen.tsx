@@ -37,11 +37,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           Admin Login
         </h1>
         <form onSubmit={handleSubmit}>
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error ? <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
-            </div>
-          )}
+            </div> : null}
           <div className="mb-4">
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', color: '#000' }}>
               Email

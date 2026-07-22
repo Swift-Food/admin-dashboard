@@ -160,11 +160,9 @@ function RestaurantHeader({ draft }: { draft: MenuDraft }) {
         <div style={{ fontSize: '0.78rem', color: 'var(--ink-soft)', marginTop: 2 }}>
           {[r.cuisine, `feeds ${draft.feedsPeople}`].filter(Boolean).join(' · ')}
         </div>
-        {draft.pickedReason && (
-          <div style={{ marginTop: 4 }}>
+        {draft.pickedReason ? <div style={{ marginTop: 4 }}>
             <Reason>{draft.pickedReason}</Reason>
-          </div>
-        )}
+          </div> : null}
       </div>
     </div>
   );
@@ -189,8 +187,7 @@ function RestaurantGroupHeader({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {photo && (
-          <div
+        {photo ? <div
             style={{
               width: 28,
               height: 28,
@@ -200,8 +197,7 @@ function RestaurantGroupHeader({
               border: '1px solid var(--rule)',
             }}
             aria-hidden="true"
-          />
-        )}
+          /> : null}
         <span
           className="display"
           style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}
@@ -223,11 +219,9 @@ function RestaurantGroupHeader({
         >
           £{subtotal.subtotal.toFixed(2)}
         </span>
-        {!subtotal.meetsMinOrder && subtotal.minOrderShortfall && (
-          <span style={{ fontSize: '0.72rem', color: 'var(--ink-soft)' }}>
+        {!subtotal.meetsMinOrder && subtotal.minOrderShortfall ? <span style={{ fontSize: '0.72rem', color: 'var(--ink-soft)' }}>
             Add {subtotal.minOrderShortfall.missingItems} more item(s)
-          </span>
-        )}
+          </span> : null}
       </div>
     </div>
   );

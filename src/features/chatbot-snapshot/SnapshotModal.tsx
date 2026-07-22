@@ -120,7 +120,7 @@ export function SnapshotModal({
 
           {userText !== null && <TextBubble sender="user" text={userText} clickToCopy />}
 
-          {!hasParts && botText && <TextBubble sender="bot" text={botText} clickToCopy />}
+          {!hasParts && botText ? <TextBubble sender="bot" text={botText} clickToCopy /> : null}
 
           {/* Render all text parts first (directly under the user bubble), */}
           {/* then the structured suggestion parts beneath. The backend may */}

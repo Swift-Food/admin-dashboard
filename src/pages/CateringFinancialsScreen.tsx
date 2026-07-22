@@ -282,8 +282,7 @@ const CateringFinancialsScreen = () => {
             disabled={saving}
             className="flex items-center gap-2 px-5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors shadow-sm"
           >
-            {saving && (
-              <svg
+            {saving ? <svg
                 className="animate-spin h-4 w-4 text-white"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -302,8 +301,7 @@ const CateringFinancialsScreen = () => {
                   fill="currentColor"
                   d="M4 12a8 8 0 018-8v8H4z"
                 />
-              </svg>
-            )}
+              </svg> : null}
             Save MSC Fees ({Object.keys(pendingEdits).length})
           </button>
         </div>
@@ -540,8 +538,7 @@ const CateringFinancialsScreen = () => {
       </div>
 
       {/* Toast */}
-      {toast && (
-        <div
+      {toast ? <div
           className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-lg shadow-lg text-white font-semibold text-sm transition-all ${
             toast.type === "success"
               ? "bg-green-600"
@@ -554,8 +551,7 @@ const CateringFinancialsScreen = () => {
             {toast.type === "success" ? "✓" : toast.type === "warning" ? "⚠" : "✗"}
           </span>
           {toast.message}
-        </div>
-      )}
+        </div> : null}
 
       {/* Pagination */}
       <div className="flex items-center justify-between">

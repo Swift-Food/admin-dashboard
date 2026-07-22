@@ -105,9 +105,7 @@ export default function PromoForm({
                 className="pf-input pf-input-code"
                 placeholder="SUMMER2024"
               />
-              {initialData && (
-                <span className="pf-hint">Cannot change after creation</span>
-              )}
+              {initialData ? <span className="pf-hint">Cannot change after creation</span> : null}
             </div>
             <div className="pf-field pf-field-grow">
               <label className="pf-label">Display Name</label>
@@ -185,14 +183,12 @@ export default function PromoForm({
                 placeholder="0"
               />
             </div>
-            {isPercent && form.discountAmount && (
-              <span className="pf-amount-hint">
+            {isPercent && form.discountAmount ? <span className="pf-amount-hint">
                 {form.discountAmount}% off
                 {form.maxDiscount
                   ? `, max £${Number(form.maxDiscount).toFixed(2)}`
                   : ""}
-              </span>
-            )}
+              </span> : null}
           </div>
 
           {/* Target + Applies To */}
@@ -270,8 +266,7 @@ export default function PromoForm({
                 />
               </div>
             </div>
-            {isPercent && (
-              <div className="pf-field">
+            {isPercent ? <div className="pf-field">
                 <label className="pf-label">Max Discount</label>
                 <div className="pf-input-prefix-wrap">
                   <span className="pf-input-prefix">£</span>
@@ -285,8 +280,7 @@ export default function PromoForm({
                     placeholder="None"
                   />
                 </div>
-              </div>
-            )}
+              </div> : null}
             <div className="pf-field">
               <label className="pf-label">Max Uses</label>
               <input

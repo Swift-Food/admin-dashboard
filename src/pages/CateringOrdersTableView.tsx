@@ -375,13 +375,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               </h3>
               <p className="text-base font-semibold text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</p>
               <p className="text-sm text-gray-600 mt-1">{order.eventTime} · {(order.restaurants || order.orderItems || []).reduce((total, item) => total + (item.menuItems || []).reduce((sum, mi) => sum + (mi?.quantity || 0), 0), 0)} portions</p>
-              {order.eventType && <p className="text-sm text-gray-600 mt-0.5">{order.eventType}</p>}
+              {order.eventType ? <p className="text-sm text-gray-600 mt-0.5">{order.eventType}</p> : null}
             </div>
           </div>
 
           {/* Delivery Address */}
-          {(typeof order.deliveryAddress === 'string' ? order.deliveryAddress : order.deliveryAddress && `${order.deliveryAddress.street}, ${order.deliveryAddress.city}, ${order.deliveryAddress.postcode}`) && (
-            <div className="bg-blue-50/60 px-4 py-3 rounded-xl mb-3 border border-blue-200/70 flex items-start gap-2.5">
+          {(typeof order.deliveryAddress === 'string' ? order.deliveryAddress : order.deliveryAddress && `${order.deliveryAddress.street}, ${order.deliveryAddress.city}, ${order.deliveryAddress.postcode}`) ? <div className="bg-blue-50/60 px-4 py-3 rounded-xl mb-3 border border-blue-200/70 flex items-start gap-2.5">
               <svg className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
               <div className="flex-1">
                 <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider mb-0.5">Delivery Address</p>
@@ -391,12 +390,10 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                     : `${order.deliveryAddress?.street}, ${order.deliveryAddress?.city}, ${order.deliveryAddress?.postcode}`}
                 </p>
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Customer Dashboard Access */}
-          {order.sharedAccessUsers && order.sharedAccessUsers.length > 0 && (
-            <div className="bg-purple-50/60 border border-purple-200/70 rounded-xl px-4 py-3 mb-3">
+          {order.sharedAccessUsers && order.sharedAccessUsers.length > 0 ? <div className="bg-purple-50/60 border border-purple-200/70 rounded-xl px-4 py-3 mb-3">
               <h3 className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider mb-2">Customer Dashboard Access</h3>
               <div className="space-y-2">
                 {order.sharedAccessUsers.map((u, idx) => (
@@ -405,7 +402,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                       <p className="text-sm font-semibold text-gray-900 truncate">{u.name || u.email}</p>
                       <p className="text-xs text-gray-500 truncate">
                         {u.email}
-                        {u.role && <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-purple-100 text-purple-700">{u.role}</span>}
+                        {u.role ? <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-purple-100 text-purple-700">{u.role}</span> : null}
                       </p>
                     </div>
                     {u.accessToken ? (
@@ -424,8 +421,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Refunds */}
           <div className="mb-6">
@@ -442,16 +438,14 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             <h3 className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider mb-3">Financial Summary</h3>
 
             {/* Promo Codes Display */}
-            {order.promoCodes && order.promoCodes.length > 0 && (
-              <div className="mb-3 flex items-center gap-2 flex-wrap">
+            {order.promoCodes && order.promoCodes.length > 0 ? <div className="mb-3 flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-emerald-900">Promo Codes:</span>
                 {order.promoCodes.map((code, idx) => (
                   <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-700 text-white">
                     {code}
                   </span>
                 ))}
-              </div>
-            )}
+              </div> : null}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
@@ -459,12 +453,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 <p className="text-xl font-bold text-emerald-900 tabular-nums">
                   {formatCurrency(order.customerFinalTotal || order.finalTotal || order.estimatedTotal)}
                 </p>
-                {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
+                {Number(order.promoDiscount) > 0 && (
                   <p className="text-[11px] text-emerald-600 mt-0.5">
-                    Was {formatCurrency((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0) + parseFloat(order.promoDiscount.toString()))}
+                    Was {formatCurrency((order.customerFinalTotal || order.finalTotal || order.estimatedTotal || 0) + Number(order.promoDiscount))}
                   </p>
                 )}
-                {order.partnerCommissionFee && parseFloat(order.partnerCommissionFee.toString()) > 0 && (
+                {Number(order.partnerCommissionFee) > 0 && (
                   <p className="text-[11px] text-emerald-600 mt-0.5">
                     incl. Venue Service Fee {formatCurrency(order.partnerCommissionFee)}
                   </p>
@@ -474,12 +468,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 <p className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mb-0.5">Net Commission</p>
                 <p className="text-xl font-bold text-emerald-900 tabular-nums">
                   {formatCurrency(
-                    order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0
-                      ? (parseFloat((order.platformCommissionRevenue || 0).toString()) - parseFloat(order.promoDiscount.toString()))
+                    Number(order.promoDiscount) > 0
+                      ? (Number(order.platformCommissionRevenue || 0) - Number(order.promoDiscount))
                       : order.platformCommissionRevenue
                   )}
                 </p>
-                {order.promoDiscount && parseFloat(order.promoDiscount.toString()) > 0 && (
+                {Number(order.promoDiscount) > 0 && (
                   <p className="text-[11px] font-semibold text-red-600 mt-0.5">
                     Absorbed {formatCurrency(order.promoDiscount)}
                   </p>
@@ -497,24 +491,19 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
           </div>
 
           {/* Special Requirements */}
-          {order.specialRequirements && (
-            <div className="bg-amber-50/70 border-l-2 border-amber-500 px-4 py-3 rounded-r-lg mb-3">
+          {order.specialRequirements ? <div className="bg-amber-50/70 border-l-2 border-amber-500 px-4 py-3 rounded-r-lg mb-3">
               <h3 className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider mb-1">⚠ Special Requirements</h3>
               <p className="text-sm text-amber-900 leading-relaxed">{order.specialRequirements}</p>
-            </div>
-          )}
+            </div> : null}
 
           {/* Admin Notes */}
-          {order.adminNotes && (
-            <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl px-4 py-3 mb-3">
+          {order.adminNotes ? <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl px-4 py-3 mb-3">
               <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Admin Notes</h3>
               <p className="text-sm text-gray-800 leading-relaxed">{order.adminNotes}</p>
-            </div>
-          )}
+            </div> : null}
 
           {/* Payment Link */}
-          {order.paymentLinkUrl && (
-            <div className="bg-blue-50/60 border border-blue-200/70 rounded-xl px-4 py-3 mb-3">
+          {order.paymentLinkUrl ? <div className="bg-blue-50/60 border border-blue-200/70 rounded-xl px-4 py-3 mb-3">
               <h3 className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider mb-1.5">Payment Link</h3>
               <a
                 href={order.paymentLinkUrl}
@@ -525,19 +514,14 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 {order.paymentLinkUrl}
               </a>
               <div className="mt-1 space-y-0.5">
-                {order.paymentLinkSentAt && (
-                  <p className="text-xs text-gray-600">
+                {order.paymentLinkSentAt ? <p className="text-xs text-gray-600">
                     Sent {new Date(order.paymentLinkSentAt).toLocaleString()}
-                  </p>
-                )}
-                {order.paid && order.paidAt && (
-                  <p className="text-xs text-emerald-700 font-semibold">
+                  </p> : null}
+                {order.paid && order.paidAt ? <p className="text-xs text-emerald-700 font-semibold">
                     ✓ Paid {new Date(order.paidAt).toLocaleString()}
-                  </p>
-                )}
+                  </p> : null}
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Order Items — grouped by meal session if available */}
           <div>
@@ -618,8 +602,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 {(order.restaurants || order.orderItems || []).map((item: any, idx: number) => (
                   <div key={idx} className="bg-white border border-gray-200/80 rounded-xl p-4">
                     <h4 className="font-semibold text-base text-gray-900 mb-2">{item.restaurantName}</h4>
-                    {item.menuItems && item.menuItems.length > 0 && (
-                      <div className="space-y-2">
+                    {item.menuItems && item.menuItems.length > 0 ? <div className="space-y-2">
                         {item.menuItems.filter((menuItem: any) => menuItem != null).map((menuItem: any, menuIdx: number) => {
                           const price = menuItem.customerTotalPrice ?? menuItem.totalPrice ?? 0;
                           const addons = menuItem.selectedAddons || menuItem.addons || [];
@@ -646,13 +629,10 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                             </div>
                           );
                         })}
-                      </div>
-                    )}
-                    {item.specialInstructions && (
-                      <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r">
+                      </div> : null}
+                    {item.specialInstructions ? <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r">
                         <p className="text-sm text-yellow-900 italic">Note: {item.specialInstructions}</p>
-                      </div>
-                    )}
+                      </div> : null}
                   </div>
                 ))}
               </div>
@@ -705,11 +685,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                                   {session.orderItems.length} restaurant{session.orderItems.length !== 1 ? "s" : ""}
                                   {session.totalDeliveryPortions ? ` — ${session.totalDeliveryPortions} delivery portions` : ""}
                                 </p>
-                                {session.requiresCustomQuote && (
-                                  <span className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-900">
+                                {session.requiresCustomQuote ? <span className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-900">
                                     Custom quote needed (&gt;5 miles)
-                                  </span>
-                                )}
+                                  </span> : null}
                               </div>
                               <div className="text-right">
                                 <p className="text-xs text-gray-500 uppercase font-semibold">Session Total</p>
@@ -803,15 +781,14 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                       />
                       <span className="text-xs text-gray-500">
                         Applies to all {order.restaurants?.length || 0} restaurant{(order.restaurants?.length || 0) !== 1 ? "s" : ""}
-                        {order.eventTime && ` — Event at ${order.eventTime}`}
+                        {order.eventTime ? ` — Event at ${order.eventTime}` : null}
                       </span>
                     </div>
                   </div>
                 )}
 
                 {/* Venue Hire Fee (coworking orders only) */}
-                {(order as any).coworkingOrder && Number((order as any).coworkingOrder.venueHireFee || 0) > 0 && (
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border-2 border-purple-200">
+                {(order as any).coworkingOrder && Number((order as any).coworkingOrder.venueHireFee || 0) > 0 ? <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border-2 border-purple-200">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-sm font-bold text-purple-800 uppercase">Event Hire Fee</h3>
@@ -819,8 +796,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                       </div>
                       <p className="text-2xl font-bold text-purple-900">{formatCurrency(Number((order as any).coworkingOrder.venueHireFee))}</p>
                     </div>
-                  </div>
-                )}
+                  </div> : null}
 
                 {/* Grand Total */}
                 <div className="bg-gradient-to-br from-green-50 to-green-100 p-5 rounded-xl border-2 border-green-200">
@@ -911,8 +887,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             </div>
           </Modal>
 
-          {showConfirmComplete && (
-            <div className="mb-4 bg-green-50 border-2 border-green-300 rounded-xl p-4">
+          {showConfirmComplete ? <div className="mb-4 bg-green-50 border-2 border-green-300 rounded-xl p-4">
               <p className="text-green-900 font-semibold mb-3">Are you sure you want to mark this order as completed?</p>
               <div className="flex gap-3">
                 <button
@@ -929,11 +904,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   Cancel
                 </button>
               </div>
-            </div>
-          )}
+            </div> : null}
 
-          {showConfirmCancel && (
-            <div className="mb-4 bg-red-50 border-2 border-red-300 rounded-xl p-4">
+          {showConfirmCancel ? <div className="mb-4 bg-red-50 border-2 border-red-300 rounded-xl p-4">
               <p className="text-red-900 font-semibold mb-3">Are you sure you want to cancel this order?</p>
               <div className="flex gap-3">
                 <button
@@ -950,8 +923,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   No, Keep Order
                 </button>
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Action buttons */}
           <div className="flex gap-2">
@@ -986,8 +958,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 </button>
 
                 {/* Send Payment Link button */}
-                {canSendPaymentLink && (
-                  <button
+                {canSendPaymentLink ? <button
                     onClick={() => {
                       setPaymentLinkForm({
                         daysUntilDue: 7,
@@ -1001,19 +972,16 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm"
                   >
                     Send Payment Link
-                  </button>
-                )}
+                  </button> : null}
 
                 {/* Preview VAT PDF button */}
-                {canPreviewVAT && (
-                  <button
+                {canPreviewVAT ? <button
                     onClick={handlePreviewVAT}
                     disabled={isLoadingVATPreview}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm disabled:bg-blue-300 disabled:cursor-not-allowed"
                   >
                     {isLoadingVATPreview ? "Loading..." : "Preview VAT PDF"}
-                  </button>
-                )}
+                  </button> : null}
               </>
             )}
 
@@ -1022,14 +990,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 when a refund is needed - cancelled orders are excluded since
                 they were never fulfilled). */}
             {canRefund &&
-              !showConfirmComplete && !showConfirmCancel && !showConfirmReview && (
-                <button
+              !showConfirmComplete && !showConfirmCancel && !showConfirmReview ? <button
                   onClick={() => setShowRefundModal(true)}
                   className="flex-1 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
                 >
                   Refund
-                </button>
-              )}
+                </button> : null}
 
             <button
               onClick={onClose}
@@ -1306,13 +1272,11 @@ const CalendarView = ({
             </div>
           )}
 
-          {selectedDay && selectedOrders.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
+          {selectedDay && selectedOrders.length === 0 ? <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
               <span className="text-4xl mb-3">📭</span>
               <p className="text-sm">No orders on this date</p>
               {!ordersByDate[selectedDay] && <p className="text-xs mt-1">(filtered out by current view settings)</p>}
-            </div>
-          )}
+            </div> : null}
 
           {selectedOrders.length > 0 && (
             <div className="divide-y divide-gray-100">
@@ -1328,18 +1292,14 @@ const CalendarView = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-bold text-gray-900">#{order.id.slice(0, 8).toUpperCase()}</span>
-                          {order.orderReference && (
-                            <span className="text-xs text-gray-500">{order.orderReference}</span>
-                          )}
+                          {order.orderReference ? <span className="text-xs text-gray-500">{order.orderReference}</span> : null}
                         </div>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-sm font-semibold text-gray-800">{order.customerName}</span>
                           {!!(order as any).isCoworkingOrder && (
                             <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700 border border-purple-300">Coworking</span>
                           )}
-                          {order.partnerSpace && (
-                            <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">{order.partnerSpace.name}</span>
-                          )}
+                          {order.partnerSpace ? <span className="px-1.5 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">{order.partnerSpace.name}</span> : null}
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">{order.customerEmail}</div>
                         {restaurants.length > 0 && (
@@ -1347,9 +1307,7 @@ const CalendarView = ({
                             {restaurants[0].restaurantName}{restaurants.length > 1 ? ` +${restaurants.length - 1} more` : ""}
                           </div>
                         )}
-                        {order.eventTime && (
-                          <div className="text-xs text-gray-500 mt-0.5">🕐 {order.eventTime}</div>
-                        )}
+                        {order.eventTime ? <div className="text-xs text-gray-500 mt-0.5">🕐 {order.eventTime}</div> : null}
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                         <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${getStatusColor(order.status)}`}>
@@ -1807,11 +1765,9 @@ const CateringOrdersScreen = () => {
                         {!!(order as any).isCoworkingOrder && (
                           <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700 border border-purple-300 whitespace-nowrap">Coworking</span>
                         )}
-                        {order.partnerSpace && (
-                          <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 whitespace-nowrap" title="Embed partner">
+                        {order.partnerSpace ? <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 whitespace-nowrap" title="Embed partner">
                             {order.partnerSpace.name}
-                          </span>
-                        )}
+                          </span> : null}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">{order.customerEmail}</div>
                     </td>

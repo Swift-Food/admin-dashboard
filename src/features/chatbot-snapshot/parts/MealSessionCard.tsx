@@ -30,8 +30,7 @@ export function MealSessionCard({ part, hideHeader = false }: MealSessionCardPro
           <div className="display" style={{ fontSize: '1.1rem', color: 'var(--ink)' }}>
             {part.sessionName}
           </div>
-          {(part.sessionDate || part.guestCount !== null) && (
-            <div
+          {(part.sessionDate || part.guestCount !== null) ? <div
               style={{
                 fontSize: '0.75rem',
                 color: 'var(--ink-faint)',
@@ -39,10 +38,9 @@ export function MealSessionCard({ part, hideHeader = false }: MealSessionCardPro
               }}
             >
               {part.sessionDate}
-              {part.eventTime && ` · ${part.eventTime}`}
+              {part.eventTime ? ` · ${part.eventTime}` : null}
               {part.guestCount !== null && ` · ${part.guestCount} guests`}
-            </div>
-          )}
+            </div> : null}
         </header>
       )}
 
@@ -54,7 +52,7 @@ export function MealSessionCard({ part, hideHeader = false }: MealSessionCardPro
         />
       )}
 
-      {active && <IntentBlockCard key={active.intentId} part={active} />}
+      {active ? <IntentBlockCard key={active.intentId} part={active} /> : null}
     </div>
   );
 }
@@ -100,8 +98,7 @@ function IntentTabs({
             }}
           >
             {block.intent.phrase}
-            {block.intent.category && (
-              <span
+            {block.intent.category ? <span
                 style={{
                   marginLeft: 6,
                   fontSize: '0.65rem',
@@ -111,8 +108,7 @@ function IntentTabs({
                 }}
               >
                 {block.intent.category}
-              </span>
-            )}
+              </span> : null}
           </button>
         );
       })}

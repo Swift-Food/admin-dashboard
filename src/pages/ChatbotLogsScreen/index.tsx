@@ -175,8 +175,7 @@ function JsonBlock({
         >
           ⛶ modal
         </button>
-        {open && (
-          <>
+        {open ? <>
             <button
               type="button"
               onClick={() => setControl(c => ({ version: c.version + 1, mode: 'expand-all' }))}
@@ -191,17 +190,12 @@ function JsonBlock({
             >
               Collapse all
             </button>
-          </>
-        )}
+          </> : null}
       </div>
-      {open && (
-        <div className="mt-1 bg-white rounded border border-gray-200 p-2 font-mono text-xs leading-relaxed overflow-auto max-h-96">
+      {open ? <div className="mt-1 bg-white rounded border border-gray-200 p-2 font-mono text-xs leading-relaxed overflow-auto max-h-96">
           <JsonView value={value} control={control} />
-        </div>
-      )}
-      {modalOpen && (
-        <JsonModal title={label} value={value} extras={modalExtras} onClose={() => setModalOpen(false)} />
-      )}
+        </div> : null}
+      {modalOpen ? <JsonModal title={label} value={value} extras={modalExtras} onClose={() => setModalOpen(false)} /> : null}
     </div>
   );
 }
@@ -362,14 +356,10 @@ function InlineFeedback({ feedback, startTs, highlightId, highlightRef, onToggle
             <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-200 text-purple-800">
               {fb.data.source}
             </span>
-            {fb.data.isAddressed && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+            {fb.data.isAddressed ? <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
                 addressed
-              </span>
-            )}
-            {fb.data.note && (
-              <span className="text-xs text-gray-700 italic">"{fb.data.note}"</span>
-            )}
+              </span> : null}
+            {fb.data.note ? <span className="text-xs text-gray-700 italic">"{fb.data.note}"</span> : null}
             <span className="ml-auto text-xs text-gray-400">
               {formatOffsetMs(startTs, fb.ts)}
             </span>
@@ -439,31 +429,21 @@ function FeedbackOverviewRow({
       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-200 text-purple-800">
         {fb.data.source}
       </span>
-      {isGeneral && (
-        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-200 text-gray-600">
+      {isGeneral ? <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-200 text-gray-600">
           general
-        </span>
-      )}
-      {fb.data.isAddressed && (
-        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+        </span> : null}
+      {fb.data.isAddressed ? <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
           addressed
-        </span>
-      )}
-      {fb.data.note && (
-        <span className="text-xs text-gray-700 italic">&ldquo;{fb.data.note}&rdquo;</span>
-      )}
-      {userMsg && (
-        <span className="text-xs text-gray-500 truncate max-w-[200px]" title={userMsg}>
+        </span> : null}
+      {fb.data.note ? <span className="text-xs text-gray-700 italic">&ldquo;{fb.data.note}&rdquo;</span> : null}
+      {userMsg ? <span className="text-xs text-gray-500 truncate max-w-[200px]" title={userMsg}>
           &rarr; &ldquo;{userMsg}&rdquo;
-        </span>
-      )}
+        </span> : null}
       <span className="ml-auto flex items-center gap-2 text-xs text-gray-400">
         {formatOffsetMs(startTs, fb.ts)}
-        {onScrollTo && (
-          <svg className="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {onScrollTo ? <svg className="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        )}
+          </svg> : null}
       </span>
       <button
         onClick={handleToggle}
@@ -527,15 +507,13 @@ function EventCard({
           {offsetLabel}
         </span>
         <span className="font-semibold text-sm text-gray-800">{entry.data.eventType}</span>
-        {isBot && (
-          <button
+        {isBot ? <button
             type="button"
             onClick={() => setShowSnapshot(true)}
             className="ml-2 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-0.5 hover:bg-indigo-100 transition-colors"
           >
             View preview
-          </button>
-        )}
+          </button> : null}
         <span className="ml-auto text-xs text-gray-400">event #{entry.data.id}</span>
       </div>
       {userMessageText !== null && (
@@ -544,10 +522,8 @@ function EventCard({
           {userMessageText}
         </div>
       )}
-      {pipelineMeta && (pipelineMeta.variant || pipelineMeta.stagesRun || pipelineMeta.earlyExit) && (
-        <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-          {pipelineMeta.variant && (
-            <span
+      {pipelineMeta && (pipelineMeta.variant || pipelineMeta.stagesRun || pipelineMeta.earlyExit) ? <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+          {pipelineMeta.variant ? <span
               className={`px-1.5 py-0.5 rounded font-mono ${
                 pipelineMeta.variant === 'pipeline_v1'
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
@@ -556,52 +532,38 @@ function EventCard({
               title="pipeline_variant on bot_reply"
             >
               {pipelineMeta.variant}
-            </span>
-          )}
-          {pipelineMeta.stagesRun && pipelineMeta.stagesRun.length > 0 && (
-            <span className="font-mono text-gray-700">
+            </span> : null}
+          {pipelineMeta.stagesRun && pipelineMeta.stagesRun.length > 0 ? <span className="font-mono text-gray-700">
               {pipelineMeta.stagesRun.join(' → ')}
-            </span>
-          )}
-          {pipelineMeta.earlyExit && (
-            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-mono">
+            </span> : null}
+          {pipelineMeta.earlyExit ? <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-mono">
               early_exit: {pipelineMeta.earlyExit}
-            </span>
-          )}
-          {pipelineMeta.proCartFallbackFired && (
-            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 font-mono">
+            </span> : null}
+          {pipelineMeta.proCartFallbackFired ? <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 font-mono">
               pro_cart_fallback
-            </span>
-          )}
-          {pipelineMeta.turnId && (
-            <span className="text-gray-400 font-mono" title={pipelineMeta.turnId}>
+            </span> : null}
+          {pipelineMeta.turnId ? <span className="text-gray-400 font-mono" title={pipelineMeta.turnId}>
               turn {pipelineMeta.turnId.slice(0, 8)}
-            </span>
-          )}
-        </div>
-      )}
+            </span> : null}
+        </div> : null}
       <JsonBlock label="payload" value={entry.data.payload} />
 
-      {isBot && showSnapshot && (
-        <SnapshotModal
+      {isBot && showSnapshot ? <SnapshotModal
           userText={previousUserMessage ?? null}
           botText={botText}
           rawBotParts={botParts}
           mealSessions={botMealSessions}
           turnEntries={turnEntries}
           onClose={() => setShowSnapshot(false)}
-        />
-      )}
+        /> : null}
 
-      {isBot && attachedFeedback && attachedFeedback.length > 0 && startTs && (
-        <InlineFeedback
+      {isBot && attachedFeedback && attachedFeedback.length > 0 && startTs ? <InlineFeedback
           feedback={attachedFeedback}
           startTs={startTs}
           highlightId={highlightFeedbackId}
           highlightRef={highlightRef}
           onToggleAddressed={onToggleAddressed}
-        />
-      )}
+        /> : null}
     </div>
   );
 }
@@ -662,19 +624,13 @@ function LlmCallCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, { k
           {entry.data.costUsd != null && (
             <span className="ml-2 font-semibold text-emerald-700">= {formatCost(entry.data.costUsd)}</span>
           )}
-          {entry.data.turnId && (
-            <span className="ml-2 text-gray-400" title={entry.data.turnId}>turn {entry.data.turnId.slice(0, 8)}</span>
-          )}
+          {entry.data.turnId ? <span className="ml-2 text-gray-400" title={entry.data.turnId}>turn {entry.data.turnId.slice(0, 8)}</span> : null}
         </div>
       )}
-      {hasError && (
-        <div className="mb-2">
+      {hasError ? <div className="mb-2">
           <p className="text-xs font-bold text-red-700">{entry.data.errorType}</p>
-          {entry.data.errorMessage && (
-            <p className="text-xs text-red-600 mt-0.5">{entry.data.errorMessage}</p>
-          )}
-        </div>
-      )}
+          {entry.data.errorMessage ? <p className="text-xs text-red-600 mt-0.5">{entry.data.errorMessage}</p> : null}
+        </div> : null}
       <div className="flex gap-3 flex-wrap">
         <JsonBlock label="Prompt"   value={entry.data.prompt}   className="flex-1 min-w-0" />
         <JsonBlock label="Response" value={entry.data.response} className="flex-1 min-w-0" />
@@ -705,9 +661,7 @@ function RetrievalCard({ entry, offsetLabel }: { entry: Extract<TimelineEntry, {
         }`}>
           LLM {entry.data.composerLlmAccepted ? 'accepted' : 'rejected'}
         </span>
-        {entry.data.composerFallbackReason && (
-          <span className="text-xs text-orange-600 italic">{entry.data.composerFallbackReason}</span>
-        )}
+        {entry.data.composerFallbackReason ? <span className="text-xs text-orange-600 italic">{entry.data.composerFallbackReason}</span> : null}
       </div>
       <div className="flex gap-3 flex-wrap">
         <TopKBlock                            value={entry.data.retrievedTopK}    className="flex-1 min-w-0" />
@@ -1074,8 +1028,7 @@ function ChatbotSessionDetailView({
         </div>
       </div>
 
-      {showFullSession && (
-        <FullSessionModal
+      {showFullSession ? <FullSessionModal
           turns={extractSessionTurns(detail.timeline, feedbackByEventId)}
           generalFeedback={generalFeedback.map(fb => ({
             id: fb.data.id,
@@ -1085,8 +1038,7 @@ function ChatbotSessionDetailView({
             isAddressed: fb.data.isAddressed,
           }))}
           onClose={() => setShowFullSession(false)}
-        />
-      )}
+        /> : null}
 
       {/* Summary card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
@@ -1573,12 +1525,10 @@ function UsageLineChart({
           const r = isHovered ? 5 : isSelected ? 5 : 3;
           return (
             <g key={idx}>
-              {isSelected && (
-                <>
+              {isSelected ? <>
                   <circle cx={legacyPoints[idx].x} cy={legacyPoints[idx].y} r={8} fill="none" stroke={legacyC.dot} strokeWidth="2" opacity={0.3} />
                   <circle cx={v1Points[idx].x}     cy={v1Points[idx].y}     r={8} fill="none" stroke={v1C.dot}     strokeWidth="2" opacity={0.3} />
-                </>
-              )}
+                </> : null}
               <circle
                 cx={legacyPoints[idx].x} cy={legacyPoints[idx].y}
                 r={r}
@@ -1621,7 +1571,7 @@ function UsageLineChart({
       </div>
 
       {/* Tooltip — per-pipeline breakdown of Input/Output/Thinking for the hovered bucket. */}
-      {hover && hoverItem && hoverX != null && scrollRef.current && containerRef.current && (() => {
+      {hover && hoverItem && hoverX != null && scrollRef.current && containerRef.current ? (() => {
         const legacy = hoverItem.byVariant?.legacy     ?? EMPTY_BUCKET;
         const v1     = hoverItem.byVariant?.pipeline_v1 ?? EMPTY_BUCKET;
         const totalTok = hoverItem.totalInputTokens + hoverItem.totalOutputTokens + hoverItem.totalThinkingTokens;
@@ -1695,15 +1645,13 @@ function UsageLineChart({
                   <td className="text-right tabular-nums pl-1 border-l border-gray-700">{liveInput(v1).toLocaleString()}</td>
                   <td className="text-right tabular-nums text-emerald-300">{formatCost(liveCost(v1))}</td>
                 </tr>
-                {anyCached && (
-                  <tr className="text-sky-300">
+                {anyCached ? <tr className="text-sky-300">
                     <td className="pr-2">Input (cached)</td>
                     <td className="text-right tabular-nums pl-1 border-l border-gray-700">{legacy.totalCachedInputTokens.toLocaleString()}</td>
                     <td className="text-right tabular-nums">{formatCost(legacy.cachedInputCostUsd)}</td>
                     <td className="text-right tabular-nums pl-1 border-l border-gray-700">{v1.totalCachedInputTokens.toLocaleString()}</td>
                     <td className="text-right tabular-nums">{formatCost(v1.cachedInputCostUsd)}</td>
-                  </tr>
-                )}
+                  </tr> : null}
                 <tr>
                   <td className="pr-2">Output</td>
                   <td className="text-right tabular-nums pl-1 border-l border-gray-700">{legacy.totalOutputTokens.toLocaleString()}</td>
@@ -1711,15 +1659,13 @@ function UsageLineChart({
                   <td className="text-right tabular-nums pl-1 border-l border-gray-700">{v1.totalOutputTokens.toLocaleString()}</td>
                   <td className="text-right tabular-nums text-emerald-300">{formatCost(v1.outputCostUsd)}</td>
                 </tr>
-                {anyThinking && (
-                  <tr>
+                {anyThinking ? <tr>
                     <td className="pr-2">Thinking</td>
                     <td className="text-right tabular-nums pl-1 border-l border-gray-700">{legacy.totalThinkingTokens.toLocaleString()}</td>
                     <td className="text-right tabular-nums text-emerald-300">{formatCost(legacy.thinkingCostUsd)}</td>
                     <td className="text-right tabular-nums pl-1 border-l border-gray-700">{v1.totalThinkingTokens.toLocaleString()}</td>
                     <td className="text-right tabular-nums text-emerald-300">{formatCost(v1.thinkingCostUsd)}</td>
-                  </tr>
-                )}
+                  </tr> : null}
                 <tr className="border-t border-gray-700 font-semibold">
                   <td className="pr-2 pt-1">Total</td>
                   <td className="text-right tabular-nums pl-1 pt-1 border-l border-gray-700">{bucketTokens(legacy).toLocaleString()}</td>
@@ -1764,7 +1710,7 @@ function UsageLineChart({
             </p>
           </div>
         );
-      })()}
+      })() : null}
     </div>
   );
 }
@@ -1872,7 +1818,7 @@ function CostOverview() {
         <div className="flex-1 min-w-0">
           <UsageLineChart items={filledItems} period={period} selectedIdx={activeIdx} onSelect={setSelectedIdx} />
         </div>
-          {activeItem && (() => {
+          {activeItem ? (() => {
             const legacy = activeItem.byVariant?.legacy     ?? EMPTY_BUCKET;
             const v1     = activeItem.byVariant?.pipeline_v1 ?? EMPTY_BUCKET;
             const anyCached   = legacy.totalCachedInputTokens > 0 || v1.totalCachedInputTokens > 0;
@@ -1917,15 +1863,13 @@ function CostOverview() {
                     <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{liveTok(v1).toLocaleString()}</td>
                     <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(liveCost(v1))}</td>
                   </tr>
-                  {anyCached && (
-                    <tr className="text-sky-600">
+                  {anyCached ? <tr className="text-sky-600">
                       <td className="pr-3">Input (cached)</td>
                       <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{legacy.totalCachedInputTokens.toLocaleString()}</td>
                       <td className="text-right tabular-nums pr-2">{formatCost(legacy.cachedInputCostUsd)}</td>
                       <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{v1.totalCachedInputTokens.toLocaleString()}</td>
                       <td className="text-right tabular-nums pr-2">{formatCost(v1.cachedInputCostUsd)}</td>
-                    </tr>
-                  )}
+                    </tr> : null}
                   <tr>
                     <td className="pr-3">Output</td>
                     <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{legacy.totalOutputTokens.toLocaleString()}</td>
@@ -1933,15 +1877,13 @@ function CostOverview() {
                     <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{v1.totalOutputTokens.toLocaleString()}</td>
                     <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(v1.outputCostUsd)}</td>
                   </tr>
-                  {anyThinking && (
-                    <tr>
+                  {anyThinking ? <tr>
                       <td className="pr-3">Thinking</td>
                       <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{legacy.totalThinkingTokens.toLocaleString()}</td>
                       <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(legacy.thinkingCostUsd)}</td>
                       <td className="text-right tabular-nums pl-2 pr-2 border-l border-gray-200">{v1.totalThinkingTokens.toLocaleString()}</td>
                       <td className="text-right tabular-nums text-emerald-600 pr-2">{formatCost(v1.thinkingCostUsd)}</td>
-                    </tr>
-                  )}
+                    </tr> : null}
                   <tr className="border-t border-gray-200 font-semibold text-gray-700">
                     <td className="pr-3 pt-0.5">Total</td>
                     <td className="text-right tabular-nums pl-2 pr-2 pt-0.5 border-l border-gray-200">{bucketTokens(legacy).toLocaleString()}</td>
@@ -1981,7 +1923,7 @@ function CostOverview() {
                 </tbody>
               </table>
             );
-          })()}
+          })() : null}
       </div>
     </div>
   );
@@ -2138,18 +2080,14 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
       </div>
 
       {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-20">
+      {loading ? <div className="flex justify-center py-20">
           <div className="text-gray-400 text-base">Loading sessions…</div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Error */}
-      {error && !loading && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-red-700 text-sm">
+      {error && !loading ? <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-red-700 text-sm">
           {error}
-        </div>
-      )}
+        </div> : null}
 
       {/* Table */}
       {!loading && !error && (
@@ -2247,14 +2185,12 @@ function ChatbotSessionsListView({ onSelect }: { onSelect: (id: string) => void 
           </div>
 
           {/* Infinite scroll sentinel */}
-          {nextCursor && (
-            <div
+          {nextCursor ? <div
               ref={sentinelRef}
               className="px-6 py-4 border-t border-gray-100 flex justify-center text-sm text-gray-400"
             >
               {loadingMore ? 'Loading more…' : ' '}
-            </div>
-          )}
+            </div> : null}
         </div>
       )}
     </div>

@@ -57,30 +57,24 @@ export function RefundLineItem({
         />
       </div>
 
-      {note && (
-        <div className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+      {note ? <div className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1">
             Reason
           </span>
           {note}
-        </div>
-      )}
+        </div> : null}
 
       <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
         <div>
           <span className="font-medium">Issued:</span>{" "}
           {formatDateTime(refund.processedAt || refund.createdAt)}
         </div>
-        {refund.stripeRefundId && !restaurantView && (
-          <div className="font-mono">
+        {refund.stripeRefundId && !restaurantView ? <div className="font-mono">
             <span className="font-medium">Stripe:</span> {refund.stripeRefundId}
-          </div>
-        )}
-        {refund.processingNotes && (
-          <div className="text-amber-700 basis-full">
+          </div> : null}
+        {refund.processingNotes ? <div className="text-amber-700 basis-full">
             {refund.processingNotes}
-          </div>
-        )}
+          </div> : null}
       </div>
     </div>
   );

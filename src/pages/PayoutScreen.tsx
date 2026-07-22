@@ -180,9 +180,7 @@ const WithdrawalDetailsModal = ({
               <div className="mt-2">
                 <WithdrawalTimer requestedAt={withdrawal.requestedAt} />
               </div>
-              {withdrawal.isInstantPayout && (
-                <p className="mt-2 text-sm text-purple-600 font-medium">⚡ Instant Payout</p>
-              )}
+              {withdrawal.isInstantPayout ? <p className="mt-2 text-sm text-purple-600 font-medium">⚡ Instant Payout</p> : null}
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -190,12 +188,10 @@ const WithdrawalDetailsModal = ({
               <p className="text-blue-700 text-2xl font-bold">
                 £{withdrawal.amount}
               </p>
-              {withdrawal.feeCharged && (
-                <>
+              {withdrawal.feeCharged ? <>
                   <p className="text-red-600 text-sm">Fee: -£{withdrawal.feeCharged}</p>
                   <p className="text-green-600 text-lg font-semibold">Net: £{withdrawal.netAmount}</p>
-                </>
-              )}
+                </> : null}
             </div>
           </div>
 
@@ -215,59 +211,45 @@ const WithdrawalDetailsModal = ({
           </div>
 
           {/* Notes */}
-          {withdrawal.notes && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          {withdrawal.notes ? <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
               <h3 className="font-semibold mb-2 text-gray-900">User Notes</h3>
               <p className="text-sm text-gray-800">{withdrawal.notes}</p>
-            </div>
-          )}
+            </div> : null}
 
           {/* Stripe Payout Info */}
-          {withdrawal.stripePayoutId && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
+          {withdrawal.stripePayoutId ? <div className="border border-gray-200 rounded-lg p-4 bg-white">
               <h3 className="font-semibold mb-3 text-gray-900 flex items-center">
                 <CreditCard size={18} className="mr-2" />
                 Stripe Payout Information
               </h3>
               <div className="text-sm text-gray-700 space-y-1">
                 <p><span className="font-medium text-gray-900">Payout ID:</span> {withdrawal.stripePayoutId}</p>
-                {payoutInfo && (
-                  <>
+                {payoutInfo ? <>
                     <p><span className="font-medium text-gray-900">Status:</span> {payoutInfo.status}</p>
                     <p><span className="font-medium text-gray-900">Method:</span> {payoutInfo.method}</p>
-                    {payoutInfo.arrivalDate && (
-                      <p><span className="font-medium text-gray-900">Arrival Date:</span> {new Date(payoutInfo.arrivalDate * 1000).toLocaleDateString()}</p>
-                    )}
-                  </>
-                )}
+                    {payoutInfo.arrivalDate ? <p><span className="font-medium text-gray-900">Arrival Date:</span> {new Date(payoutInfo.arrivalDate * 1000).toLocaleDateString()}</p> : null}
+                  </> : null}
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Timeline */}
           <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
             <h3 className="font-semibold mb-3 text-gray-900">Timeline</h3>
             <div className="text-sm text-gray-700 space-y-2">
               <p><span className="font-medium text-gray-900">Requested:</span> {new Date(withdrawal.requestedAt).toLocaleString()}</p>
-              {withdrawal.reviewedAt && (
-                <p><span className="font-medium text-blue-700">Reviewed:</span> {new Date(withdrawal.reviewedAt).toLocaleString()}</p>
-              )}
-              {withdrawal.reviewedBy && (
-                <p><span className="font-medium text-gray-900">Reviewed By:</span> {withdrawal.reviewedBy}</p>
-              )}
+              {withdrawal.reviewedAt ? <p><span className="font-medium text-blue-700">Reviewed:</span> {new Date(withdrawal.reviewedAt).toLocaleString()}</p> : null}
+              {withdrawal.reviewedBy ? <p><span className="font-medium text-gray-900">Reviewed By:</span> {withdrawal.reviewedBy}</p> : null}
             </div>
           </div>
 
           {/* Rejection Reason */}
-          {withdrawal.rejectionReason && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+          {withdrawal.rejectionReason ? <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
               <h3 className="font-semibold text-red-900 mb-2 flex items-center">
                 <AlertCircle size={18} className="mr-2" />
                 Rejection Reason
               </h3>
               <p className="text-sm text-red-800">{withdrawal.rejectionReason}</p>
-            </div>
-          )}
+            </div> : null}
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
@@ -278,27 +260,23 @@ const WithdrawalDetailsModal = ({
               Close
             </button>
 
-            {canApprove && (
-              <button
+            {canApprove ? <button
                 onClick={() => setShowApproveConfirm(true)}
                 disabled={isProcessing}
                 className="flex-1 min-w-[120px] bg-green-500 hover:bg-green-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-green-300 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 <CheckCircle size={18} className="mr-2" />
                 {isProcessing ? "Processing..." : "Approve"}
-              </button>
-            )}
+              </button> : null}
 
-            {canReject && (
-              <button
+            {canReject ? <button
                 onClick={() => setShowRejectModal(true)}
                 disabled={isProcessing}
                 className="flex-1 min-w-[120px] bg-red-500 hover:bg-red-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 <XCircle size={18} className="mr-2" />
                 Reject
-              </button>
-            )}
+              </button> : null}
           </div>
         </div>
       </div>
@@ -310,9 +288,7 @@ const WithdrawalDetailsModal = ({
             
             <p className="text-gray-700 mb-6">
               Approve withdrawal of <strong>£{withdrawal.netAmount}</strong> for {withdrawal.userType} user?
-              {withdrawal.isInstantPayout && (
-                <span className="block mt-2 text-purple-600 font-medium">⚡ This is an instant payout (arrives in ~30 minutes)</span>
-              )}
+              {withdrawal.isInstantPayout ? <span className="block mt-2 text-purple-600 font-medium">⚡ This is an instant payout (arrives in ~30 minutes)</span> : null}
             </p>
 
             <div className="flex gap-3">
@@ -405,17 +381,13 @@ const WithdrawalCard = ({
           <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(withdrawal.status)}`}>
             {withdrawal.status.toUpperCase()}
           </span>
-          {withdrawal.isInstantPayout && (
-            <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-300">
+          {withdrawal.isInstantPayout ? <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-300">
               ⚡ INSTANT
-            </span>
-          )}
+            </span> : null}
         </div>
         <div className="text-right">
           <p className="font-bold text-lg text-gray-900">£{withdrawal.amount}</p>
-          {withdrawal.feeCharged && (
-            <p className="text-xs text-red-600">Fee: £{withdrawal.feeCharged}</p>
-          )}
+          {withdrawal.feeCharged ? <p className="text-xs text-red-600">Fee: £{withdrawal.feeCharged}</p> : null}
           <p className="text-sm font-semibold text-green-600">£{withdrawal.netAmount}</p>
         </div>
       </div>

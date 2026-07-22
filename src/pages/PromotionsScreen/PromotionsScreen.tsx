@@ -152,16 +152,13 @@ export default function PromotionsScreen() {
   return (
     <div className="promos-page">
       {/* Toast */}
-      {toast && (
-        <div className={`toast toast-${toast.type}`}>
+      {toast ? <div className={`toast toast-${toast.type}`}>
           <span>{toast.type === "success" ? "✓" : "✗"}</span>
           {toast.message}
-        </div>
-      )}
+        </div> : null}
 
       {/* Delete Confirmation */}
-      {deleteConfirm && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+      {deleteConfirm ? <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div
             className="delete-dialog"
             onClick={(e) => e.stopPropagation()}
@@ -186,8 +183,7 @@ export default function PromotionsScreen() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Header */}
       <div className="promos-header">
@@ -272,14 +268,12 @@ export default function PromotionsScreen() {
         </div>
       )}
 
-      {error && (
-        <div className="error-alert">
+      {error ? <div className="error-alert">
           <p className="error-text">Error: {error}</p>
           <button className="btn btn-secondary btn-sm" onClick={fetchAll}>
             Retry
           </button>
-        </div>
-      )}
+        </div> : null}
 
       {/* Content */}
       {loading ? (
@@ -332,7 +326,7 @@ export default function PromotionsScreen() {
                 <div className="card-top">
                   <div className="card-top-left">
                     <span className="card-code">{p.code}</span>
-                    {p.name && <span className="card-name">{p.name}</span>}
+                    {p.name ? <span className="card-name">{p.name}</span> : null}
                   </div>
                   <span className={`status-badge status-${status}`}>
                     {status === "limit-reached" ? "Limit Reached" : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -374,8 +368,7 @@ export default function PromotionsScreen() {
                         : ""}
                     </span>
                   </div>
-                  {p.restaurantIds && p.restaurantIds.length > 0 && (
-                    <div className="card-detail">
+                  {p.restaurantIds && p.restaurantIds.length > 0 ? <div className="card-detail">
                       <span className="detail-label">Restaurants</span>
                       <span
                         className="detail-value"
@@ -392,10 +385,8 @@ export default function PromotionsScreen() {
                               .join(", ")
                           : `${p.restaurantIds.length} restaurants`}
                       </span>
-                    </div>
-                  )}
-                  {(p.minOrderValue || p.maxDiscount) && (
-                    <div className="card-detail">
+                    </div> : null}
+                  {(p.minOrderValue || p.maxDiscount) ? <div className="card-detail">
                       <span className="detail-label">Limits</span>
                       <span className="detail-value">
                         {p.minOrderValue
@@ -406,17 +397,14 @@ export default function PromotionsScreen() {
                           ? `Max £${Number(p.maxDiscount).toFixed(2)}`
                           : ""}
                       </span>
-                    </div>
-                  )}
-                  {(p.validFrom || p.expiresAt) && (
-                    <div className="card-detail">
+                    </div> : null}
+                  {(p.validFrom || p.expiresAt) ? <div className="card-detail">
                       <span className="detail-label">Period</span>
                       <span className="detail-value">
                         {formatDate(p.validFrom) || "—"} →{" "}
                         {formatDate(p.expiresAt) || "—"}
                       </span>
-                    </div>
-                  )}
+                    </div> : null}
                 </div>
 
                 <div className="card-actions">
@@ -443,8 +431,7 @@ export default function PromotionsScreen() {
       )}
 
       {/* Form Modal */}
-      {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+      {showForm ? <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
@@ -463,8 +450,7 @@ export default function PromotionsScreen() {
               onSubmit={handleSubmit}
             />
           </div>
-        </div>
-      )}
+        </div> : null}
     </div>
   );
 }

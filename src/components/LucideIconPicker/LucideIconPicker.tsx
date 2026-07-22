@@ -157,8 +157,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {value && (
-            <button
+          {value ? <button
               onClick={handleClear}
               style={{
                 background: "none",
@@ -170,15 +169,13 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
               }}
             >
               <LucideIcons.X size={16} />
-            </button>
-          )}
+            </button> : null}
           <LucideIcons.ChevronDown size={16} style={{ color: "#64748b" }} />
         </div>
       </div>
 
       {/* Full Screen Modal */}
-      {isOpen && (
-        <div
+      {isOpen ? <div
           style={{
             position: "fixed",
             top: 0,
@@ -308,7 +305,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
             <div style={{ padding: "8px 24px", fontSize: 13, color: "#6b7280" }}>
               Showing {displayedIcons.length} of {filteredIcons.length} icons
               {selectedCategory !== "All" && ` in ${selectedCategory}`}
-              {search && ` matching "${search}"`}
+              {search ? ` matching "${search}"` : null}
             </div>
 
             {/* Icons Grid */}
@@ -389,8 +386,7 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
                       </span>
                     </button>
                   ))}
-                  {hasMore && (
-                    <button
+                  {hasMore ? <button
                       onClick={loadMore}
                       style={{
                         gridColumn: "1 / -1",
@@ -406,14 +402,12 @@ const LucideIconPicker: React.FC<LucideIconPickerProps> = ({
                       }}
                     >
                       Load More ({filteredIcons.length - visibleCount} remaining)
-                    </button>
-                  )}
+                    </button> : null}
                 </div>
               )}
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
     </>
   );
 };

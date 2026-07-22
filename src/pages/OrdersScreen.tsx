@@ -191,8 +191,7 @@ const OrderDetailsModal = ({
           </div>
 
           {/* Market Info */}
-          {order.market && (
-            <div className="border rounded-lg p-4">
+          {order.market ? <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-3">Market Information</h3>
               <div className="space-y-2 text-sm">
                 <p>
@@ -204,12 +203,10 @@ const OrderDetailsModal = ({
                   {order.market.address || "No address"}
                 </p> */}
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Delivery Address Info */}
-          {order.deliveryAddress && (
-            <div className="border rounded-lg p-4 text-black">
+          {order.deliveryAddress ? <div className="border rounded-lg p-4 text-black">
               <h3 className="font-semibold mb-3">Delivery Address</h3>
               <div className="space-y-2 text-sm">
                 <p>
@@ -217,21 +214,16 @@ const OrderDetailsModal = ({
                   {order.deliveryAddress.zipcode || "Unknown"}
                 </p>
 
-                {order.deliveryAddress.addressLine1 && (
-                  <p>
+                {order.deliveryAddress.addressLine1 ? <p>
                     <span className="font-medium">Street:</span>{" "}
                     {order.deliveryAddress.addressLine1}
-                  </p>
-                )}
+                  </p> : null}
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Customer & Driver Info */}
-          {(order.user || order.driver) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {order.user && (
-                <div className="border rounded-lg p-4">
+          {(order.user || order.driver) ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {order.user ? <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-3">Customer Information</h3>
                   <div className="space-y-2 text-sm">
                     <p>
@@ -242,18 +234,14 @@ const OrderDetailsModal = ({
                       <span className="font-medium">Phone:</span>{" "}
                       {order.user.phoneNumber || "No phone"}
                     </p>
-                    {order.user.email && (
-                      <p>
+                    {order.user.email ? <p>
                         <span className="font-medium">Email:</span>{" "}
                         {order.user.email}
-                      </p>
-                    )}
+                      </p> : null}
                   </div>
-                </div>
-              )}
+                </div> : null}
 
-              {order.driver && (
-                <div className="border rounded-lg p-4">
+              {order.driver ? <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-3">Driver Information</h3>
                   <div className="space-y-2 text-sm">
                     <p>
@@ -265,22 +253,17 @@ const OrderDetailsModal = ({
                       {order.driver.phone || "No phone"}
                     </p>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                </div> : null}
+            </div> : null}
 
           {/* OTP */}
-          {order.otp && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+          {order.otp ? <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
               <h3 className="font-semibold text-yellow-800 mb-2">OTP Code</h3>
               <p className="text-2xl font-bold text-yellow-600">{order.otp}</p>
-            </div>
-          )}
+            </div> : null}
 
           {/* Order Items */}
-          {order.orderItems && order.orderItems.length > 0 && (
-            <div className="border rounded-lg p-4">
+          {order.orderItems && order.orderItems.length > 0 ? <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-4">Order Items</h3>
               <div className="space-y-4">
                 {order.orderItems.map((item: OrderItem, itemIndex: number) => (
@@ -296,8 +279,7 @@ const OrderDetailsModal = ({
                     </p>
 
                     {/* Menu Items if they exist */}
-                    {item.menuItems && item.menuItems.length > 0 && (
-                      <div className="mt-2 space-y-1">
+                    {item.menuItems && item.menuItems.length > 0 ? <div className="mt-2 space-y-1">
                         {item.menuItems.map((menuItem, menuIndex) => (
                           <div
                             key={menuIndex}
@@ -310,85 +292,63 @@ const OrderDetailsModal = ({
                             </p>
                           </div>
                         ))}
-                      </div>
-                    )}
+                      </div> : null}
 
-                    {item.specialInstructions && (
-                      <div className="mt-2 bg-yellow-50 p-2 rounded">
+                    {item.specialInstructions ? <div className="mt-2 bg-yellow-50 p-2 rounded">
                         <p className="text-sm text-yellow-700 italic">
                           {item.specialInstructions}
                         </p>
-                      </div>
-                    )}
+                      </div> : null}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            </div> : null}
 
           {/* Payment Summary */}
           <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-4">Payment Summary</h3>
             <div className="space-y-2">
-              {order.subtotal && (
-                <div className="flex justify-between">
+              {order.subtotal ? <div className="flex justify-between">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(order.subtotal)}</span>
-                </div>
-              )}
-              {order.deliveryFee && (
-                <div className="flex justify-between">
+                </div> : null}
+              {order.deliveryFee ? <div className="flex justify-between">
                   <span>Delivery Fee:</span>
                   <span>{formatCurrency(order.deliveryFee)}</span>
-                </div>
-              )}
+                </div> : null}
               {/* Show promo/discount if present */}
-              {order.discountAmount && Number(order.discountAmount) !== 0 && (
-                <div className="flex justify-between text-sm text-red-600">
+              {order.discountAmount && Number(order.discountAmount) !== 0 ? <div className="flex justify-between text-sm text-red-600">
                   <span>Discount:</span>
                   <span>-{formatCurrency(order.discountAmount)}</span>
-                </div>
-              )}
-              {order.serviceCharge && Number(order.serviceCharge) > 0 && (
-                <div className="flex justify-between text-sm">
+                </div> : null}
+              {order.serviceCharge && Number(order.serviceCharge) > 0 ? <div className="flex justify-between text-sm">
                   <span>Service Charge:</span>
                   <span>{formatCurrency(order.serviceCharge)}</span>
-                </div>
-              )}
-              {order.promoCodes && order.promoCodes.length > 0 && (
-                <div className="flex justify-between text-sm text-gray-700">
+                </div> : null}
+              {order.promoCodes && order.promoCodes.length > 0 ? <div className="flex justify-between text-sm text-gray-700">
                   <span>Promo Codes:</span>
                   <span>{order.promoCodes.join(", ")}</span>
-                </div>
-              )}
-              {order.taxAmount && order.taxAmount > 0 && (
-                <div className="flex justify-between">
+                </div> : null}
+              {order.taxAmount && order.taxAmount > 0 ? <div className="flex justify-between">
                   <span>Tax:</span>
                   <span>{formatCurrency(order.taxAmount)}</span>
-                </div>
-              )}
-              {order.tip && order.tip > 0 && (
-                <div className="flex justify-between">
+                </div> : null}
+              {order.tip && order.tip > 0 ? <div className="flex justify-between">
                   <span>Tip:</span>
                   <span>{formatCurrency(order.tip)}</span>
-                </div>
-              )}
-              {order.discountAmount && order.discountAmount > 0 && (
-                <div className="flex justify-between">
+                </div> : null}
+              {order.discountAmount && order.discountAmount > 0 ? <div className="flex justify-between">
                   <span>Discount:</span>
                   <span>-{(order.discountAmount)}</span>
-                </div>
-              )}
+                </div> : null}
               <div className="border-t pt-2 flex justify-between font-bold text-lg">
                 <span>Total:</span>
                 <span>{safeTotalAmount}</span>
               </div>
-              {order.payment?.status && (
-                <div className="mt-2 text-sm text-gray-600">
+              {order.payment?.status ? <div className="mt-2 text-sm text-gray-600">
                   Payment Status:{" "}
                   <span className="capitalize">{order.payment.status}</span>
-                </div>
-              )}
+                </div> : null}
             </div>
           </div>
 
@@ -401,25 +361,21 @@ const OrderDetailsModal = ({
               Close
             </button>
 
-            {canAssignDriver && (
-              <button
+            {canAssignDriver ? <button
                 onClick={handleAssignDriver}
                 disabled={isAssigningDriver}
                 className="flex-1 bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
               >
                 {isAssigningDriver ? "Assigning Driver..." : "Assign Driver"}
-              </button>
-            )}
+              </button> : null}
 
-            {canCancelOrder && (
-              <button
+            {canCancelOrder ? <button
                 onClick={handleCancelClick}
                 disabled={isCancelling}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
               >
                 {isCancelling ? "Cancelling..." : "Cancel Order"}
-              </button>
-            )}
+              </button> : null}
           </div>
         </div>
       </div>
@@ -525,20 +481,17 @@ const OrderCard = ({
       </div>
 
       {/* Market Info */}
-      {order.market && (
-        <div className="mb-3">
+      {order.market ? <div className="mb-3">
           <p className="text-sm font-medium text-blue-800">
             {order.market.market_name || "Unknown Market"}
           </p>
           {/* <p className="text-xs text-gray-600">
             {order.market.address || "No address"}
           </p> */}
-        </div>
-      )}
+        </div> : null}
 
       {/* Restaurants (collected from order.orderItems) */}
-      {order.orderItems && order.orderItems.length > 0 && (
-        <div className="mb-3">
+      {order.orderItems && order.orderItems.length > 0 ? <div className="mb-3">
           <h3 className="font-semibold mb-2">Restaurants</h3>
           <div className="flex flex-wrap gap-2 ">
             {Array.from(
@@ -560,41 +513,34 @@ const OrderCard = ({
               </span>
             ))}
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Delivery Address */}
-      {order.deliveryAddress && (
-        <div className="mb-3">
+      {order.deliveryAddress ? <div className="mb-3">
           <p className="text-sm font-medium">
             Deliver to: {order.deliveryAddress.city || "Unknown City"}
           </p>
           <p className="text-xs text-gray-600">
             Zipcode: {order.deliveryAddress.zipcode || "N/A"}
           </p>
-        </div>
-      )}
+        </div> : null}
 
       {/* Customer Info */}
-      {order.user && (
-        <div className="mb-3">
+      {order.user ? <div className="mb-3">
           <p className="text-sm font-medium">
             {order.user.email || "Unknown Customer"}
           </p>
           <p className="text-xs text-gray-600">
             {order.user.phoneNumber || "No phone"}
           </p>
-        </div>
-      )}
+        </div> : null}
 
       {/* OTP */}
-      {order.otp && (
-        <div className="mb-3 bg-yellow-50 p-2 rounded text-center">
+      {order.otp ? <div className="mb-3 bg-yellow-50 p-2 rounded text-center">
           <p className="text-xs text-yellow-700 font-medium">
             OTP: {order.otp}
           </p>
-        </div>
-      )}
+        </div> : null}
 
       {/* Timer and timestamp */}
       <div className="flex justify-between items-center">

@@ -317,10 +317,9 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                 autoFocus={mode === "add"}
                 className="geo-search-input"
               />
-              {geoLoading && <div className="upload-spinner geo-spinner" />}
+              {geoLoading ? <div className="upload-spinner geo-spinner" /> : null}
             </div>
-            {showSuggestions && geoResults.length > 0 && (
-              <div className="geo-suggestions">
+            {showSuggestions && geoResults.length > 0 ? <div className="geo-suggestions">
                 {geoResults.map((r) => (
                   <button
                     key={r.place_id}
@@ -332,8 +331,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                     <span>{r.display_name}</span>
                   </button>
                 ))}
-              </div>
-            )}
+              </div> : null}
           </div>
 
           <div className="form-group">
@@ -345,7 +343,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
               placeholder="e.g., Cape Town, Johannesburg CBD"
               maxLength={100}
             />
-            {errors.name && <span className="field-error">{errors.name}</span>}
+            {errors.name ? <span className="field-error">{errors.name}</span> : null}
           </div>
 
           <div className="form-group">
@@ -360,7 +358,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            {errors.continentId && <span className="field-error">{errors.continentId}</span>}
+            {errors.continentId ? <span className="field-error">{errors.continentId}</span> : null}
           </div>
 
           {/* Image upload */}
@@ -474,8 +472,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
           </div>
 
           {/* Bounds status / collapsible editor */}
-          {(minLat || maxLat || minLng || maxLng) && (
-            <div className="bounds-status">
+          {(minLat || maxLat || minLng || maxLng) ? <div className="bounds-status">
               <div className="bounds-status-header">
                 <div>
                   <MapPin size={14} />
@@ -492,19 +489,15 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                   {showBoundsEditor ? "Hide" : "Edit"}
                 </button>
               </div>
-              {boundsSource && (
-                <div className="bounds-status-source">From: {boundsSource}</div>
-              )}
+              {boundsSource ? <div className="bounds-status-source">From: {boundsSource}</div> : null}
               {!showBoundsEditor && (
                 <div className="bounds-status-summary">
                   Lat: {Number(minLat).toFixed(4)} to {Number(maxLat).toFixed(4)} · Lng: {Number(minLng).toFixed(4)} to {Number(maxLng).toFixed(4)}
                 </div>
               )}
-            </div>
-          )}
+            </div> : null}
 
-          {(showBoundsEditor || (!minLat && !maxLat && !minLng && !maxLng)) && (
-            <>
+          {(showBoundsEditor || (!minLat && !maxLat && !minLng && !maxLng)) ? <>
               <div className="bounds-section">
                 <div className="bounds-section-label">Latitude Bounds</div>
                 <div className="bounds-row">
@@ -519,7 +512,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                       min={-90}
                       max={90}
                     />
-                    {errors.minLat && <span className="field-error">{errors.minLat}</span>}
+                    {errors.minLat ? <span className="field-error">{errors.minLat}</span> : null}
                   </div>
                   <div className="form-group">
                     <label>Max Latitude *</label>
@@ -532,7 +525,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                       min={-90}
                       max={90}
                     />
-                    {errors.maxLat && <span className="field-error">{errors.maxLat}</span>}
+                    {errors.maxLat ? <span className="field-error">{errors.maxLat}</span> : null}
                   </div>
                 </div>
               </div>
@@ -551,7 +544,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                       min={-180}
                       max={180}
                     />
-                    {errors.minLng && <span className="field-error">{errors.minLng}</span>}
+                    {errors.minLng ? <span className="field-error">{errors.minLng}</span> : null}
                   </div>
                   <div className="form-group">
                     <label>Max Longitude *</label>
@@ -564,12 +557,11 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
                       min={-180}
                       max={180}
                     />
-                    {errors.maxLng && <span className="field-error">{errors.maxLng}</span>}
+                    {errors.maxLng ? <span className="field-error">{errors.maxLng}</span> : null}
                   </div>
                 </div>
               </div>
-            </>
-          )}
+            </> : null}
 
           <div className="modal-actions">
             <button className="btn btn-secondary" onClick={handleClose} disabled={busy}>
@@ -592,14 +584,12 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({
         </div>
       </div>
 
-      {imageToCrop && (
-        <ImageCropper
+      {imageToCrop ? <ImageCropper
           imageSrc={imageToCrop}
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
           aspectRatio={cropTarget === "banner" ? 2 / 1 : 1}
-        />
-      )}
+        /> : null}
     </>
   );
 };

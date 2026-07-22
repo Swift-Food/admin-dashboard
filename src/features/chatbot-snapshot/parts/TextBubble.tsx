@@ -106,7 +106,7 @@ export function TextBubble({ sender, text, clickToCopy = false }: TextBubbleProp
         marginBottom: 8,
       }}
     >
-      {isUser && iconButton}
+      {isUser ? iconButton : null}
       <div
         onClick={clickToCopy ? doCopy : undefined}
         className={`${isUser ? '' : 'display'}${copied ? ' snapshot-bubble-copied' : ''}`}

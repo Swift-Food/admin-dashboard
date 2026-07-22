@@ -232,12 +232,8 @@ const SessionDetailModal = ({
                     <p className="text-lg font-semibold text-gray-900">
                       {customerName}
                     </p>
-                    {customerEmail && (
-                      <p className="text-sm text-gray-600">{customerEmail}</p>
-                    )}
-                    {customerPhone && (
-                      <p className="text-sm text-gray-600">{customerPhone}</p>
-                    )}
+                    {customerEmail ? <p className="text-sm text-gray-600">{customerEmail}</p> : null}
+                    {customerPhone ? <p className="text-sm text-gray-600">{customerPhone}</p> : null}
                   </div>
                 </div>
               </div>
@@ -260,13 +256,11 @@ const SessionDetailModal = ({
                 </h3>
                 <div className="space-y-2">
                   <p className="text-base text-gray-900">{deliveryAddress}</p>
-                  {session.cateringOrder?.specialRequirements && (
-                    <div className="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
+                  {session.cateringOrder?.specialRequirements ? <div className="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
                       <p className="text-sm text-yellow-900">
                         {session.cateringOrder.specialRequirements}
                       </p>
-                    </div>
-                  )}
+                    </div> : null}
                 </div>
               </div>
 
@@ -292,11 +286,9 @@ const SessionDetailModal = ({
                                 {item.restaurantName}
                               </p>
                             </div>
-                            {item.collectionTime && (
-                              <p className="text-xs text-gray-500 mt-1">
+                            {item.collectionTime ? <p className="text-xs text-gray-500 mt-1">
                                 Collection: {item.collectionTime}
-                              </p>
-                            )}
+                              </p> : null}
                             <div className="mt-2 space-y-1">
                               {item.menuItems.map((menuItem, menuIdx) => (
                                 <p key={menuIdx} className="text-sm text-gray-600">
@@ -356,37 +348,29 @@ const SessionDetailModal = ({
               {/* Timeline */}
               {(session.createdAt ||
                 session.outForDeliveryAt ||
-                session.deliveredAt) && (
-                <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
+                session.deliveredAt) ? <div className="bg-gray-50 p-5 rounded-xl border-2 border-gray-200">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
                     Timeline
                   </h3>
                   <div className="space-y-2 text-sm">
-                    {session.createdAt && (
-                      <p>
+                    {session.createdAt ? <p>
                         <span className="font-medium text-gray-600">
                           Created:
                         </span>{" "}
                         {formatDateTime(session.createdAt)}
-                      </p>
-                    )}
-                    {session.outForDeliveryAt && (
-                      <p>
+                      </p> : null}
+                    {session.outForDeliveryAt ? <p>
                         <span className="font-medium text-gray-600">
                           Out for Delivery:
                         </span>{" "}
                         {formatDateTime(session.outForDeliveryAt)}
-                      </p>
-                    )}
-                    {session.deliveredAt && (
-                      <p className="text-green-700 font-semibold">
+                      </p> : null}
+                    {session.deliveredAt ? <p className="text-green-700 font-semibold">
                         <span className="font-medium">Delivered:</span>{" "}
                         {formatDateTime(session.deliveredAt)}
-                      </p>
-                    )}
+                      </p> : null}
                   </div>
-                </div>
-              )}
+                </div> : null}
             </div>
           </div>
 
@@ -685,11 +669,9 @@ const CateringSessionsScreen = () => {
                         <div className="text-xs text-gray-500 mt-1">
                           #{session.id.slice(0, 4).toUpperCase()}
                         </div>
-                        {session.cateringOrder?.customerName && (
-                          <div className="text-xs text-blue-600 mt-1">
+                        {session.cateringOrder?.customerName ? <div className="text-xs text-blue-600 mt-1">
                             {session.cateringOrder.customerName}
-                          </div>
-                        )}
+                          </div> : null}
                       </td>
 
                       {/* Scheduled Time */}
@@ -739,13 +721,10 @@ const CateringSessionsScreen = () => {
                           >
                             {statusConfig.label}
                           </span>
-                          {entry.needsRebooking && (
-                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-amber-100 text-amber-800">
+                          {entry.needsRebooking ? <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-amber-100 text-amber-800">
                               Rebook
-                            </span>
-                          )}
-                          {entry.activeBooking?.trackingUrl && (
-                            <a
+                            </span> : null}
+                          {entry.activeBooking?.trackingUrl ? <a
                               href={entry.activeBooking.trackingUrl}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -753,8 +732,7 @@ const CateringSessionsScreen = () => {
                               className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
                             >
                               Live ↗
-                            </a>
-                          )}
+                            </a> : null}
                         </div>
                       </td>
 

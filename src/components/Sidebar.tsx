@@ -496,8 +496,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
           return (
             <div key={section.id} style={sectionContainerStyle}>
               {/* Section Header */}
-              {expanded && (
-                <button
+              {expanded ? <button
                   onClick={() => toggleSection(section.id)}
                   style={{
                     ...sectionHeaderStyle,
@@ -515,8 +514,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, expanded, on
                       transition: "transform 0.2s",
                     }}
                   />
-                </button>
-              )}
+                </button> : null}
 
               {/* Section Items */}
               {(!isCollapsed || !expanded) && (

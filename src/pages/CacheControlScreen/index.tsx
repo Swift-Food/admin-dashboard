@@ -221,8 +221,7 @@ const CacheControlScreen: React.FC = () => {
       </div>
 
       {/* Breakdown of the "other / operational" keys — proves total = cached + other */}
-      {showOther && stats && (
-        <div className="cache-control__other">
+      {showOther && stats ? <div className="cache-control__other">
           <div className="cache-control__other-title">
             {stats.untracked.toLocaleString()} operational keys this panel doesn't manage
             (auth &amp; refresh tokens, OTPs, locks, payout state). Clearing these would log users
@@ -241,8 +240,7 @@ const CacheControlScreen: React.FC = () => {
               </span>
             )}
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {loading ? (
         <p style={{ color: "#6b7280" }}>Loading cache sections…</p>
@@ -310,11 +308,9 @@ const CacheControlScreen: React.FC = () => {
                             </span>
                           </div>
                           <p className="cache-card__desc">{section.description}</p>
-                          {section.disruptive && (
-                            <span className="cache-card__warn">
+                          {section.disruptive ? <span className="cache-card__warn">
                               <AlertTriangle size={13} /> Disrupts active users
-                            </span>
-                          )}
+                            </span> : null}
                           <div className="cache-card__foot">
                             <button
                               className="cache-btn cache-btn--clear"
@@ -336,8 +332,7 @@ const CacheControlScreen: React.FC = () => {
       )}
 
       {/* Confirm modal */}
-      {confirm && (
-        <div className="cache-modal__overlay" onClick={() => !modalBusy && setConfirm(null)}>
+      {confirm ? <div className="cache-modal__overlay" onClick={() => !modalBusy && setConfirm(null)}>
           <div className="cache-modal" onClick={(e) => e.stopPropagation()}>
             <div className="cache-modal__header">
               <h2>
@@ -366,16 +361,14 @@ const CacheControlScreen: React.FC = () => {
               )}
 
               {((confirm.kind === "section" && confirm.section.disruptive) ||
-                confirm.kind === "all") && (
-                <div className="cache-modal__warn">
+                confirm.kind === "all") ? <div className="cache-modal__warn">
                   <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
                   <span>
                     {confirm.kind === "all"
                       ? "Includes catering chat sessions — active chat users will lose their conversation and have to start over."
                       : "Active chat users will lose their conversation and have to start over."}
                   </span>
-                </div>
-              )}
+                </div> : null}
             </div>
 
             <div className="cache-modal__actions">
@@ -403,16 +396,13 @@ const CacheControlScreen: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
 
       {/* Toast */}
-      {toast && (
-        <div className={`cache-toast cache-toast--${toast.type}`}>
+      {toast ? <div className={`cache-toast cache-toast--${toast.type}`}>
           <span>{toast.type === "success" ? "✓" : "✗"}</span>
           {toast.text}
-        </div>
-      )}
+        </div> : null}
     </div>
   );
 };

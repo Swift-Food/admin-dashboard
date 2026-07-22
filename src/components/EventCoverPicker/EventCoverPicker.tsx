@@ -184,7 +184,7 @@ export default function EventCoverPicker({
                     className={`cover-picker-sidebar-item${isActive ? " active" : ""}${isRecommended ? " recommended" : ""}`}
                     onClick={() => setActiveCategory(item)}
                   >
-                    {isRecommended && <Star size={14} />}
+                    {isRecommended ? <Star size={14} /> : null}
                     {isRecommended ? "Recommended" : formatCategoryName(item)}
                   </button>
                 );

@@ -387,12 +387,10 @@ const AddRestaurantModal = ({
         </div>
 
         {/* Error Alert */}
-        {error && (
-          <div className="alert-error">
+        {error ? <div className="alert-error">
             <AlertCircle size={20} className="alert-error-icon" />
             <p className="alert-error-text">{error}</p>
-          </div>
-        )}
+          </div> : null}
 
         {/* Form Content */}
         <div className="modal-body">

@@ -312,7 +312,7 @@ const PrismoDashboard: React.FC = () => {
               ) : null}
 
               {/* Divider */}
-              {calendarStats && <div style={styles.divider} />}
+              {calendarStats ? <div style={styles.divider} /> : null}
 
               {/* Bundle Stats */}
               {errors.bundles ? (

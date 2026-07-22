@@ -89,8 +89,7 @@ export function JsonView({
           </span>
         )}
       </button>
-      {open && (
-        <>
+      {open ? <>
           <div className="pl-4 border-l border-gray-200 ml-1.5">
             {entries.map(([k, v]) => (
               <JsonView
@@ -104,8 +103,7 @@ export function JsonView({
             ))}
           </div>
           <div className="text-gray-500 pl-4">{isArr ? ']' : '}'}</div>
-        </>
-      )}
+        </> : null}
     </div>
   );
 }
@@ -188,9 +186,7 @@ export function JsonModal({
             </button>
           </div>
         </div>
-        {extras && (
-          <div className="px-5 py-2 border-b border-gray-100 bg-gray-50">{extras}</div>
-        )}
+        {extras ? <div className="px-5 py-2 border-b border-gray-100 bg-gray-50">{extras}</div> : null}
         <div className="overflow-auto p-5 flex-1 font-mono text-xs leading-relaxed">
           <JsonView value={value} defaultOpenDepth={2} control={control} />
         </div>

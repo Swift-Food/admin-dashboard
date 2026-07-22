@@ -125,10 +125,9 @@ const CateringSettingsScreen: React.FC = () => {
         apply immediately — no deploy needed.
       </p>
 
-      {loading && <p style={{ color: '#6b7280' }}>Loading…</p>}
+      {loading ? <p style={{ color: '#6b7280' }}>Loading…</p> : null}
 
-      {!loading && draft && (
-        <div style={CARD}>
+      {!loading && draft ? <div style={CARD}>
           <h2
             style={{
               fontSize: '1.05rem',
@@ -289,8 +288,7 @@ const CateringSettingsScreen: React.FC = () => {
             >
               {saving ? 'Saving…' : 'Save changes'}
             </button>
-            {dirty && !saving && (
-              <button
+            {dirty && !saving ? <button
                 onClick={() => {
                   setDraft(saved);
                   setMessage(null);
@@ -307,10 +305,8 @@ const CateringSettingsScreen: React.FC = () => {
                 }}
               >
                 Discard
-              </button>
-            )}
-            {message && (
-              <span
+              </button> : null}
+            {message ? <span
                 style={{
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -318,14 +314,11 @@ const CateringSettingsScreen: React.FC = () => {
                 }}
               >
                 {message.text}
-              </span>
-            )}
+              </span> : null}
           </div>
-        </div>
-      )}
+        </div> : null}
 
-      {!loading && !draft && message && (
-        <div
+      {!loading && !draft && message ? <div
           style={{
             padding: '10px 14px',
             borderRadius: 8,
@@ -336,8 +329,7 @@ const CateringSettingsScreen: React.FC = () => {
           }}
         >
           {message.text}
-        </div>
-      )}
+        </div> : null}
     </div>
   );
 };

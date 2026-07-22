@@ -31,7 +31,7 @@ const ColorField: React.FC<ColorFieldProps> = ({ label, value, onChange, hint })
           maxLength={7}
         />
       </div>
-      {hint && <p className="ps-form-hint">{hint}</p>}
+      {hint ? <p className="ps-form-hint">{hint}</p> : null}
     </div>
   );
 };

@@ -44,14 +44,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, actionLabel, onAction, isP
       <p className="order-card__address">{marketName}</p>
       <p className = "order-card__status">{orderStatus}</p>
       <p className="order-card__timestamp">{formatted}</p>
-      {actionLabel && onAction && (
-        <button 
+      {actionLabel && onAction ? <button 
           className={`order-card__btn ${isPressed ? 'order-card__btn--pressed' : ''}`} 
           onClick={onAction}
           >
             {actionLabel}
-          </button>
-      )}
+          </button> : null}
     </div>
   );
 };

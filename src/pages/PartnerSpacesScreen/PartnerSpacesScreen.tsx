@@ -160,9 +160,7 @@ const OriginsEditor = ({ origins, onChange, fieldError }: OriginsEditorProps) =>
           Add
         </button>
       </div>
-      {(draftError || fieldError) && (
-        <p className="ps-field-error">{draftError || fieldError}</p>
-      )}
+      {(draftError || fieldError) ? <p className="ps-field-error">{draftError || fieldError}</p> : null}
       {origins.length === 0 ? (
         <p className="ps-origin-warning">
           ⚠ No origins set — this key will work from any site that knows it.
@@ -611,8 +609,7 @@ const PartnerSpacesScreen = () => {
         </div>
       </div>
 
-      {showCreate && (
-        <div className="ps-modal-overlay" onClick={closeCreate}>
+      {showCreate ? <div className="ps-modal-overlay" onClick={closeCreate}>
           <div className="ps-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ps-modal-header">
               <h2 className="ps-modal-title">Add Embed Partner</h2>
@@ -623,9 +620,7 @@ const PartnerSpacesScreen = () => {
 
             <form onSubmit={handleCreate}>
               <div className="ps-modal-body">
-                {createGeneralError && (
-                  <div className="ps-general-error">{createGeneralError}</div>
-                )}
+                {createGeneralError ? <div className="ps-general-error">{createGeneralError}</div> : null}
 
                 <div className="ps-form-group">
                   <label className="ps-form-label">
@@ -638,9 +633,7 @@ const PartnerSpacesScreen = () => {
                     placeholder="e.g. Grand Hotel London"
                     autoFocus
                   />
-                  {createFieldErrors.name && (
-                    <p className="ps-field-error">{createFieldErrors.name}</p>
-                  )}
+                  {createFieldErrors.name ? <p className="ps-field-error">{createFieldErrors.name}</p> : null}
                 </div>
 
                 <div className="ps-form-group">
@@ -654,9 +647,7 @@ const PartnerSpacesScreen = () => {
                     placeholder="e.g. grand-hotel-london"
                   />
                   <p className="ps-form-hint">Auto-suggested from name. Must be unique.</p>
-                  {createFieldErrors.slug && (
-                    <p className="ps-field-error">{createFieldErrors.slug}</p>
-                  )}
+                  {createFieldErrors.slug ? <p className="ps-field-error">{createFieldErrors.slug}</p> : null}
                 </div>
 
                 <div className="ps-form-group">
@@ -670,9 +661,7 @@ const PartnerSpacesScreen = () => {
                     onChange={(e) => setCreateForm((p) => ({ ...p, contactEmail: e.target.value }))}
                     placeholder="contact@venue.com"
                   />
-                  {createFieldErrors.contactEmail && (
-                    <p className="ps-field-error">{createFieldErrors.contactEmail}</p>
-                  )}
+                  {createFieldErrors.contactEmail ? <p className="ps-field-error">{createFieldErrors.contactEmail}</p> : null}
                 </div>
 
                 <div className="ps-form-group">
@@ -685,9 +674,7 @@ const PartnerSpacesScreen = () => {
                     onChange={(e) => setCreateForm((p) => ({ ...p, adminName: e.target.value }))}
                     placeholder="e.g. Jane Smith"
                   />
-                  {createFieldErrors.adminName && (
-                    <p className="ps-field-error">{createFieldErrors.adminName}</p>
-                  )}
+                  {createFieldErrors.adminName ? <p className="ps-field-error">{createFieldErrors.adminName}</p> : null}
                 </div>
 
                 <div className="ps-form-group">
@@ -701,9 +688,7 @@ const PartnerSpacesScreen = () => {
                     onChange={(e) => setCreateForm((p) => ({ ...p, adminEmail: e.target.value }))}
                     placeholder="admin@venue.com"
                   />
-                  {createFieldErrors.adminEmail && (
-                    <p className="ps-field-error">{createFieldErrors.adminEmail}</p>
-                  )}
+                  {createFieldErrors.adminEmail ? <p className="ps-field-error">{createFieldErrors.adminEmail}</p> : null}
                   <p className="ps-form-hint">
                     This person receives an email to set their password and sign in to the partner dashboard.
                   </p>
@@ -726,9 +711,7 @@ const PartnerSpacesScreen = () => {
                     with the same data.
                   </p>
                   <WebhookDetails />
-                  {createFieldErrors.webhookUrl && (
-                    <p className="ps-field-error">{createFieldErrors.webhookUrl}</p>
-                  )}
+                  {createFieldErrors.webhookUrl ? <p className="ps-field-error">{createFieldErrors.webhookUrl}</p> : null}
                 </div>
 
                 <div className="ps-form-group">
@@ -788,11 +771,9 @@ const PartnerSpacesScreen = () => {
               </div>
             </form>
           </div>
-        </div>
-      )}
+        </div> : null}
 
-      {selectedSpace && (
-        <div className="ps-modal-overlay" onClick={closeDetail}>
+      {selectedSpace ? <div className="ps-modal-overlay" onClick={closeDetail}>
           <div className="ps-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ps-modal-header">
               <h2 className="ps-modal-title">{selectedSpace.name}</h2>
@@ -802,9 +783,7 @@ const PartnerSpacesScreen = () => {
             </div>
 
             <div className="ps-modal-body">
-              {editGeneralError && (
-                <div className="ps-general-error">{editGeneralError}</div>
-              )}
+              {editGeneralError ? <div className="ps-general-error">{editGeneralError}</div> : null}
 
               <div className="ps-form-group">
                 <label className="ps-form-label">
@@ -815,9 +794,7 @@ const PartnerSpacesScreen = () => {
                   value={editForm.name}
                   onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
                 />
-                {editFieldErrors.name && (
-                  <p className="ps-field-error">{editFieldErrors.name}</p>
-                )}
+                {editFieldErrors.name ? <p className="ps-field-error">{editFieldErrors.name}</p> : null}
               </div>
 
               <div className="ps-form-group">
@@ -829,9 +806,7 @@ const PartnerSpacesScreen = () => {
                   value={editForm.slug}
                   onChange={(e) => setEditForm((p) => ({ ...p, slug: e.target.value }))}
                 />
-                {editFieldErrors.slug && (
-                  <p className="ps-field-error">{editFieldErrors.slug}</p>
-                )}
+                {editFieldErrors.slug ? <p className="ps-field-error">{editFieldErrors.slug}</p> : null}
               </div>
 
               <div className="ps-form-group">
@@ -844,9 +819,7 @@ const PartnerSpacesScreen = () => {
                   value={editForm.contactEmail}
                   onChange={(e) => setEditForm((p) => ({ ...p, contactEmail: e.target.value }))}
                 />
-                {editFieldErrors.contactEmail && (
-                  <p className="ps-field-error">{editFieldErrors.contactEmail}</p>
-                )}
+                {editFieldErrors.contactEmail ? <p className="ps-field-error">{editFieldErrors.contactEmail}</p> : null}
               </div>
 
               <div className="ps-form-group">
@@ -866,9 +839,7 @@ const PartnerSpacesScreen = () => {
                   the same data.
                 </p>
                 <WebhookDetails />
-                {editFieldErrors.webhookUrl && (
-                  <p className="ps-field-error">{editFieldErrors.webhookUrl}</p>
-                )}
+                {editFieldErrors.webhookUrl ? <p className="ps-field-error">{editFieldErrors.webhookUrl}</p> : null}
               </div>
 
               <div className="ps-form-group">
@@ -995,9 +966,7 @@ const PartnerSpacesScreen = () => {
                     {savingCommission ? "Saving..." : "Save commission"}
                   </button>
                 </div>
-                {commissionError && (
-                  <p className="ps-field-error">{commissionError}</p>
-                )}
+                {commissionError ? <p className="ps-field-error">{commissionError}</p> : null}
               </div>
 
               <p className="ps-section-label" style={{ marginTop: "1.5rem" }}>Danger Zone</p>
@@ -1093,8 +1062,7 @@ const PartnerSpacesScreen = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> : null}
     </div>
   );
 };

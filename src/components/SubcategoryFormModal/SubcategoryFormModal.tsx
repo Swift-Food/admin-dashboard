@@ -63,11 +63,9 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h2>{mode === "add" ? "Add Subcategory" : "Edit Subcategory"}</h2>
-        {mode === "add" && parentCategoryName && (
-          <p className="modal-subtitle">
+        {mode === "add" && parentCategoryName ? <p className="modal-subtitle">
             Adding to: <strong>{parentCategoryName}</strong>
-          </p>
-        )}
+          </p> : null}
 
         <div className="form-group">
           <label>Subcategory Name *</label>

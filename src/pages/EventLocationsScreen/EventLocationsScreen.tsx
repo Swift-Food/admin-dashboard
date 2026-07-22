@@ -369,8 +369,7 @@ const EventLocationsScreen: React.FC = () => {
                 </div>
 
                 {/* Location Cards */}
-                {isExpanded && (
-                  <div className="el-locations-grid">
+                {isExpanded ? <div className="el-locations-grid">
                     {contLocs.length === 0 ? (
                       <div className="el-no-cities">
                         <MapPin size={16} />
@@ -419,8 +418,7 @@ const EventLocationsScreen: React.FC = () => {
                         </div>
                       ))
                     )}
-                  </div>
-                )}
+                  </div> : null}
               </div>
             );
           })}

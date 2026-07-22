@@ -146,10 +146,9 @@ const CateringAiConfigScreen: React.FC = () => {
         deploy needed. Leave everything as-is to keep the current defaults.
       </p>
 
-      {loading && <p style={{ color: '#6b7280' }}>Loading…</p>}
+      {loading ? <p style={{ color: '#6b7280' }}>Loading…</p> : null}
 
-      {!loading && draft && options && (
-        <>
+      {!loading && draft && options ? <>
           <div
             style={{
               position: 'sticky',
@@ -173,13 +172,10 @@ const CateringAiConfigScreen: React.FC = () => {
             >
               {saving ? 'Saving…' : 'Save changes'}
             </button>
-            {dirty && !saving && (
-              <button style={styles.secondaryButton} onClick={handleReset}>
+            {dirty && !saving ? <button style={styles.secondaryButton} onClick={handleReset}>
                 Discard
-              </button>
-            )}
-            {message && (
-              <span
+              </button> : null}
+            {message ? <span
                 style={{
                   fontSize: '0.85rem',
                   fontWeight: 600,
@@ -187,8 +183,7 @@ const CateringAiConfigScreen: React.FC = () => {
                 }}
               >
                 {message.text}
-              </span>
-            )}
+              </span> : null}
           </div>
 
           {STAGE_META.map((meta) => (
@@ -202,11 +197,9 @@ const CateringAiConfigScreen: React.FC = () => {
               onChange={(next) => updateStage(meta.key, next)}
             />
           ))}
-        </>
-      )}
+        </> : null}
 
-      {!loading && !draft && message && (
-        <div
+      {!loading && !draft && message ? <div
           style={{
             padding: '10px 14px',
             borderRadius: 8,
@@ -217,8 +210,7 @@ const CateringAiConfigScreen: React.FC = () => {
           }}
         >
           {message.text}
-        </div>
-      )}
+        </div> : null}
     </div>
   );
 };

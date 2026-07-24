@@ -78,6 +78,40 @@ const downloadVatDocumentsZip = async (
   return res.data as Blob;
 };
 
+const downloadCommissionInvoicesZip = async (
+  year: number,
+  month: number,
+  restaurantIds?: string[]
+): Promise<Blob> => {
+  const res = await http.get("catering-orders/admin/commission-invoices-zip", {
+    params: {
+      year,
+      month,
+      ...(restaurantIds && restaurantIds.length > 0
+        ? { restaurantIds: restaurantIds.join(",") }
+        : {}),
+    },
+    responseType: "blob",
+  });
+  return res.data as Blob;
+};
+
+const downloadPayoutReceiptsZip = async (from: string, to: string): Promise<Blob> => {
+  const res = await http.get("catering-orders/admin/payout-receipts-zip", {
+    params: { from, to },
+    responseType: "blob",
+  });
+  return res.data as Blob;
+};
+
+const downloadChecklistsZip = async (from: string, to: string): Promise<Blob> => {
+  const res = await http.get("catering-orders/admin/checklists-zip", {
+    params: { from, to },
+    responseType: "blob",
+  });
+  return res.data as Blob;
+};
+
 export default {
   getOrders,
   reviewOrder,
@@ -87,4 +121,7 @@ export default {
   bulkUpdateAdminNotes,
   fetchPreviewVatPdf,
   downloadVatDocumentsZip,
+  downloadCommissionInvoicesZip,
+  downloadPayoutReceiptsZip,
+  downloadChecklistsZip,
 };

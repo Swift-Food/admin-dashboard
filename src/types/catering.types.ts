@@ -121,6 +121,12 @@ export interface PricingOrderItem {
 
   // Whether this restaurant already has a refund recorded for this order
   hasRefund?: boolean;
+
+  // Manual top-ups/deductions from restaurantPayoutDetails (e.g. a
+  // self-delivery reimbursement) already folded into restaurantNetAmount
+  // above — kept separately so the UI can show why the figure differs
+  // from raw item pricing.
+  payoutAdjustments?: Array<{ type: string; amount: number; note?: string }>;
 }
 
 // Legacy interface - kept for backward compatibility with old data

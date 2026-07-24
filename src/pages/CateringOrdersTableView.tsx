@@ -488,6 +488,34 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 <p className="text-xl font-bold text-emerald-900 tabular-nums">{formatCurrency(order.restaurantsTotalNet)}</p>
               </div>
             </div>
+
+            {/* Manual payout adjustments (e.g. self-delivery reimbursement) — already
+                included in Restaurant Net above; shown here so it's clear why. */}
+            {order.restaurants?.some((r) => r.payoutAdjustments?.length) ? (
+              <div className="mt-3 pt-3 border-t border-emerald-200">
+                <p className="text-[10px] text-emerald-700/80 font-semibold uppercase tracking-wider mb-1.5">
+                  Adjustments (incl. above)
+                </p>
+                <div className="space-y-1">
+                  {order.restaurants
+                    .filter((r) => r.payoutAdjustments?.length)
+                    .flatMap((r) =>
+                      (r.payoutAdjustments ?? []).map((adj, idx) => (
+                        <div key={`${r.restaurantId}-${idx}`} className="flex items-start justify-between gap-3 text-xs">
+                          <span className="text-emerald-800">
+                            <span className="font-semibold">{r.restaurantName}:</span>{" "}
+                            {adj.note || adj.type}
+                          </span>
+                          <span className={`font-semibold tabular-nums whitespace-nowrap ${adj.amount >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                            {adj.amount >= 0 ? "+" : ""}
+                            {formatCurrency(adj.amount)}
+                          </span>
+                        </div>
+                      )),
+                    )}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Special Requirements */}

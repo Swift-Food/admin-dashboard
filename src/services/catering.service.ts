@@ -79,14 +79,18 @@ const downloadVatDocumentsZip = async (
 };
 
 const downloadCommissionInvoicesZip = async (
-  year: number,
-  month: number,
+  fromYear: number,
+  fromMonth: number,
+  toYear: number,
+  toMonth: number,
   restaurantIds?: string[]
 ): Promise<Blob> => {
   const res = await http.get("catering-orders/admin/commission-invoices-zip", {
     params: {
-      year,
-      month,
+      fromYear,
+      fromMonth,
+      toYear,
+      toMonth,
       ...(restaurantIds && restaurantIds.length > 0
         ? { restaurantIds: restaurantIds.join(",") }
         : {}),

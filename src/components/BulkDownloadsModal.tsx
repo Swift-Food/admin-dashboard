@@ -28,6 +28,28 @@ const currentYearMonth = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
+const monthYm = (y: number, m: number) => {
+  // Delegate to Date for the borrow/carry when m is out of [0, 11] — e.g.
+  // month -1 correctly rolls back to December of the previous year.
+  const d = new Date(y, m, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+type MonthPreset = { label: string; from: string; to: string };
+
+const buildMonthPresets = (): MonthPreset[] => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const q = Math.floor(m / 3) * 3;
+  return [
+    { label: "This month", from: monthYm(y, m), to: monthYm(y, m) },
+    { label: "Last month", from: monthYm(y, m - 1), to: monthYm(y, m - 1) },
+    { label: "This quarter", from: monthYm(y, q), to: monthYm(y, m) },
+    { label: "Last quarter", from: monthYm(y, q - 3), to: monthYm(y, q - 1) },
+  ];
+};
+
 // Parse whatever the backend/axios hands back on failure (blob-wrapped JSON,
 // plain JSON, or nothing usable) into a single human-readable message.
 async function extractErrorMessage(e: any): Promise<string> {
@@ -137,6 +159,77 @@ function DateRangePicker({
   );
 }
 
+// Month-granularity equivalent of DateRangePicker — used by the commission
+// tab, whose underlying document is generated per calendar month (same one
+// each restaurant sees on their own dashboard), so the range is expressed
+// as whole months rather than arbitrary days.
+function MonthRangePicker({
+  from,
+  to,
+  onFrom,
+  onTo,
+  maxMonth,
+}: {
+  from: string;
+  to: string;
+  onFrom: (v: string) => void;
+  onTo: (v: string) => void;
+  maxMonth?: string;
+}) {
+  const presets = buildMonthPresets();
+  return (
+    <div className="mt-5">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Month range</p>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {presets.map((p) => {
+          const active = from === p.from && to === p.to;
+          return (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => {
+                onFrom(p.from);
+                onTo(p.to);
+              }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full border-2 transition-all ${
+                active
+                  ? "bg-purple-600 border-purple-600 text-white"
+                  : "bg-white border-gray-200 text-gray-700 hover:border-purple-300"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">From</label>
+          <input
+            type="month"
+            value={from}
+            max={maxMonth}
+            onChange={(e) => onFrom(e.target.value)}
+            className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            style={{ color: "#000" }}
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">To</label>
+          <input
+            type="month"
+            value={to}
+            max={maxMonth}
+            onChange={(e) => onTo(e.target.value)}
+            className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            style={{ color: "#000" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BulkDownloadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<DocKind>("vat");
   const [isDownloading, setIsDownloading] = useState(false);
@@ -150,7 +243,8 @@ export function BulkDownloadsModal({ open, onClose }: { open: boolean; onClose: 
   const [wantSupplierInvoices, setWantSupplierInvoices] = useState(false);
 
   // Commission invoices
-  const [invoiceMonth, setInvoiceMonth] = useState(currentYearMonth());
+  const [invoiceFromMonth, setInvoiceFromMonth] = useState(currentYearMonth());
+  const [invoiceToMonth, setInvoiceToMonth] = useState(currentYearMonth());
 
   // Payout receipts
   const payoutPresets = buildPresets();
@@ -180,11 +274,19 @@ export function BulkDownloadsModal({ open, onClose }: { open: boolean; onClose: 
         const blob = await cateringService.downloadVatDocumentsZip(vatFrom, vatTo, selectedVatTypes);
         triggerBlobDownload(blob, `vat-documents_${vatFrom}_to_${vatTo}.zip`);
       } else if (tab === "commission") {
-        const [yearStr, monthStr] = invoiceMonth.split("-");
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        const blob = await cateringService.downloadCommissionInvoicesZip(year, month);
-        triggerBlobDownload(blob, `commission-invoices_${invoiceMonth}.zip`);
+        const [fromYearStr, fromMonthStr] = invoiceFromMonth.split("-");
+        const [toYearStr, toMonthStr] = invoiceToMonth.split("-");
+        const blob = await cateringService.downloadCommissionInvoicesZip(
+          Number(fromYearStr),
+          Number(fromMonthStr),
+          Number(toYearStr),
+          Number(toMonthStr),
+        );
+        const rangeLabel =
+          invoiceFromMonth === invoiceToMonth
+            ? invoiceFromMonth
+            : `${invoiceFromMonth}_to_${invoiceToMonth}`;
+        triggerBlobDownload(blob, `commission-invoices_${rangeLabel}.zip`);
       } else if (tab === "payout") {
         const blob = await cateringService.downloadPayoutReceiptsZip(payoutFrom, payoutTo);
         triggerBlobDownload(blob, `payout-receipts_${payoutFrom}_to_${payoutTo}.zip`);
@@ -203,7 +305,10 @@ export function BulkDownloadsModal({ open, onClose }: { open: boolean; onClose: 
   const vatRangeValid = vatFrom !== "" && vatTo !== "" && vatFrom <= vatTo;
   const payoutRangeValid = payoutFrom !== "" && payoutTo !== "" && payoutFrom <= payoutTo;
   const checklistRangeValid = checklistFrom !== "" && checklistTo !== "" && checklistFrom <= checklistTo;
-  const commissionValid = /^\d{4}-\d{2}$/.test(invoiceMonth);
+  const commissionValid =
+    /^\d{4}-\d{2}$/.test(invoiceFromMonth) &&
+    /^\d{4}-\d{2}$/.test(invoiceToMonth) &&
+    invoiceFromMonth <= invoiceToMonth;
 
   const canDownload =
     !isDownloading &&
@@ -283,19 +388,17 @@ export function BulkDownloadsModal({ open, onClose }: { open: boolean; onClose: 
             <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
               Monthly commission tax invoices
             </p>
-            <p className="text-xs text-gray-500 mb-3">
-              One .html invoice per restaurant with a completed order this month — same document each
+            <p className="text-xs text-gray-500">
+              One .html invoice per restaurant per month with a completed order — same document each
               restaurant sees on their own dashboard. Open a file and use your browser's Print → Save as
-              PDF if you need a PDF copy.
+              PDF if you need a PDF copy. Multi-month ranges are zipped into one folder per month.
             </p>
-            <label className="block text-xs text-gray-500 mb-1">Month</label>
-            <input
-              type="month"
-              value={invoiceMonth}
-              max={currentYearMonth()}
-              onChange={(e) => setInvoiceMonth(e.target.value)}
-              className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              style={{ color: "#000" }}
+            <MonthRangePicker
+              from={invoiceFromMonth}
+              to={invoiceToMonth}
+              onFrom={setInvoiceFromMonth}
+              onTo={setInvoiceToMonth}
+              maxMonth={currentYearMonth()}
             />
           </div>
         )}

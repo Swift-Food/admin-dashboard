@@ -4,7 +4,6 @@ import cateringService, { type SendPaymentLinkDto } from "../services/catering.s
 import { Modal } from "../components/Modal";
 import { RefundModal } from "../components/refund/RefundModal";
 import { RefundHistoryList } from "../components/refund/RefundHistoryList";
-import { BulkDownloadsModal } from "../components/BulkDownloadsModal";
 
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
   
@@ -1374,7 +1373,6 @@ const CateringOrdersScreen = () => {
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [notesSaved, setNotesSaved] = useState<Record<string, string>>({});
   const [isSavingNotes, setIsSavingNotes] = useState(false);
-  const [showBulkDownloadsModal, setShowBulkDownloadsModal] = useState(false);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -1677,12 +1675,6 @@ const CateringOrdersScreen = () => {
                 {isSavingNotes ? "Saving..." : `Save Notes (${dirtyNoteOrders.length})`}
               </button>
             )}
-            <button
-              onClick={() => setShowBulkDownloadsModal(true)}
-              className="px-4 py-2 text-sm font-semibold bg-white border-2 border-gray-300 hover:border-purple-400 text-gray-700 rounded-lg transition-all whitespace-nowrap"
-            >
-              📦 Bulk Downloads
-            </button>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -1875,8 +1867,6 @@ const CateringOrdersScreen = () => {
         onClose={() => setSelectedOrder(null)}
         onOrderUpdated={fetchAllOrders}
       />
-
-      <BulkDownloadsModal open={showBulkDownloadsModal} onClose={() => setShowBulkDownloadsModal(false)} />
     </div>
   );
 };

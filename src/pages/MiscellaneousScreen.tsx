@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import http from "../services/http";
 import { getAllRestaurantsAdminDashboard } from "../services/restaurant.service";
 import cateringService from "../services/catering.service";
+import { BulkDownloadsModal } from "../components/BulkDownloadsModal";
 
 interface Restaurant {
   id: string;
@@ -22,6 +23,7 @@ interface CateringOrder {
 }
 
 const MiscellaneousScreen: React.FC = () => {
+  const [showBulkDownloadsModal, setShowBulkDownloadsModal] = useState(false);
   const [selectedRefs, setSelectedRefs] = useState<string[]>([]);
   const [restaurantId, setRestaurantId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -296,9 +298,31 @@ const MiscellaneousScreen: React.FC = () => {
           maxWidth: 600,
         }}
       >
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: "#334155" }}>
-          Download Receipts
-        </h2>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
+          }}
+        >
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: "#334155" }}>Download Receipts</h2>
+          <button
+            onClick={() => setShowBulkDownloadsModal(true)}
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              color: "#475569",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Bulk Downloads
+          </button>
+        </div>
         <p style={{ color: "#64748b", marginBottom: 20, fontSize: 14 }}>
           Export catering order receipt data to xlsx.
         </p>
@@ -806,6 +830,11 @@ const MiscellaneousScreen: React.FC = () => {
           }
         `}
       </style>
+
+      <BulkDownloadsModal
+        open={showBulkDownloadsModal}
+        onClose={() => setShowBulkDownloadsModal(false)}
+      />
     </div>
   );
 };

@@ -13,6 +13,7 @@ export interface PartnerSpace {
   slug: string;
   publishableKey: string;
   isActive: boolean;
+  canDelegateBySlug: boolean;
   aiChatEnabled: boolean;
   aiPipelineVariant: AiPipelineVariant;
   contactEmail: string;
@@ -46,6 +47,9 @@ export interface UpdatePartnerSpaceDto {
   webhookUrl?: string | null;
   allowedOrigins?: string[];
   isActive?: boolean;
+  /** Permits this space's publishable key to send `X-Partner-Slug` and act on
+   *  behalf of another partner. Reserved for Swift's own first-party key. */
+  canDelegateBySlug?: boolean;
   aiChatEnabled?: boolean;
   aiPipelineVariant?: AiPipelineVariant;
   logoImageUrl?: string | null;

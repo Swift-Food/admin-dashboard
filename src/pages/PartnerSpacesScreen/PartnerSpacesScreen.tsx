@@ -211,6 +211,7 @@ const PartnerSpacesScreen = () => {
     webhookUrl: string;
     allowedOrigins: string[];
     isActive: boolean;
+    canDelegateBySlug: boolean;
     aiChatEnabled: boolean;
     aiPipelineVariant: AiPipelineVariant;
     logoImageUrl: string;
@@ -222,6 +223,7 @@ const PartnerSpacesScreen = () => {
     webhookUrl: "",
     allowedOrigins: [],
     isActive: true,
+    canDelegateBySlug: false,
     aiChatEnabled: false,
     aiPipelineVariant: "legacy",
     logoImageUrl: "",
@@ -306,6 +308,7 @@ const PartnerSpacesScreen = () => {
       webhookUrl: editForm.webhookUrl?.trim() || null,
       allowedOrigins: editForm.allowedOrigins,
       isActive: editForm.isActive,
+      canDelegateBySlug: editForm.canDelegateBySlug,
       aiChatEnabled: editForm.aiChatEnabled,
       aiPipelineVariant: editForm.aiPipelineVariant,
       logoImageUrl: editForm.logoImageUrl || null,
@@ -341,6 +344,7 @@ const PartnerSpacesScreen = () => {
       webhookUrl: space.webhookUrl ?? "",
       allowedOrigins: space.allowedOrigins ?? [],
       isActive: space.isActive,
+      canDelegateBySlug: space.canDelegateBySlug ?? false,
       aiChatEnabled: space.aiChatEnabled ?? false,
       aiPipelineVariant: space.aiPipelineVariant ?? "legacy",
       logoImageUrl: space.logoImageUrl ?? "",
@@ -929,6 +933,25 @@ const PartnerSpacesScreen = () => {
                   <option value="pipeline_v1">pipeline_v1 (multi-stage Flash)</option>
                 </select>
               </div>
+
+              <div className="ps-toggle-row">
+                <span className="ps-toggle-label">Can act as other partners</span>
+                <input
+                  type="checkbox"
+                  checked={editForm.canDelegateBySlug}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, canDelegateBySlug: e.target.checked }))
+                  }
+                />
+              </div>
+              <p className="ps-form-hint">
+                Lets this space&apos;s publishable key send an{" "}
+                <code>X-Partner-Slug</code> header to place orders and price
+                carts as any other partner, with that partner&apos;s commission
+                applied. Intended only for Swift&apos;s own first-party key,
+                which powers partner-branded pages on our website. Leave off for
+                third-party embeds.
+              </p>
 
               <p className="ps-section-label" style={{ marginTop: "1.5rem" }}>Commission</p>
               <div className="ps-commission-section">

@@ -11,6 +11,8 @@ const errText = (e: unknown): string =>
   (e as Error).message ??
   "Request failed";
 
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 const BOOKING_STATE_BADGE: Record<string, string> = {
   active: "bg-blue-100 text-blue-800",
   completed: "bg-green-100 text-green-800",
@@ -54,7 +56,7 @@ const CourierBookingSection = ({
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-800">Courier (Pedivan)</h3>
+        <h3 className="text-sm font-bold text-gray-800">Courier{activeBooking ? ` (${cap(activeBooking.provider)})` : " (Pedivan)"}</h3>
         {needsRebooking ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
             Details changed — rebook needed
           </span> : null}
@@ -67,22 +69,22 @@ const CourierBookingSection = ({
       {activeBooking ? <div className="text-xs space-y-1 bg-blue-50 border border-blue-200 rounded px-3 py-2">
           <p>
             <span className="font-semibold">Ref:</span>{" "}
-            {activeBooking.pedivanReference ?? activeBooking.pedivanOrderId}
+            {activeBooking.externalReference ?? activeBooking.externalOrderId}
             {activeBooking.quotedPrice ? <span className="ml-2 font-semibold">
                 {activeBooking.currency ?? "£"}
                 {activeBooking.quotedPrice}
               </span> : null}
           </p>
           <p>
-            <span className="font-semibold">Pedivan status:</span>{" "}
-            {activeBooking.pedivanStatus ?? "—"} · pickup {activeBooking.pickupStatus ?? "—"} ·
+            <span className="font-semibold">Provider status:</span>{" "}
+            {activeBooking.providerStatus ?? "—"} · pickup {activeBooking.pickupStatus ?? "—"} ·
             drop {activeBooking.dropStatus ?? "—"}
           </p>
           <p className="text-gray-500">
             Last webhook:{" "}
             {activeBooking.lastWebhookAt
               ? new Date(activeBooking.lastWebhookAt).toLocaleString()
-              : "never (no updates from Pedivan yet)"}
+              : `never (no updates from ${cap(activeBooking.provider)} yet)`}
           </p>
           <div className="flex gap-2 pt-1">
             {activeBooking.trackingUrl ? <a
@@ -108,7 +110,7 @@ const CourierBookingSection = ({
             <button
               disabled={busy}
               onClick={() => {
-                if (!window.confirm("Cancel this courier booking with Pedivan?")) return;
+                if (!window.confirm(`Cancel this courier booking with ${cap(activeBooking.provider)}?`)) return;
                 run(async () => {
                   await cateringDeliveryService.cancelBooking(activeBooking.id);
                   onChanged();
@@ -175,8 +177,7 @@ const CourierBookingSection = ({
               Get price
             </button>
             {price ? <span className="text-xs font-semibold text-gray-700">
-                {price.currency}
-                {price.price.toFixed(2)} ({price.miles.toFixed(1)} mi)
+                {price.currency}{price.price.toFixed(2)}{price.miles != null ? ` (${price.miles.toFixed(1)} mi)` : ""}
               </span> : null}
             <button
               disabled={busy}
@@ -205,10 +206,11 @@ const CourierBookingSection = ({
           <ul className="mt-1 space-y-1">
             {bookings.map((b) => (
               <li key={b.id} className="flex items-center gap-2">
+                <span className="font-semibold">{cap(b.provider)}</span>
                 <span className={`px-1.5 py-0.5 rounded ${BOOKING_STATE_BADGE[b.state] ?? ""}`}>
                   {b.state}
                 </span>
-                <span>{b.pedivanReference ?? b.pedivanOrderId}</span>
+                <span>{b.externalReference ?? b.externalOrderId}</span>
                 <span className="text-gray-400">
                   {new Date(b.createdAt).toLocaleString()}
                   {b.cancelReason ? ` — ${b.cancelReason}` : ""}

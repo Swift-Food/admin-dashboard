@@ -76,9 +76,10 @@ export interface CateringDeliveryBooking {
   id: string;
   mealSessionId: string;
   state: BookingState;
-  pedivanOrderId: string;
-  pedivanReference: string | null;
-  pedivanStatus: string | null;
+  externalOrderId: string;
+  externalReference: string | null;
+  providerStatus: string | null;
+  provider: 'pedivan' | 'pedalme' | 'swift';
   pickupStatus: string | null;
   dropStatus: string | null;
   trackingUrl: string | null;
@@ -141,9 +142,7 @@ export interface AdminDeliverySession {
 export interface DeliveryPricePreview {
   currency: string;
   price: number;
-  starting_price: number;
-  meter: number;
-  miles: number;
+  miles?: number;
 }
 
 export interface GetAllSessionsParams {

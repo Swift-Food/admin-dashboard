@@ -58,11 +58,12 @@ const CourierBookingSection = ({
   };
 
   const canBook = session.deliveryStatus === "awaiting_booking" && !activeBooking;
+  const providerKey = activeBooking?.provider ?? provider;
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-800">Courier ({PROVIDER_LABEL[activeBooking?.provider ?? provider] ?? (activeBooking?.provider ?? provider)})</h3>
+        <h3 className="text-sm font-bold text-gray-800">Courier ({PROVIDER_LABEL[providerKey] ?? providerKey})</h3>
         {needsRebooking ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
             Details changed — rebook needed
           </span> : null}
@@ -102,7 +103,8 @@ const CourierBookingSection = ({
               >
                 Live tracking
               </a> : null}
-            {activeBooking.provider !== "pedalme" && (
+            {/* Poll button only for providers with a location endpoint (pedivan). */}
+            {activeBooking.provider === "pedivan" && (
               <button
                 disabled={busy}
                 onClick={() =>
@@ -130,40 +132,40 @@ const CourierBookingSection = ({
               Cancel courier
             </button>
           </div>
-          {activeBooking.provider === "pedalme" ? (
-            activeBooking.riderPosition ? (
-              <p>
-                Rider at{" "}
-                <a
-                  href={`https://www.google.com/maps?q=${activeBooking.riderPosition.lat},${activeBooking.riderPosition.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-700 underline"
-                >
-                  {activeBooking.riderPosition.lat},{activeBooking.riderPosition.lng}
-                </a>
-                {activeBooking.riderEta && (
-                  <>
-                    {" "}
-                    · ETA{" "}
-                    {new Date(activeBooking.riderEta).toLocaleTimeString("en-GB", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </>
-                )}{" "}
-                <span className="text-gray-400">
-                  (as of{" "}
-                  {new Date(activeBooking.riderPosition.updatedAt).toLocaleTimeString("en-GB", {
+          {/* Stored position is capability-keyed: any provider that pushes rider
+              telemetry renders here; the per-provider hint covers the gap. */}
+          {activeBooking.riderPosition ? (
+            <p>
+              Rider at{" "}
+              <a
+                href={`https://www.google.com/maps?q=${activeBooking.riderPosition.lat},${activeBooking.riderPosition.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-700 underline"
+              >
+                {activeBooking.riderPosition.lat},{activeBooking.riderPosition.lng}
+              </a>
+              {activeBooking.riderEta && (
+                <>
+                  {" "}
+                  · ETA{" "}
+                  {new Date(activeBooking.riderEta).toLocaleTimeString("en-GB", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                  )
-                </span>
-              </p>
-            ) : (
-              <p className="text-gray-500">Rider position arrives via Pedal Me updates once assigned.</p>
-            )
+                </>
+              )}{" "}
+              <span className="text-gray-400">
+                (as of{" "}
+                {new Date(activeBooking.riderPosition.updatedAt).toLocaleTimeString("en-GB", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                )
+              </span>
+            </p>
+          ) : activeBooking.provider === "pedalme" ? (
+            <p className="text-gray-500">Rider position arrives via Pedal Me updates once assigned.</p>
           ) : riderPos ? (
             <p>
               Rider at{" "}

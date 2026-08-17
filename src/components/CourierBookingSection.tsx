@@ -62,7 +62,7 @@ const CourierBookingSection = ({
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-800">Courier{activeBooking ? ` (${PROVIDER_LABEL[activeBooking.provider]})` : " (Pedivan)"}</h3>
+        <h3 className="text-sm font-bold text-gray-800">Courier ({PROVIDER_LABEL[activeBooking?.provider ?? provider] ?? (activeBooking?.provider ?? provider)})</h3>
         {needsRebooking ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
             Details changed — rebook needed
           </span> : null}
@@ -91,7 +91,7 @@ const CourierBookingSection = ({
             Last webhook:{" "}
             {activeBooking.lastWebhookAt
               ? new Date(activeBooking.lastWebhookAt).toLocaleString()
-              : `never (no updates from ${PROVIDER_LABEL[activeBooking.provider]} yet)`}
+              : `never (no updates from ${PROVIDER_LABEL[activeBooking.provider] ?? activeBooking.provider} yet)`}
           </p>
           <div className="flex gap-2 pt-1">
             {activeBooking.trackingUrl ? <a
@@ -119,7 +119,7 @@ const CourierBookingSection = ({
             <button
               disabled={busy}
               onClick={() => {
-                if (!window.confirm(`Cancel this courier booking with ${PROVIDER_LABEL[activeBooking.provider]}?`)) return;
+                if (!window.confirm(`Cancel this courier booking with ${PROVIDER_LABEL[activeBooking.provider] ?? activeBooking.provider}?`)) return;
                 run(async () => {
                   await cateringDeliveryService.cancelBooking(activeBooking.id);
                   onChanged();
@@ -184,7 +184,10 @@ const CourierBookingSection = ({
             Courier
             <select
               value={provider}
-              onChange={(e) => setProvider(e.target.value as BookableProvider)}
+              onChange={(e) => {
+                setProvider(e.target.value as BookableProvider);
+                setPrice(null);
+              }}
               className="mt-1 block w-40 border border-gray-300 rounded px-2 py-1"
             >
               <option value="pedivan">Pedivan</option>
@@ -265,7 +268,7 @@ const CourierBookingSection = ({
           <ul className="mt-1 space-y-1">
             {bookings.map((b) => (
               <li key={b.id} className="flex items-center gap-2">
-                <span className="font-semibold">{PROVIDER_LABEL[b.provider]}</span>
+                <span className="font-semibold">{PROVIDER_LABEL[b.provider] ?? b.provider}</span>
                 <span className={`px-1.5 py-0.5 rounded ${BOOKING_STATE_BADGE[b.state] ?? ""}`}>
                   {b.state}
                 </span>

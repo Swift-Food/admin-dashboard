@@ -96,7 +96,13 @@ export interface CateringDeliveryBooking {
   cancelReason: string | null;
   createdAt: string;
   updatedAt: string;
+  serviceTier: string | null;
+  taskIds: { pickupIds: string[]; dropoffIds: string[] } | null;
+  riderPosition: { lat: number; lng: number; updatedAt: string } | null;
+  riderEta: string | null;
 }
+
+export type BookableProvider = 'pedivan' | 'pedalme';
 
 export interface CateringMealSession {
   id: string;

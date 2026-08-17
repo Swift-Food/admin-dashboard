@@ -1,6 +1,7 @@
 import http from "./http";
 import type {
   AdminDeliverySession,
+  BookableProvider,
   CateringDeliveryBooking,
   DeliveryPricePreview,
   GetAllSessionsParams,
@@ -33,6 +34,7 @@ const bookCourier = async (
     pickupNotes?: string;
     dropNotes?: string;
     pickupRestaurantId?: string;
+    provider?: BookableProvider;
   }
 ): Promise<CateringDeliveryBooking> => {
   const res = await http.post<CateringDeliveryBooking>(
@@ -45,11 +47,12 @@ const bookCourier = async (
 const getPricePreview = async (
   mealSessionId: string,
   packages: PackageCounts,
-  pickupRestaurantId?: string
+  pickupRestaurantId?: string,
+  provider?: BookableProvider
 ): Promise<DeliveryPricePreview> => {
   const res = await http.post<DeliveryPricePreview>(
     `catering-delivery/admin/sessions/${mealSessionId}/price`,
-    { packages, pickupRestaurantId }
+    { packages, pickupRestaurantId, provider }
   );
   return res.data;
 };

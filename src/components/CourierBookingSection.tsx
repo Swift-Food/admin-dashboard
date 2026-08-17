@@ -2,6 +2,7 @@ import { useState } from "react";
 import cateringDeliveryService from "../services/catering-delivery.service";
 import type {
   AdminDeliverySession,
+  BookableProvider,
   DeliveryPricePreview,
   PackageCounts,
 } from "../types/catering-session.types";
@@ -11,7 +12,11 @@ const errText = (e: unknown): string =>
   (e as Error).message ??
   "Request failed";
 
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const PROVIDER_LABEL: Record<string, string> = {
+  pedivan: "Pedivan",
+  pedalme: "Pedal Me",
+  swift: "Swift",
+};
 
 const BOOKING_STATE_BADGE: Record<string, string> = {
   active: "bg-blue-100 text-blue-800",
@@ -35,6 +40,7 @@ const CourierBookingSection = ({
   const [pickupNotes, setPickupNotes] = useState("");
   const [dropNotes, setDropNotes] = useState("");
   const [price, setPrice] = useState<DeliveryPricePreview | null>(null);
+  const [provider, setProvider] = useState<BookableProvider>("pedivan");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [riderPos, setRiderPos] = useState<[number, number] | null>(null);
@@ -56,7 +62,7 @@ const CourierBookingSection = ({
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-800">Courier{activeBooking ? ` (${cap(activeBooking.provider)})` : " (Pedivan)"}</h3>
+        <h3 className="text-sm font-bold text-gray-800">Courier{activeBooking ? ` (${PROVIDER_LABEL[activeBooking.provider]})` : " (Pedivan)"}</h3>
         {needsRebooking ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
             Details changed — rebook needed
           </span> : null}
@@ -74,6 +80,7 @@ const CourierBookingSection = ({
                 {activeBooking.currency ?? "£"}
                 {activeBooking.quotedPrice}
               </span> : null}
+            {activeBooking.serviceTier && <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-xs">{activeBooking.serviceTier}</span>}
           </p>
           <p>
             <span className="font-semibold">Provider status:</span>{" "}
@@ -84,7 +91,7 @@ const CourierBookingSection = ({
             Last webhook:{" "}
             {activeBooking.lastWebhookAt
               ? new Date(activeBooking.lastWebhookAt).toLocaleString()
-              : `never (no updates from ${cap(activeBooking.provider)} yet)`}
+              : `never (no updates from ${PROVIDER_LABEL[activeBooking.provider]} yet)`}
           </p>
           <div className="flex gap-2 pt-1">
             {activeBooking.trackingUrl ? <a
@@ -95,22 +102,24 @@ const CourierBookingSection = ({
               >
                 Live tracking
               </a> : null}
-            <button
-              disabled={busy}
-              onClick={() =>
-                run(async () => {
-                  const res = await cateringDeliveryService.getRiderLocation(activeBooking.id);
-                  setRiderPos(res.location);
-                })
-              }
-              className="px-2 py-1 rounded bg-gray-200 text-gray-800 font-semibold disabled:opacity-50"
-            >
-              Where's the rider?
-            </button>
+            {activeBooking.provider !== "pedalme" && (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    const res = await cateringDeliveryService.getRiderLocation(activeBooking.id);
+                    setRiderPos(res.location);
+                  })
+                }
+                className="px-2 py-1 rounded bg-gray-200 text-gray-800 font-semibold disabled:opacity-50"
+              >
+                Where's the rider?
+              </button>
+            )}
             <button
               disabled={busy}
               onClick={() => {
-                if (!window.confirm(`Cancel this courier booking with ${cap(activeBooking.provider)}?`)) return;
+                if (!window.confirm(`Cancel this courier booking with ${PROVIDER_LABEL[activeBooking.provider]}?`)) return;
                 run(async () => {
                   await cateringDeliveryService.cancelBooking(activeBooking.id);
                   onChanged();
@@ -121,7 +130,42 @@ const CourierBookingSection = ({
               Cancel courier
             </button>
           </div>
-          {riderPos ? <p>
+          {activeBooking.provider === "pedalme" ? (
+            activeBooking.riderPosition ? (
+              <p>
+                Rider at{" "}
+                <a
+                  href={`https://www.google.com/maps?q=${activeBooking.riderPosition.lat},${activeBooking.riderPosition.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-700 underline"
+                >
+                  {activeBooking.riderPosition.lat},{activeBooking.riderPosition.lng}
+                </a>
+                {activeBooking.riderEta && (
+                  <>
+                    {" "}
+                    · ETA{" "}
+                    {new Date(activeBooking.riderEta).toLocaleTimeString("en-GB", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </>
+                )}{" "}
+                <span className="text-gray-400">
+                  (as of{" "}
+                  {new Date(activeBooking.riderPosition.updatedAt).toLocaleTimeString("en-GB", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  )
+                </span>
+              </p>
+            ) : (
+              <p className="text-gray-500">Rider position arrives via Pedal Me updates once assigned.</p>
+            )
+          ) : riderPos ? (
+            <p>
               Rider at{" "}
               <a
                 href={`https://www.google.com/maps?q=${riderPos[0]},${riderPos[1]}`}
@@ -131,10 +175,22 @@ const CourierBookingSection = ({
               >
                 {riderPos[0].toFixed(5)}, {riderPos[1].toFixed(5)}
               </a>
-            </p> : null}
+            </p>
+          ) : null}
         </div> : null}
 
       {canBook ? <div className="space-y-2">
+          <label className="text-xs text-gray-700 block">
+            Courier
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as BookableProvider)}
+              className="mt-1 block w-40 border border-gray-300 rounded px-2 py-1"
+            >
+              <option value="pedivan">Pedivan</option>
+              <option value="pedalme">Pedal Me</option>
+            </select>
+          </label>
           <div className="flex gap-3">
             {(["small", "medium", "large"] as const).map((size) => (
               <label key={size} className="text-xs text-gray-700">
@@ -169,7 +225,9 @@ const CourierBookingSection = ({
               disabled={busy}
               onClick={() =>
                 run(async () => {
-                  setPrice(await cateringDeliveryService.getPricePreview(session.id, packages));
+                  setPrice(
+                    await cateringDeliveryService.getPricePreview(session.id, packages, undefined, provider)
+                  );
                 })
               }
               className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-xs font-semibold disabled:opacity-50"
@@ -187,6 +245,7 @@ const CourierBookingSection = ({
                     packages,
                     pickupNotes: pickupNotes || undefined,
                     dropNotes: dropNotes || undefined,
+                    provider,
                   });
                   onChanged();
                 })
@@ -206,7 +265,7 @@ const CourierBookingSection = ({
           <ul className="mt-1 space-y-1">
             {bookings.map((b) => (
               <li key={b.id} className="flex items-center gap-2">
-                <span className="font-semibold">{cap(b.provider)}</span>
+                <span className="font-semibold">{PROVIDER_LABEL[b.provider]}</span>
                 <span className={`px-1.5 py-0.5 rounded ${BOOKING_STATE_BADGE[b.state] ?? ""}`}>
                   {b.state}
                 </span>

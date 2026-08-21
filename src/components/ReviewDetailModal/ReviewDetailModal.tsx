@@ -30,7 +30,10 @@ export function ReviewDetailModal({ review, onClose }: ReviewDetailModalProps) {
 
   const { restaurantTabs, otherItems } = useMemo(() => {
     if (!review) {
-      return { restaurantTabs: [] as RestaurantTab[], otherItems: [] as ReviewItemEntry[] };
+      return {
+        restaurantTabs: [] as RestaurantTab[],
+        otherItems: [] as ReviewItemEntry[],
+      };
     }
 
     const tabs = new Map<string, RestaurantTab>();
@@ -76,15 +79,14 @@ export function ReviewDetailModal({ review, onClose }: ReviewDetailModalProps) {
   const activeRestaurant = restaurantTabs.find((t) => t.key === activeTab);
 
   const tabButtonClass = (isActive: boolean) =>
-    `w-full text-left px-4 py-3 border-l-4 transition-colors ${
-      isActive
-        ? "bg-blue-50 border-blue-500"
-        : "border-transparent hover:bg-gray-50"
+    `w-full text-left px-4 py-3 border-l-4 transition-colors ${isActive
+      ? "bg-blue-50 border-blue-500"
+      : "border-transparent hover:bg-gray-50"
     }`;
 
   return (
     <Modal open={!!review} onClose={onClose}>
-      <div className="w-[92vw] max-w-6xl min-h-[28rem] max-h-[85vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
+      <div className="w-[92vw] max-w-6xl min-h-[36rem] max-h-[85vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-4 min-w-0">
@@ -128,9 +130,8 @@ export function ReviewDetailModal({ review, onClose }: ReviewDetailModalProps) {
                 className={tabButtonClass(activeTab === tab.key)}
               >
                 <p
-                  className={`text-sm font-medium text-gray-900 truncate ${
-                    tab.labelIsMono ? "font-mono" : ""
-                  }`}
+                  className={`text-sm font-medium text-gray-900 truncate ${tab.labelIsMono ? "font-mono" : ""
+                    }`}
                 >
                   {tab.label}
                 </p>
@@ -191,7 +192,9 @@ export function ReviewDetailModal({ review, onClose }: ReviewDetailModalProps) {
                       </p>
                       <Stars score={item.score} />
                       {item.comment ? (
-                        <p className="mt-1 text-sm text-gray-700">{item.comment}</p>
+                        <p className="mt-1 text-sm text-gray-700">
+                          {item.comment}
+                        </p>
                       ) : null}
                     </div>
                   ))}
@@ -202,9 +205,8 @@ export function ReviewDetailModal({ review, onClose }: ReviewDetailModalProps) {
             {activeRestaurant ? (
               <div>
                 <p
-                  className={`text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 ${
-                    activeRestaurant.labelIsMono ? "font-mono" : ""
-                  }`}
+                  className={`text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 ${activeRestaurant.labelIsMono ? "font-mono" : ""
+                    }`}
                 >
                   {activeRestaurant.label}
                 </p>
@@ -242,7 +244,9 @@ export function ReviewDetailModal({ review, onClose }: ReviewDetailModalProps) {
                         </p>
                         <Stars score={item.score} />
                         {item.comment ? (
-                          <p className="mt-1 text-sm text-gray-700">{item.comment}</p>
+                          <p className="mt-1 text-sm text-gray-700">
+                            {item.comment}
+                          </p>
                         ) : null}
                       </div>
                     ))}

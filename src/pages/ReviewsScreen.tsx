@@ -51,11 +51,13 @@ const ReviewsScreen = () => {
   const [pendingTo, setPendingTo] = useState("");
   const [pendingMinScore, setPendingMinScore] = useState("");
   const [pendingHasComment, setPendingHasComment] = useState(false);
+  const [pendingRestaurantId, setPendingRestaurantId] = useState("");
 
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
   const [minScore, setMinScore] = useState<number | null>(null);
   const [hasComment, setHasComment] = useState(false);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [data, setData] = useState<ReviewListResponse | null>(null);
@@ -72,6 +74,7 @@ const ReviewsScreen = () => {
         ...(toDate ? { to: toDate } : {}),
         ...(minScore ? { minScore } : {}),
         ...(hasComment ? { hasComment: true } : {}),
+        ...(restaurantId ? { restaurantId } : {}),
         page,
         limit: LIMIT,
       })
@@ -85,13 +88,14 @@ const ReviewsScreen = () => {
       });
   };
 
-  useEffect(fetchData, [fromDate, toDate, minScore, hasComment, page]);
+  useEffect(fetchData, [fromDate, toDate, minScore, hasComment, restaurantId, page]);
 
   const handleApply = () => {
     setFromDate(pendingFrom || null);
     setToDate(pendingTo || null);
     setMinScore(pendingMinScore ? Number(pendingMinScore) : null);
     setHasComment(pendingHasComment);
+    setRestaurantId(pendingRestaurantId.trim() || null);
     setPage(1);
   };
 
@@ -179,6 +183,16 @@ const ReviewsScreen = () => {
             onChange={(e) => setPendingHasComment(e.target.checked)}
           />
           With comments only
+        </label>
+        <label className="flex flex-col text-xs font-semibold text-gray-600">
+          Restaurant ID
+          <input
+            type="text"
+            value={pendingRestaurantId}
+            onChange={(e) => setPendingRestaurantId(e.target.value)}
+            placeholder="Restaurant UUID"
+            className="mt-1 border-2 border-gray-300 rounded-lg px-3 py-2 text-sm font-mono w-64"
+          />
         </label>
         <button
           onClick={handleApply}

@@ -193,10 +193,21 @@ const ReviewsScreen = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
             { label: "Total reviews", value: totals.totalReviews },
-            { label: "Avg overall", value: totals.averageOrderScore || "-" },
+            {
+              label: "Avg overall",
+              value:
+                totals.averageOrderScore === null ||
+                totals.averageOrderScore === undefined
+                  ? "-"
+                  : totals.averageOrderScore,
+            },
             {
               label: "Avg restaurant",
-              value: totals.averageRestaurantScore || "-",
+              value:
+                totals.averageRestaurantScore === null ||
+                totals.averageRestaurantScore === undefined
+                  ? "-"
+                  : totals.averageRestaurantScore,
             },
             { label: "With comments", value: `${totals.percentWithComment}%` },
           ].map(({ label, value }) => (
@@ -324,6 +335,11 @@ const ReviewsScreen = () => {
                                     {i.menuItemName}
                                   </span>{" "}
                                   <Stars score={i.score} />
+                                  {i.comment && (
+                                    <p className="text-sm text-gray-700">
+                                      {i.comment}
+                                    </p>
+                                  )}
                                 </div>
                               ))}
                             </div>

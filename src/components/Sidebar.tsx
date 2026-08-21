@@ -143,6 +143,11 @@ const navSections: NavSection[] = [
         icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,
       },
       {
+        id: "reviews" as SidebarPage,
+        label: "Reviews",
+        icon: <FontAwesomeIcon icon={faStar} style={iconCommonStyle} />,
+      },
+      {
         id: "catering-sessions",
         label: "Drivers",
         icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
@@ -173,11 +178,6 @@ const navSections: NavSection[] = [
         id: "feedback-issues" as SidebarPage,
         label: "Feedback & Issues",
         icon: <FontAwesomeIcon icon={faMessage} style={iconCommonStyle} />,
-      },
-      {
-        id: "reviews" as SidebarPage,
-        label: "Reviews",
-        icon: <FontAwesomeIcon icon={faStar} style={iconCommonStyle} />,
       },
       {
         id: "catering-ai-config" as SidebarPage,

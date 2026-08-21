@@ -1,7 +1,9 @@
-import { Fragment, useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, Star } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronRight } from "lucide-react";
 import reviewsService from "../services/reviews.service";
 import type { ReviewListResponse, ReviewRow } from "../types/reviews.types";
+import ReviewDetailModal from "../components/ReviewDetailModal";
+import { Stars } from "../components/Stars";
 
 const LIMIT = 50;
 
@@ -31,21 +33,6 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const Stars = ({ score }: { score: number | null }) => (
-  <span className="inline-flex items-center gap-0.5">
-    {[1, 2, 3, 4, 5].map((n) => (
-      <Star
-        key={n}
-        className={`h-3.5 w-3.5 ${
-          n <= (score ?? 0)
-            ? "fill-amber-400 text-amber-400"
-            : "fill-transparent text-gray-300"
-        }`}
-      />
-    ))}
-  </span>
-);
-
 const ReviewsScreen = () => {
   const [pendingFrom, setPendingFrom] = useState("");
   const [pendingTo, setPendingTo] = useState("");
@@ -63,7 +50,7 @@ const ReviewsScreen = () => {
   const [data, setData] = useState<ReviewListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<ReviewRow | null>(null);
 
   const fetchData = () => {
     setLoading(true);
@@ -97,15 +84,6 @@ const ReviewsScreen = () => {
     setHasComment(pendingHasComment);
     setRestaurantId(pendingRestaurantId.trim() || null);
     setPage(1);
-  };
-
-  const toggleRow = (id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
   };
 
   if (loading && !data) return <LoadingSkeleton />;
@@ -264,106 +242,37 @@ const ReviewsScreen = () => {
                   </td>
                 </tr>
               )}
-              {rows.map((row) => {
-                const isOpen = expanded.has(row.submissionId);
-                return (
-                  <Fragment key={row.submissionId}>
-                    <tr
-                      onClick={() => toggleRow(row.submissionId)}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <td className="px-4 py-3 text-gray-400">
-                        {isOpen ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-900">
-                        {new Date(row.submittedAt).toLocaleDateString("en-GB")}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">
-                        <span className="font-mono text-xs">
-                          {(row.orderReference ?? row.orderId).slice(0, 8)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">
-                        {row.reviewerName ?? row.reviewerEmail ?? "Guest"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Stars score={row.orderScore} />
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {row.restaurants.length}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {row.orderComment ? "Yes" : "-"}
-                      </td>
-                    </tr>
-                    {isOpen && (
-                      <tr className="bg-gray-50">
-                        <td colSpan={7} className="px-8 py-5">
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-                                Overall
-                              </p>
-                              <Stars score={row.orderScore} />
-                              {row.orderComment && (
-                                <p className="mt-1 text-sm text-gray-700">
-                                  {row.orderComment}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-                                Restaurants
-                              </p>
-                              {row.restaurants.length === 0 && (
-                                <p className="text-sm text-gray-400">None rated</p>
-                              )}
-                              {row.restaurants.map((r) => (
-                                <div key={r.restaurantId} className="py-1">
-                                  <span className="text-sm font-medium text-gray-800">
-                                    {r.restaurantName}
-                                  </span>{" "}
-                                  <Stars score={r.score} />
-                                  {r.comment && (
-                                    <p className="text-sm text-gray-700">
-                                      {r.comment}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-                                Dishes
-                              </p>
-                              {row.items.length === 0 && (
-                                <p className="text-sm text-gray-400">None rated</p>
-                              )}
-                              {row.items.map((i) => (
-                                <div key={i.menuItemId} className="py-1">
-                                  <span className="text-sm text-gray-800">
-                                    {i.menuItemName}
-                                  </span>{" "}
-                                  <Stars score={i.score} />
-                                  {i.comment && (
-                                    <p className="text-sm text-gray-700">
-                                      {i.comment}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
+              {rows.map((row) => (
+                <tr
+                  key={row.submissionId}
+                  onClick={() => setSelected(row)}
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <td className="px-4 py-3 text-gray-400">
+                    <ChevronRight className="h-4 w-4" />
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-gray-900">
+                    {new Date(row.submittedAt).toLocaleDateString("en-GB")}
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">
+                    <span className="font-mono text-xs">
+                      {(row.orderReference ?? row.orderId).slice(0, 8)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">
+                    {row.reviewerName ?? row.reviewerEmail ?? "Guest"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Stars score={row.orderScore} />
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">
+                    {row.restaurants.length}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">
+                    {row.orderComment ? "Yes" : "-"}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -402,6 +311,8 @@ const ReviewsScreen = () => {
           </div>
         </div>
       )}
+
+      <ReviewDetailModal review={selected} onClose={() => setSelected(null)} />
     </div>
   );
 };

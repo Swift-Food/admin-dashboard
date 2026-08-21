@@ -8,6 +8,7 @@ export interface ReviewRestaurantEntry {
 export interface ReviewItemEntry {
   menuItemId: string;
   menuItemName: string;
+  restaurantId: string | null;
   score: number;
   comment: string | null;
 }

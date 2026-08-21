@@ -84,7 +84,7 @@ export function ReviewDetailModal({ review, onClose }: ReviewDetailModalProps) {
 
   return (
     <Modal open={!!review} onClose={onClose}>
-      <div className="w-[92vw] max-w-6xl max-h-[85vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
+      <div className="w-[92vw] max-w-6xl min-h-[28rem] max-h-[85vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-4 min-w-0">

@@ -24,6 +24,7 @@ import {
   faMessage,
   faDatabase,
   faSliders,
+  faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
@@ -57,6 +58,7 @@ export type SidebarPage =
   | "partner-spaces"
   | "chatbot-logs"
   | "feedback-issues"
+  | "reviews"
   | "catering-ai-config"
   | "catering-settings"
   | "miscellaneous"
@@ -139,6 +141,11 @@ const navSections: NavSection[] = [
         id: "catering",
         label: "Catering Orders",
         icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,
+      },
+      {
+        id: "reviews" as SidebarPage,
+        label: "Reviews",
+        icon: <FontAwesomeIcon icon={faStar} style={iconCommonStyle} />,
       },
       {
         id: "catering-sessions",

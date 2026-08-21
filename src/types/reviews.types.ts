@@ -53,5 +53,6 @@ export interface ReviewListParams {
   to?: string;
   restaurantId?: string;
   minScore?: number;
+  maxScore?: number;
   hasComment?: boolean;
 }

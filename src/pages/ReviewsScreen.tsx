@@ -3,6 +3,7 @@ import reviewsService from "../services/reviews.service";
 import type { ReviewListResponse, ReviewRow } from "../types/reviews.types";
 import ReviewDetailModal from "../components/ReviewDetailModal";
 import { Stars } from "../components/Stars";
+import RestaurantPicker from "../components/RestaurantPicker";
 
 const LIMIT = 50;
 
@@ -36,12 +37,14 @@ const ReviewsScreen = () => {
   const [pendingFrom, setPendingFrom] = useState("");
   const [pendingTo, setPendingTo] = useState("");
   const [pendingMinScore, setPendingMinScore] = useState("");
+  const [pendingMaxScore, setPendingMaxScore] = useState("");
   const [pendingHasComment, setPendingHasComment] = useState(false);
-  const [pendingRestaurantId, setPendingRestaurantId] = useState("");
+  const [pendingRestaurantId, setPendingRestaurantId] = useState<string | null>(null);
 
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
   const [minScore, setMinScore] = useState<number | null>(null);
+  const [maxScore, setMaxScore] = useState<number | null>(null);
   const [hasComment, setHasComment] = useState(false);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
@@ -59,6 +62,7 @@ const ReviewsScreen = () => {
         ...(fromDate ? { from: fromDate } : {}),
         ...(toDate ? { to: toDate } : {}),
         ...(minScore ? { minScore } : {}),
+        ...(maxScore ? { maxScore } : {}),
         ...(hasComment ? { hasComment: true } : {}),
         ...(restaurantId ? { restaurantId } : {}),
         page,
@@ -74,14 +78,23 @@ const ReviewsScreen = () => {
       });
   };
 
-  useEffect(fetchData, [fromDate, toDate, minScore, hasComment, restaurantId, page]);
+  useEffect(fetchData, [
+    fromDate,
+    toDate,
+    minScore,
+    maxScore,
+    hasComment,
+    restaurantId,
+    page,
+  ]);
 
   const handleApply = () => {
     setFromDate(pendingFrom || null);
     setToDate(pendingTo || null);
     setMinScore(pendingMinScore ? Number(pendingMinScore) : null);
+    setMaxScore(pendingMaxScore ? Number(pendingMaxScore) : null);
     setHasComment(pendingHasComment);
-    setRestaurantId(pendingRestaurantId.trim() || null);
+    setRestaurantId(pendingRestaurantId);
     setPage(1);
   };
 
@@ -139,7 +152,7 @@ const ReviewsScreen = () => {
           />
         </label>
         <label className="flex flex-col text-xs font-semibold text-gray-600">
-          Min overall score
+          Min score
           <select
             value={pendingMinScore}
             onChange={(e) => setPendingMinScore(e.target.value)}
@@ -148,7 +161,22 @@ const ReviewsScreen = () => {
             <option value="">Any</option>
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
-                {n}+
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col text-xs font-semibold text-gray-600">
+          Max score
+          <select
+            value={pendingMaxScore}
+            onChange={(e) => setPendingMaxScore(e.target.value)}
+            className="mt-1 border-2 border-gray-300 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="">Any</option>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                {n}
               </option>
             ))}
           </select>
@@ -161,16 +189,13 @@ const ReviewsScreen = () => {
           />
           With comments only
         </label>
-        <label className="flex flex-col text-xs font-semibold text-gray-600">
-          Restaurant ID
-          <input
-            type="text"
+        <div className="flex flex-col text-xs font-semibold text-gray-600">
+          Restaurant
+          <RestaurantPicker
             value={pendingRestaurantId}
-            onChange={(e) => setPendingRestaurantId(e.target.value)}
-            placeholder="Restaurant UUID"
-            className="mt-1 border-2 border-gray-300 rounded-lg px-3 py-2 text-sm font-mono w-64"
+            onChange={setPendingRestaurantId}
           />
-        </label>
+        </div>
         <button
           onClick={handleApply}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"

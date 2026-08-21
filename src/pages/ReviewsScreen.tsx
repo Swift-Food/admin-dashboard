@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { ChevronRight } from "lucide-react";
 import reviewsService from "../services/reviews.service";
 import type { ReviewListResponse, ReviewRow } from "../types/reviews.types";
 import ReviewDetailModal from "../components/ReviewDetailModal";
@@ -222,7 +221,7 @@ const ReviewsScreen = () => {
           <table className="w-full text-sm">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
               <tr>
-                {["", "Submitted", "Order", "Reviewer", "Overall", "Restaurants", "Comment"].map(
+                {["Submitted", "Order ID", "Reviewer", "Overall", "Restaurants", "Comment"].map(
                   (label, i) => (
                     <th
                       key={i}
@@ -237,7 +236,7 @@ const ReviewsScreen = () => {
             <tbody className="divide-y divide-gray-100">
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                     No reviews match these filters.
                   </td>
                 </tr>
@@ -248,9 +247,6 @@ const ReviewsScreen = () => {
                   onClick={() => setSelected(row)}
                   className="hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-gray-400">
-                    <ChevronRight className="h-4 w-4" />
-                  </td>
                   <td className="px-4 py-3 whitespace-nowrap text-gray-900">
                     {new Date(row.submittedAt).toLocaleDateString("en-GB")}
                   </td>

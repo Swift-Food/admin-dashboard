@@ -186,6 +186,24 @@
   border-radius: 0.25rem;
 }
 
+.featured-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.featured-toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+  accent-color: #d97706;
+}
+
+.featured-toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* Type Badge */
 .type-badge {
   padding: 0.25rem 0.75rem;

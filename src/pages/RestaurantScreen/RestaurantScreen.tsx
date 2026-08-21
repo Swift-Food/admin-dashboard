@@ -212,6 +212,27 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
+  const handleFeaturedChange = async (id: string, featured: boolean) => {
+    try {
+      setUpdatingId(id);
+      await updateRestaurant(id, { featured });
+      setRestaurants(
+        restaurants.map((r) => (r.id === id ? { ...r, featured } : r))
+      );
+      // Keep an open edit form in sync, otherwise a later "Save Changes"
+      // would write back the stale value and revert the toggle.
+      if (editingId === id) {
+        setEditForm((form) => ({ ...form, featured }));
+      }
+    } catch (err) {
+      alert(
+        `Error: ${err instanceof Error ? err.message : "An error occurred"}`
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleExpandRestaurant = (restaurantId: string) => {
     setExpandedId(expandedId === restaurantId ? null : restaurantId);
   };
@@ -576,6 +597,7 @@ const RestaurantAdminDashboard = () => {
                 <tr>
                   <th>Restaurant</th>
                   <th>Status</th>
+                  <th>Featured</th>
                   <th>Contact</th>
                   <th>Orders This Month</th>
                   <th>Actions</th>
@@ -612,6 +634,21 @@ const RestaurantAdminDashboard = () => {
                           )}
                         </div>
                       </td>
+                      <td>
+                        <label className="featured-toggle">
+                          <input
+                            type="checkbox"
+                            checked={restaurant.featured ?? false}
+                            disabled={updatingId === restaurant.id}
+                            onChange={(e) =>
+                              handleFeaturedChange(
+                                restaurant.id,
+                                e.target.checked
+                              )
+                            }
+                          />
+                        </label>
+                      </td>
                       <td className="contact-cell">
                         <div>{restaurant.phoneNumber || "N/A"}</div>
                         <div className="contact-email">
@@ -641,7 +678,7 @@ const RestaurantAdminDashboard = () => {
                     </tr>
                     {expandedId === restaurant.id && (
                       <tr>
-                        <td colSpan={5} className="expanded-cell">
+                        <td colSpan={6} className="expanded-cell">
                           <div className="expanded-content">
                             {/* Restaurant Settings Section */}
                             <div className="settings-section">

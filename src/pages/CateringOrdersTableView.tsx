@@ -588,7 +588,14 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                     <div className="p-3 space-y-2">
                       {(session.orderItems || []).map((item: any, rIdx: number) => (
                         <div key={rIdx} className="bg-white border border-gray-100 rounded-lg p-3">
-                          <h5 className="font-semibold text-gray-900 mb-2 text-sm">{item.restaurantName}</h5>
+                          <h5 className="font-semibold text-gray-900 mb-2 text-sm">
+                            {item.restaurantName}
+                            {item.cutleryRequired ? (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase bg-blue-100 text-blue-700">
+                                Cutlery
+                              </span>
+                            ) : null}
+                          </h5>
                           <div className="space-y-2">
                             {(item.menuItems || []).filter((m: any) => m != null).map((menuItem: any, mIdx: number) => {
                               const price = menuItem.customerTotalPrice ?? menuItem.totalPrice ?? 0;
@@ -628,7 +635,14 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               <div className="space-y-3">
                 {(order.restaurants || order.orderItems || []).map((item: any, idx: number) => (
                   <div key={idx} className="bg-white border border-gray-200/80 rounded-xl p-4">
-                    <h4 className="font-semibold text-base text-gray-900 mb-2">{item.restaurantName}</h4>
+                    <h4 className="font-semibold text-base text-gray-900 mb-2">
+                      {item.restaurantName}
+                      {item.cutleryRequired ? (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase bg-blue-100 text-blue-700">
+                          Cutlery
+                        </span>
+                      ) : null}
+                    </h4>
                     {item.menuItems && item.menuItems.length > 0 ? <div className="space-y-2">
                         {item.menuItems.filter((menuItem: any) => menuItem != null).map((menuItem: any, menuIdx: number) => {
                           const price = menuItem.customerTotalPrice ?? menuItem.totalPrice ?? 0;

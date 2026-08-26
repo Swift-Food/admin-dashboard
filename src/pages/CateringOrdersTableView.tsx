@@ -5,6 +5,16 @@ import { Modal } from "../components/Modal";
 import { RefundModal } from "../components/refund/RefundModal";
 import { RefundHistoryList } from "../components/refund/RefundHistoryList";
 
+const CANCELLATION_TRIGGER_LABELS: Record<string, string> = {
+  RESTAURANT_NO_RESPONSE: "Automatically cancelled - no restaurant response",
+  MANUAL: "Cancelled by admin",
+};
+
+const getCancellationTriggerLabel = (trigger?: string | null): string | null => {
+  if (!trigger) return null;
+  return CANCELLATION_TRIGGER_LABELS[trigger] ?? null;
+};
+
 const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: { order: CateringOrder | null; isOpen: boolean; onClose: () => void; onOrderUpdated?: () => void }) => {
   
   const [isCompleting, setIsCompleting] = useState(false);
@@ -537,9 +547,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
             </div> : null}
 
           {/* Cancellation Reason */}
-          {order.cancellationReason ? <div className="bg-red-50/70 border border-red-200/80 rounded-xl px-4 py-3 mb-3">
+          {order.cancellationReason || getCancellationTriggerLabel(order.cancellationTrigger) ? <div className="bg-red-50/70 border border-red-200/80 rounded-xl px-4 py-3 mb-3">
               <h3 className="text-[11px] font-semibold text-red-600 uppercase tracking-wider mb-1">Cancellation Reason</h3>
-              <p className="text-sm text-red-900 leading-relaxed">{order.cancellationReason}</p>
+              {getCancellationTriggerLabel(order.cancellationTrigger) ? (
+                <p className="text-xs text-red-700 mb-0.5">{getCancellationTriggerLabel(order.cancellationTrigger)}</p>
+              ) : null}
+              {order.cancellationReason ? <p className="text-sm text-red-900 leading-relaxed">{order.cancellationReason}</p> : null}
             </div> : null}
 
           {/* Payment Link */}

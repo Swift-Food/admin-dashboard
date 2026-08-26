@@ -12,6 +12,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const [isReviewing, setIsReviewing] = useState(false);
   const [showConfirmComplete, setShowConfirmComplete] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const [showConfirmReview, setShowConfirmReview] = useState(false);
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
   const [showSendPaymentModal, setShowSendPaymentModal] = useState(false);
@@ -76,6 +77,11 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
     }
   }, [order, showConfirmReview]);
 
+  const handleClose = () => {
+    setCancelReason('');
+    onClose();
+  };
+
   if (!isOpen || !order) return null;
 
   // Compute auto-updating total from delivery fee overrides
@@ -128,8 +134,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   const handleCancelOrder = async () => {
     setIsCancelling(true);
     try {
-      await cateringService.cancelOrder(order.id);
+      await cateringService.cancelOrder(order.id, cancelReason.trim() || undefined);
       setShowConfirmCancel(false);
+      setCancelReason('');
       if (onOrderUpdated) {
         await onOrderUpdated();
       }
@@ -329,7 +336,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
   };
 
   return (
-    <Modal open={true} onClose={onClose} overlayOpacity={50}>
+    <Modal open={true} onClose={handleClose} overlayOpacity={50}>
       <div className="bg-white rounded-2xl w-[70vw] max-w-[1000px] max-h-[90vh] overflow-y-auto shadow-2xl flex-shrink-0">
         <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-4 rounded-t-2xl">
           <div className="flex justify-between items-center">
@@ -337,7 +344,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
               <h2 className="text-xl font-bold tracking-tight">Catering Order Details</h2>
               <span className="text-purple-200 text-sm font-mono">#{order.id.slice(0, 8).toUpperCase()}</span>
             </div>
-            <button onClick={onClose} className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all">
+            <button onClick={handleClose} className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -527,6 +534,12 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
           {order.adminNotes ? <div className="bg-gray-50/70 border border-gray-200/80 rounded-xl px-4 py-3 mb-3">
               <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Admin Notes</h3>
               <p className="text-sm text-gray-800 leading-relaxed">{order.adminNotes}</p>
+            </div> : null}
+
+          {/* Cancellation Reason */}
+          {order.cancellationReason ? <div className="bg-red-50/70 border border-red-200/80 rounded-xl px-4 py-3 mb-3">
+              <h3 className="text-[11px] font-semibold text-red-600 uppercase tracking-wider mb-1">Cancellation Reason</h3>
+              <p className="text-sm text-red-900 leading-relaxed">{order.cancellationReason}</p>
             </div> : null}
 
           {/* Payment Link */}
@@ -949,6 +962,20 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
 
           {showConfirmCancel ? <div className="mb-4 bg-red-50 border-2 border-red-300 rounded-xl p-4">
               <p className="text-red-900 font-semibold mb-3">Are you sure you want to cancel this order?</p>
+              <div className="mb-3">
+                <label className="block text-sm font-semibold text-gray-800 mb-1">
+                  Reason for cancellation (optional)
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="This will be included in the cancellation email sent to the customer."
+                />
+                <p className="text-xs text-gray-500 mt-1 text-right">{cancelReason.length}/500</p>
+              </div>
               <div className="flex gap-3">
                 <button
                   onClick={handleCancelOrder}
@@ -958,7 +985,10 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                   {isCancelling ? "Cancelling..." : "Yes, Cancel Order"}
                 </button>
                 <button
-                  onClick={() => setShowConfirmCancel(false)}
+                  onClick={() => {
+                    setShowConfirmCancel(false);
+                    setCancelReason('');
+                  }}
                   className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-colors"
                 >
                   No, Keep Order
@@ -1039,7 +1069,7 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 </button> : null}
 
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className={`${canShowOtherActionButtons ? "flex-1" : "w-full"} bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm`}
             >
               Close

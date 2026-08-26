@@ -240,6 +240,10 @@ export interface CateringOrder {
   reviewedAt?: string;
   restaurantReviews?: string[];
   restaurantRejections?: string[];
+  // What caused the cancellation (machine value, e.g. auto-cancel vs manual)
+  cancellationTrigger?: 'MANUAL' | 'RESTAURANT_NO_RESPONSE';
+  // Admin's free-text note explaining the cancellation, shown to the customer
+  cancellationReason?: string | null;
 
   // ============================================================
   // RESTAURANT PAYOUTS

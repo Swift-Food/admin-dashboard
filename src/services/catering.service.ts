@@ -43,8 +43,11 @@ const sendPaymentLink = async (payload: SendPaymentLinkDto): Promise<{ success: 
   return res.data;
 };
 
-const cancelOrder = async (orderId: string): Promise<CateringOrder> => {
-  const res = await http.patch<CateringOrder>(`catering-orders/${orderId}/cancel`);
+const cancelOrder = async (orderId: string, reason?: string): Promise<CateringOrder> => {
+  const res = await http.patch<CateringOrder>(
+    `catering-orders/${orderId}/cancel`,
+    reason ? { reason } : undefined,
+  );
   return res.data;
 };
 

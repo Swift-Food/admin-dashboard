@@ -63,6 +63,7 @@
 .stat-active .stat-value { color: #059669; }
 .stat-food .stat-value { color: #2563eb; }
 .stat-venue .stat-value { color: #9333ea; }
+.stat-reward .stat-value { color: #be185d; }
 
 /* Filters */
 .filters-bar {
@@ -258,6 +259,15 @@
 .target-venue {
   background: #faf5ff;
   color: #9333ea;
+}
+
+.target-reward {
+  background: #fdf2f8;
+  color: #be185d;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Card Details */

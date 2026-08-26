@@ -3,6 +3,9 @@ import http from "./http";
 export type PromoDiscountType = "FIXED" | "PERCENT";
 export type PromoAppliesTo = "CATERING" | "CONSUMER" | "BOTH";
 export type PromoDiscountTarget = "FOOD_SUBTOTAL" | "VENUE_HIRE_FEE";
+// MANUAL = campaign codes created here; COMPLETION_REWARD = generated per
+// customer when their order completes, usable only by that customer.
+export type PromoCodeKind = "MANUAL" | "COMPLETION_REWARD";
 
 export interface PromoCodeDto {
   code: string;
@@ -26,6 +29,11 @@ export interface PromoCodeDto {
 export interface PromoCodeResponse extends PromoCodeDto {
   id: string;
   currentUses: number;
+  usesCount?: number;
+  kind?: PromoCodeKind;
+  assignedEmail?: string | null;
+  assignedUserId?: string | null;
+  issuedForOrderId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,8 +44,10 @@ export interface ValidatePromoResponse {
   message?: string;
 }
 
-const getPromoCodes = async (): Promise<PromoCodeResponse[]> => {
-  const res = await http.get<PromoCodeResponse[]>("/promotions/promo-codes");
+const getPromoCodes = async (kind?: PromoCodeKind): Promise<PromoCodeResponse[]> => {
+  const res = await http.get<PromoCodeResponse[]>("/promotions/promo-codes", {
+    params: kind ? { kind } : undefined,
+  });
   return res.data;
 };
 

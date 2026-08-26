@@ -7,6 +7,12 @@ import "./PromotionsScreen.css";
 
 type FilterStatus = "all" | "active" | "inactive" | "expired";
 type FilterTarget = "all" | "FOOD_SUBTOTAL" | "VENUE_HIRE_FEE";
+// Campaign codes are the ones created here; reward codes are generated per
+// customer when an order completes and only work for that customer.
+type FilterKind = "all" | "MANUAL" | "COMPLETION_REWARD";
+
+const kindOf = (p: any): "MANUAL" | "COMPLETION_REWARD" =>
+  p.kind === "COMPLETION_REWARD" ? "COMPLETION_REWARD" : "MANUAL";
 
 export default function PromotionsScreen() {
   const [promos, setPromos] = useState<any[]>([]);
@@ -20,6 +26,7 @@ export default function PromotionsScreen() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [filterTarget, setFilterTarget] = useState<FilterTarget>("all");
+  const [filterKind, setFilterKind] = useState<FilterKind>("MANUAL");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
@@ -74,6 +81,7 @@ export default function PromotionsScreen() {
       }
       if (filterTarget !== "all" && p.discountTarget !== filterTarget)
         return false;
+      if (filterKind !== "all" && kindOf(p) !== filterKind) return false;
       if (filterStatus !== "all") {
         const status = getPromoStatus(p);
         if (filterStatus === "active" && status !== "active") return false;
@@ -87,7 +95,7 @@ export default function PromotionsScreen() {
       }
       return true;
     });
-  }, [promos, search, filterStatus, filterTarget]);
+  }, [promos, search, filterStatus, filterTarget, filterKind]);
 
   const stats = useMemo(() => {
     const active = promos.filter((p) => getPromoStatus(p) === "active").length;
@@ -97,7 +105,11 @@ export default function PromotionsScreen() {
     const venue = promos.filter(
       (p) => p.discountTarget === "VENUE_HIRE_FEE"
     ).length;
-    return { total: promos.length, active, food, venue };
+    const rewards = promos.filter((p) => kindOf(p) === "COMPLETION_REWARD").length;
+    const rewardsUnused = promos.filter(
+      (p) => kindOf(p) === "COMPLETION_REWARD" && getPromoStatus(p) === "active"
+    ).length;
+    return { total: promos.length, active, food, venue, rewards, rewardsUnused };
   }, [promos]);
 
   const handleDelete = async (code: string) => {
@@ -223,6 +235,12 @@ export default function PromotionsScreen() {
             <span className="stat-value">{stats.venue}</span>
             <span className="stat-label">Venue Hire</span>
           </div>
+          <div className="stat-card stat-reward">
+            <span className="stat-value">{stats.rewards}</span>
+            <span className="stat-label">
+              Reward codes{stats.rewards ? ` (${stats.rewardsUnused} unused)` : ""}
+            </span>
+          </div>
         </div>
       )}
 
@@ -248,6 +266,20 @@ export default function PromotionsScreen() {
                 </button>
               )
             )}
+            <span className="filter-divider" />
+            {(["MANUAL", "COMPLETION_REWARD", "all"] as FilterKind[]).map((k) => (
+              <button
+                key={k}
+                className={`filter-pill ${filterKind === k ? "filter-pill-active" : ""}`}
+                onClick={() => setFilterKind(k)}
+              >
+                {k === "MANUAL"
+                  ? "Campaign codes"
+                  : k === "COMPLETION_REWARD"
+                    ? "Reward codes"
+                    : "All kinds"}
+              </button>
+            ))}
             <span className="filter-divider" />
             {(["all", "FOOD_SUBTOTAL", "VENUE_HIRE_FEE"] as FilterTarget[]).map(
               (t) => (
@@ -309,6 +341,7 @@ export default function PromotionsScreen() {
               setSearch("");
               setFilterStatus("all");
               setFilterTarget("all");
+              setFilterKind("all");
             }}
           >
             Clear Filters
@@ -345,6 +378,11 @@ export default function PromotionsScreen() {
                       ? "Venue Hire"
                       : "Food Subtotal"}
                   </span>
+                  {kindOf(p) === "COMPLETION_REWARD" ? (
+                    <span className="target-pill target-reward" title={p.assignedEmail || ""}>
+                      Reward{p.assignedEmail ? ` · ${p.assignedEmail}` : ""}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="card-details">

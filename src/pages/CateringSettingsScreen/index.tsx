@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import cateringSettingsService from '../../services/catering-settings.service';
-import type { CateringSettings } from '../../services/catering-settings.service';
+import type {
+  CateringSettings,
+  Range,
+} from '../../services/catering-settings.service';
+
+const inRange = (value: number, range: Range) =>
+  Number.isFinite(value) && value >= range.min && value <= range.max;
 
 const CARD: React.CSSProperties = {
   background: '#fff',
@@ -26,6 +32,15 @@ const CateringSettingsScreen: React.FC = () => {
     min: 1,
     max: 72,
   });
+  const [rewardLimits, setRewardLimits] = useState<{
+    percent: Range;
+    maxDiscount: Range;
+    validDays: Range;
+  }>({
+    percent: { min: 1, max: 50 },
+    maxDiscount: { min: 0, max: 500 },
+    validDays: { min: 1, max: 365 },
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{
@@ -44,6 +59,11 @@ const CateringSettingsScreen: React.FC = () => {
         setDefaults(res.defaults);
         setLimits(res.limits.collectionLeadMinutes);
         setAutoBookLimits(res.limits.autoBookLeadHours);
+        setRewardLimits((current) => ({
+          percent: res.limits.completionRewardPercent ?? current.percent,
+          maxDiscount: res.limits.completionRewardMaxDiscount ?? current.maxDiscount,
+          validDays: res.limits.completionRewardValidDays ?? current.validDays,
+        }));
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -75,8 +95,16 @@ const CateringSettingsScreen: React.FC = () => {
     draft.autoBookLeadHours >= autoBookLimits.min &&
     draft.autoBookLeadHours <= autoBookLimits.max;
 
+  const rewardValid =
+    draft != null &&
+    inRange(draft.completionRewardPercent, rewardLimits.percent) &&
+    inRange(draft.completionRewardMaxDiscount, rewardLimits.maxDiscount) &&
+    inRange(draft.completionRewardValidDays, rewardLimits.validDays);
+
+  const allValid = leadValid && autoBookLeadHoursValid && rewardValid;
+
   const handleSave = async () => {
-    if (!draft || !leadValid || !autoBookLeadHoursValid) return;
+    if (!draft || !allValid) return;
     setSaving(true);
     setMessage(null);
     try {
@@ -84,6 +112,11 @@ const CateringSettingsScreen: React.FC = () => {
         collectionLeadMinutes: Math.round(draft.collectionLeadMinutes),
         autoBookCourier: draft.autoBookCourier,
         autoBookLeadHours: Math.round(draft.autoBookLeadHours),
+        completionRewardEnabled: draft.completionRewardEnabled,
+        completionRewardPercent: Math.round(draft.completionRewardPercent),
+        completionRewardMaxDiscount:
+          Math.round(draft.completionRewardMaxDiscount * 100) / 100,
+        completionRewardValidDays: Math.round(draft.completionRewardValidDays),
       });
       setSaved(res.settings);
       setDraft(res.settings);
@@ -258,6 +291,118 @@ const CateringSettingsScreen: React.FC = () => {
             </span>
           </div>
 
+          <h2
+            style={{
+              fontSize: '1.05rem',
+              fontWeight: 700,
+              color: '#051661',
+              margin: '28px 0 0',
+            }}
+          >
+            Repeat-customer reward
+          </h2>
+          <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '4px 0 14px' }}>
+            When an order completes, the customer is emailed a one-time discount
+            code for their next event order. The code only works for the email
+            the order was placed with, and is withdrawn if the order is fully
+            refunded. Codes appear under Promotions as "Reward".
+            {defaults
+              ? ` Defaults: ${defaults.completionRewardPercent}% off, capped at £${defaults.completionRewardMaxDiscount}, valid ${defaults.completionRewardValidDays} days.`
+              : ''}
+          </p>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="completionRewardEnabled"
+              checked={draft.completionRewardEnabled}
+              onChange={(e) =>
+                setDraft({ ...draft, completionRewardEnabled: e.target.checked })
+              }
+            />
+            <label
+              htmlFor="completionRewardEnabled"
+              style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4b5563' }}
+            >
+              Issue a reward code when an order completes
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
+            {(
+              [
+                {
+                  key: 'completionRewardPercent',
+                  label: 'Discount',
+                  unit: '% off food',
+                  range: rewardLimits.percent,
+                  step: 1,
+                },
+                {
+                  key: 'completionRewardMaxDiscount',
+                  label: 'Maximum discount',
+                  unit: '£ (0 = no cap)',
+                  range: rewardLimits.maxDiscount,
+                  step: 5,
+                },
+                {
+                  key: 'completionRewardValidDays',
+                  label: 'Valid for',
+                  unit: 'days',
+                  range: rewardLimits.validDays,
+                  step: 1,
+                },
+              ] as const
+            ).map((field) => {
+              const value = draft[field.key];
+              const valid = inRange(value, field.range);
+              return (
+                <div key={field.key}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: '#4b5563',
+                      marginBottom: 4,
+                    }}
+                  >
+                    {field.label}
+                  </label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min={field.range.min}
+                      max={field.range.max}
+                      step={field.step}
+                      disabled={!draft.completionRewardEnabled}
+                      value={Number.isFinite(value) ? value : ''}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          [field.key]:
+                            e.target.value === '' ? NaN : Number(e.target.value),
+                        })
+                      }
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: `1px solid ${valid ? '#d1d5db' : '#dc2626'}`,
+                        fontSize: '0.9rem',
+                        width: 110,
+                        background: draft.completionRewardEnabled ? '#fff' : '#e5e7eb',
+                        color: draft.completionRewardEnabled ? undefined : '#9ca3af',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      {field.unit} ({field.range.min}–{field.range.max})
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           <div
             style={{
               display: 'flex',
@@ -268,11 +413,11 @@ const CateringSettingsScreen: React.FC = () => {
           >
             <button
               onClick={handleSave}
-              disabled={!dirty || !leadValid || !autoBookLeadHoursValid || saving}
+              disabled={!dirty || !allValid || saving}
               style={{
                 padding: '10px 18px',
                 background:
-                  !dirty || !leadValid || !autoBookLeadHoursValid || saving
+                  !dirty || !allValid || saving
                     ? '#9ca3af'
                     : '#051661',
                 color: '#fff',
@@ -281,7 +426,7 @@ const CateringSettingsScreen: React.FC = () => {
                 fontSize: '0.9rem',
                 fontWeight: 600,
                 cursor:
-                  !dirty || !leadValid || !autoBookLeadHoursValid || saving
+                  !dirty || !allValid || saving
                     ? 'not-allowed'
                     : 'pointer',
               }}

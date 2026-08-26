@@ -8,14 +8,30 @@ export interface CateringSettings {
   autoBookCourier: boolean;
   /** Hours before collection that auto-booking fires. */
   autoBookLeadHours: number;
+  /** Issue a one-time discount code to the customer when their order completes. */
+  completionRewardEnabled: boolean;
+  /** Percentage off the food subtotal on the customer's next order. */
+  completionRewardPercent: number;
+  /** Cap on the discount in pounds; 0 means no cap. */
+  completionRewardMaxDiscount: number;
+  /** Days the reward code stays valid from the day it is issued. */
+  completionRewardValidDays: number;
+}
+
+export interface Range {
+  min: number;
+  max: number;
 }
 
 export interface CateringSettingsResponse {
   settings: CateringSettings;
   defaults: CateringSettings;
   limits: {
-    collectionLeadMinutes: { min: number; max: number };
-    autoBookLeadHours: { min: number; max: number };
+    collectionLeadMinutes: Range;
+    autoBookLeadHours: Range;
+    completionRewardPercent: Range;
+    completionRewardMaxDiscount: Range;
+    completionRewardValidDays: Range;
   };
 }
 

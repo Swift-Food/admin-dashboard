@@ -1829,7 +1829,7 @@ const CateringOrdersScreen = () => {
                   <SortHeader column="orderId" label="Order ID" />
                   <SortHeader column="customer" label="Customer" />
                   <SortHeader column="restaurant" label="Restaurants" />
-                  <SortHeader column="eventDate" label="Event Date" />
+                  <SortHeader column="eventDate" label="Event Details" />
                   <SortHeader column="total" label="Total" />
                   <SortHeader column="status" label="Status" />
                   <SortHeader column="payment" label="Payment" />

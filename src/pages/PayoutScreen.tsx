@@ -35,8 +35,23 @@ export interface WithdrawalRequest {
   reviewedAt?: string;
   stripePayoutId?: string;
   isInstantPayout: boolean;
+  isEarlyWithdrawal?: boolean;
+  restaurantId?: string | null;
+  earlyWithdrawalOrders?: EarlyWithdrawalOrderLine[] | null;
   requestedAt: string;
   updatedAt: string;
+}
+
+export interface EarlyWithdrawalOrderLine {
+  orderId: string;
+  orderReference: string;
+  eventDate: string | null;
+  earnings: number;
+  processingFee: number;
+  transferred: number;
+  transferId: string | null;
+  status: "transferred" | "offset" | "failed";
+  failureReason?: string;
 }
 
 // Mock Service (replace with actual API calls)
@@ -106,8 +121,11 @@ const WithdrawalDetailsModal = ({
 
   if (!isOpen || !withdrawal) return null;
 
-  const canApprove = withdrawal.status === WithdrawalStatus.PENDING;
-  const canReject = withdrawal.status === WithdrawalStatus.PENDING;
+  // A request that already has a Stripe payout was paid at request time;
+  // approving it again would pay it twice.
+  const awaitingPayout = withdrawal.status === WithdrawalStatus.PENDING && !withdrawal.stripePayoutId;
+  const canApprove = awaitingPayout;
+  const canReject = awaitingPayout;
 
   const handleApprove = async () => {
     setIsProcessing(true);
@@ -181,6 +199,7 @@ const WithdrawalDetailsModal = ({
                 <WithdrawalTimer requestedAt={withdrawal.requestedAt} />
               </div>
               {withdrawal.isInstantPayout ? <p className="mt-2 text-sm text-purple-600 font-medium">⚡ Instant Payout</p> : null}
+              {withdrawal.isEarlyWithdrawal ? <p className="mt-2 text-sm text-amber-700 font-medium">Early withdrawal (restaurant paid the card fees)</p> : null}
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -188,12 +207,43 @@ const WithdrawalDetailsModal = ({
               <p className="text-blue-700 text-2xl font-bold">
                 £{withdrawal.amount}
               </p>
-              {withdrawal.feeCharged ? <>
-                  <p className="text-red-600 text-sm">Fee: -£{withdrawal.feeCharged}</p>
-                  <p className="text-green-600 text-lg font-semibold">Net: £{withdrawal.netAmount}</p>
+              {Number(withdrawal.feeCharged) > 0 ? <>
+                  <p className="text-red-600 text-sm">Card processing fees: -£{withdrawal.feeCharged}</p>
+                  <p className="text-green-600 text-lg font-semibold">Paid out: £{withdrawal.netAmount}</p>
                 </> : null}
             </div>
           </div>
+
+          {/* Early withdrawal breakdown */}
+          {withdrawal.earlyWithdrawalOrders?.length ? <div className="border border-amber-200 rounded-lg p-4 bg-amber-50">
+              <h3 className="font-semibold mb-3 text-gray-900">Orders withdrawn early</h3>
+              <table className="w-full text-sm text-gray-800">
+                <thead>
+                  <tr className="text-left text-xs uppercase text-gray-500">
+                    <th className="py-1 pr-2">Order</th>
+                    <th className="py-1 pr-2 text-right">Earnings</th>
+                    <th className="py-1 pr-2 text-right">Card fee</th>
+                    <th className="py-1 pr-2 text-right">Transferred</th>
+                    <th className="py-1">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {withdrawal.earlyWithdrawalOrders.map((line) => (
+                    <tr key={line.orderId} className="border-t border-amber-200">
+                      <td className="py-1 pr-2 font-medium">#{line.orderReference}</td>
+                      <td className="py-1 pr-2 text-right">£{Number(line.earnings).toFixed(2)}</td>
+                      <td className="py-1 pr-2 text-right text-red-600">-£{Number(line.processingFee).toFixed(2)}</td>
+                      <td className="py-1 pr-2 text-right">£{Number(line.transferred).toFixed(2)}</td>
+                      <td className="py-1">
+                        <span className="capitalize">{line.status}</span>
+                        {line.failureReason ? <span className="block text-xs text-red-700">{line.failureReason}</span> : null}
+                        {line.transferId ? <span className="block text-xs text-gray-500">{line.transferId}</span> : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div> : null}
 
           {/* User Information */}
           <div className="border border-gray-200 rounded-lg p-4 bg-white">
@@ -384,10 +434,13 @@ const WithdrawalCard = ({
           {withdrawal.isInstantPayout ? <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-300">
               ⚡ INSTANT
             </span> : null}
+          {withdrawal.isEarlyWithdrawal ? <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
+              EARLY
+            </span> : null}
         </div>
         <div className="text-right">
           <p className="font-bold text-lg text-gray-900">£{withdrawal.amount}</p>
-          {withdrawal.feeCharged ? <p className="text-xs text-red-600">Fee: £{withdrawal.feeCharged}</p> : null}
+          {Number(withdrawal.feeCharged) > 0 ? <p className="text-xs text-red-600">Card fees: £{withdrawal.feeCharged}</p> : null}
           <p className="text-sm font-semibold text-green-600">£{withdrawal.netAmount}</p>
         </div>
       </div>
@@ -521,6 +574,21 @@ const WithdrawalAdminDashboard = () => {
   const pendingAmount = buckets.PENDING.reduce((sum, w) => sum + Number(w.netAmount), 0);
   const totalFees = allWithdrawals.reduce((sum, w) => sum + Number(w.feeCharged), 0);
 
+  const [reconciling, setReconciling] = useState(false);
+  const handleReconcile = async () => {
+    setReconciling(true);
+    try {
+      const result = await withdrawalService.reconcile();
+      await fetchAllWithdrawals();
+      alert(`Checked ${result.checked} payouts with Stripe, updated ${result.updated}.`);
+    } catch (e) {
+      console.error("Failed to reconcile payouts:", e);
+      alert("Failed to reconcile with Stripe. Please try again.");
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
@@ -540,7 +608,17 @@ const WithdrawalAdminDashboard = () => {
   return (
     <div className="p-4 h-screen bg-[#e8f4f8]">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold mb-2 text-gray-900">Withdrawal Requests Admin</h1>
+        <div className="flex items-center justify-between mb-2 gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">Withdrawal Requests Admin</h1>
+          <button
+            onClick={handleReconcile}
+            disabled={reconciling}
+            className="bg-white hover:bg-gray-100 text-gray-800 text-sm font-medium py-2 px-4 rounded-lg border border-gray-300 transition-colors disabled:opacity-50"
+            title="Ask Stripe for the current status of every payout still in flight"
+          >
+            {reconciling ? "Checking Stripe..." : "Sync statuses with Stripe"}
+          </button>
+        </div>
         <div className="flex gap-6 text-sm text-gray-700 flex-wrap">
           <span>Total Requests: <strong className="text-gray-900">{totalWithdrawals}</strong></span>
           <span>Pending: <strong className="text-yellow-600">{buckets.PENDING.length}</strong></span>
@@ -550,7 +628,7 @@ const WithdrawalAdminDashboard = () => {
           <span className="mx-2">|</span>
           <span>Total Amount: <strong className="text-gray-900">£{totalAmount.toFixed(2)}</strong></span>
           <span>Pending Amount: <strong className="text-yellow-600">£{pendingAmount.toFixed(2)}</strong></span>
-          <span>Total Fees: <strong className="text-gray-900">£{totalFees.toFixed(2)}</strong></span>
+          <span>Card fees paid by restaurants: <strong className="text-gray-900">£{totalFees.toFixed(2)}</strong></span>
           <span className="ml-auto">
             Last Updated: <strong className="text-gray-900">{lastUpdated.toLocaleTimeString()}</strong>
           </span>

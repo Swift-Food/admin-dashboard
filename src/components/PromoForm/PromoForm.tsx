@@ -33,7 +33,15 @@ export default function PromoForm({
     appliesTo: initialData?.appliesTo ?? "BOTH",
     discountTarget: initialData?.discountTarget ?? "FOOD_SUBTOTAL",
     coworkingVenueIds: initialData?.coworkingVenueIds?.join(", ") ?? "",
+    assignedEmail: initialData?.assignedEmail ?? "",
   });
+
+  // Once a personal code has been redeemed, the assignment can't change.
+  const assignmentLocked =
+    !!initialData?.assignedEmail &&
+    (initialData?.usesCount ?? initialData?.currentUses ?? 0) > 0;
+
+  const isPersonal = !!form.assignedEmail;
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,6 +79,10 @@ export default function PromoForm({
           : undefined,
         appliesTo: form.appliesTo,
         discountTarget: form.discountTarget,
+        // null, not undefined: undefined reads as "leave unchanged" on the
+        // PATCH, so clearing the field has to send an explicit null to
+        // unassign a code.
+        assignedEmail: form.assignedEmail.trim() || null,
         coworkingVenueIds:
           form.discountTarget === "VENUE_HIRE_FEE" && form.coworkingVenueIds
             ? form.coworkingVenueIds
@@ -126,6 +138,24 @@ export default function PromoForm({
               placeholder="Internal notes..."
               rows={2}
             />
+          </div>
+          <div className="pf-field">
+            <label className="pf-label">
+              Assign to customer <span className="pf-optional">optional</span>
+            </label>
+            <input
+              type="email"
+              disabled={assignmentLocked}
+              value={form.assignedEmail}
+              onChange={(e) => set("assignedEmail", e.target.value)}
+              className="pf-input"
+              placeholder="customer@example.com"
+            />
+            <span className="pf-hint">
+              {assignmentLocked
+                ? "Already redeemed — the assignment can't be changed."
+                : "Only this customer will be able to redeem the code. It becomes single-use, and they'll be emailed the code automatically when it's created."}
+            </span>
           </div>
         </div>
 
@@ -281,44 +311,55 @@ export default function PromoForm({
                   />
                 </div>
               </div> : null}
-            <div className="pf-field">
-              <label className="pf-label">Max Uses</label>
-              <input
-                type="number"
-                min="1"
-                value={form.maxUses}
-                onChange={(e) => set("maxUses", e.target.value)}
-                className="pf-input"
-                placeholder="Unlimited"
-              />
-            </div>
-            <div className="pf-field">
-              <label className="pf-label">Per User</label>
-              <input
-                type="number"
-                min="1"
-                value={form.maxUsesPerUser}
-                onChange={(e) => set("maxUsesPerUser", e.target.value)}
-                className="pf-input"
-                placeholder="Unlimited"
-              />
-            </div>
+            {!isPersonal && (
+              <div className="pf-field">
+                <label className="pf-label">Max Uses</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.maxUses}
+                  onChange={(e) => set("maxUses", e.target.value)}
+                  className="pf-input"
+                  placeholder="Unlimited"
+                />
+              </div>
+            )}
+            {!isPersonal && (
+              <div className="pf-field">
+                <label className="pf-label">Per User</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.maxUsesPerUser}
+                  onChange={(e) => set("maxUsesPerUser", e.target.value)}
+                  className="pf-input"
+                  placeholder="Unlimited"
+                />
+              </div>
+            )}
           </div>
+          {isPersonal ? (
+            <span className="pf-hint">
+              Personal codes are single-use and valid at all restaurants.
+            </span>
+          ) : null}
         </div>
 
         {/* Restaurants */}
-        <div className="pf-section">
-          <div className="pf-section-header">
-            <span className="pf-section-title">Restaurants</span>
-            <span className="pf-section-subtitle">
-              Leave empty for all restaurants
-            </span>
+        {!isPersonal && (
+          <div className="pf-section">
+            <div className="pf-section-header">
+              <span className="pf-section-title">Restaurants</span>
+              <span className="pf-section-subtitle">
+                Leave empty for all restaurants
+              </span>
+            </div>
+            <RestaurantMultiSelect
+              selectedIds={form.restaurantIds}
+              onChange={(ids) => set("restaurantIds", ids)}
+            />
           </div>
-          <RestaurantMultiSelect
-            selectedIds={form.restaurantIds}
-            onChange={(ids) => set("restaurantIds", ids)}
-          />
-        </div>
+        )}
 
         {/* Schedule */}
         <div className="pf-section">

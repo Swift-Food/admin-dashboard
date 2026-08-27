@@ -24,6 +24,9 @@ export interface PromoCodeDto {
   expiresAt?: string;
   appliesTo: PromoAppliesTo;
   discountTarget: PromoDiscountTarget;
+  // Nullable so the response type can widen it to `string | null` — sending
+  // null is also how an assignment gets cleared on an unredeemed code.
+  assignedEmail?: string | null;
 }
 
 export interface PromoCodeResponse extends PromoCodeDto {

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { UtensilsCrossed, Building2 } from "lucide-react";
 import RestaurantMultiSelect from "../RestaurantMultiSelect";
 import "./Promoform.css";
 
@@ -154,7 +155,7 @@ export default function PromoForm({
             <span className="pf-hint">
               {assignmentLocked
                 ? "Already redeemed — the assignment can't be changed."
-                : "Only this customer will be able to redeem the code. It becomes single-use, and they'll be emailed the code automatically when it's created."}
+                : "Only this customer can redeem it. It's single-use and gets emailed to them automatically."}
             </span>
           </div>
         </div>
@@ -222,7 +223,7 @@ export default function PromoForm({
           </div>
 
           {/* Target + Applies To */}
-          <div className="pf-row">
+          <div className="pf-row pf-row-target">
             <div className="pf-field pf-field-grow">
               <label className="pf-label">What does it discount?</label>
               <div className="pf-target-selector">
@@ -231,7 +232,7 @@ export default function PromoForm({
                   className={`pf-target-btn ${form.discountTarget === "FOOD_SUBTOTAL" ? "pf-target-food-active" : ""}`}
                   onClick={() => set("discountTarget", "FOOD_SUBTOTAL")}
                 >
-                  <span className="pf-target-icon">🍽</span>
+                  <UtensilsCrossed size={18} className="pf-target-icon" />
                   Food Subtotal
                 </button>
                 <button
@@ -239,7 +240,7 @@ export default function PromoForm({
                   className={`pf-target-btn ${form.discountTarget === "VENUE_HIRE_FEE" ? "pf-target-venue-active" : ""}`}
                   onClick={() => set("discountTarget", "VENUE_HIRE_FEE")}
                 >
-                  <span className="pf-target-icon">🏢</span>
+                  <Building2 size={18} className="pf-target-icon" />
                   Venue Hire Fee
                 </button>
               </div>

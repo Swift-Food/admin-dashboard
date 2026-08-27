@@ -173,7 +173,7 @@ export default function PromotionsScreen() {
         </div> : null}
 
       {/* Delete Confirmation */}
-      {deleteConfirm ? <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+      {deleteConfirm ? <div className="pm-modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div
             className="delete-dialog"
             onClick={(e) => e.stopPropagation()}
@@ -472,15 +472,15 @@ export default function PromotionsScreen() {
       )}
 
       {/* Form Modal */}
-      {showForm ? <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">
+      {showForm ? <div className="pm-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="pm-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="pm-modal-header">
+              <h3 className="pm-modal-title">
                 {editing ? `Edit: ${editing.code}` : "New Promo Code"}
               </h3>
               <button
                 onClick={() => setShowForm(false)}
-                className="close-button"
+                className="pm-modal-close"
               >
                 ✕
               </button>

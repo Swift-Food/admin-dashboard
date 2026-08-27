@@ -341,26 +341,24 @@ export default function PromoForm({
           </div>
           {isPersonal ? (
             <span className="pf-hint">
-              Personal codes are single-use and valid at all restaurants.
+              Personal codes are single-use.
             </span>
           ) : null}
         </div>
 
         {/* Restaurants */}
-        {!isPersonal && (
-          <div className="pf-section">
-            <div className="pf-section-header">
-              <span className="pf-section-title">Restaurants</span>
-              <span className="pf-section-subtitle">
-                Leave empty for all restaurants
-              </span>
-            </div>
-            <RestaurantMultiSelect
-              selectedIds={form.restaurantIds}
-              onChange={(ids) => set("restaurantIds", ids)}
-            />
+        <div className="pf-section">
+          <div className="pf-section-header">
+            <span className="pf-section-title">Restaurants</span>
+            <span className="pf-section-subtitle">
+              Leave empty for all restaurants
+            </span>
           </div>
-        )}
+          <RestaurantMultiSelect
+            selectedIds={form.restaurantIds}
+            onChange={(ids) => set("restaurantIds", ids)}
+          />
+        </div>
 
         {/* Schedule */}
         <div className="pf-section">

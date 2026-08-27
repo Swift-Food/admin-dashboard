@@ -350,9 +350,16 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
       <div className="bg-white rounded-2xl w-[70vw] max-w-[1000px] max-h-[90vh] overflow-y-auto shadow-2xl flex-shrink-0">
         <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-4 rounded-t-2xl">
           <div className="flex justify-between items-center">
-            <div className="flex items-baseline gap-3">
-              <h2 className="text-xl font-bold tracking-tight">Catering Order Details</h2>
-              <span className="text-purple-200 text-sm font-mono">#{order.id.slice(0, 8).toUpperCase()}</span>
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-3">
+                <h2 className="text-xl font-bold tracking-tight">Catering Order Details</h2>
+                <span className="text-purple-200 text-sm font-mono">#{order.id.slice(0, 8).toUpperCase()}</span>
+              </div>
+              {order.eventName ? (
+                <p className="text-sm text-purple-100 mt-0.5 truncate" title={order.eventName}>
+                  {order.eventName}
+                </p>
+              ) : null}
             </div>
             <button onClick={handleClose} className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,7 +396,8 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/></svg>
                 Event Details
               </h3>
-              <p className="text-base font-semibold text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</p>
+              {order.eventName ? <p className="text-base font-semibold text-gray-900">{order.eventName}</p> : null}
+              <p className={order.eventName ? "text-sm text-gray-600 mt-1" : "text-base font-semibold text-gray-900"}>{new Date(order.eventDate).toLocaleDateString()}</p>
               <p className="text-sm text-gray-600 mt-1">{order.eventTime} · {(order.restaurants || order.orderItems || []).reduce((total, item) => total + (item.menuItems || []).reduce((sum, mi) => sum + (mi?.quantity || 0), 0), 0)} portions</p>
               {order.eventType ? <p className="text-sm text-gray-600 mt-0.5">{order.eventType}</p> : null}
             </div>
@@ -1866,6 +1874,14 @@ const CateringOrdersScreen = () => {
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{new Date(order.eventDate).toLocaleDateString()}</div>
                       <div className="text-xs text-gray-500 mt-1">{order.eventTime}</div>
+                      {order.eventName ? (
+                        <div
+                          className="text-xs text-gray-700 mt-1 max-w-[14rem] truncate"
+                          title={order.eventName}
+                        >
+                          {order.eventName}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-base font-bold text-gray-900">

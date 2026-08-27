@@ -159,6 +159,8 @@ export interface CateringOrder {
   collectionTime: string;
   guestCount?: number;
   eventType?: string;
+  /** What the customer called this event. Null on orders placed before the field existed. */
+  eventName?: string | null;
   deliveryAddress?:
     | string
     | {
@@ -302,6 +304,7 @@ export interface CateringOrderSummary {
   customerName: string;
   guestCount?: number;
   eventType?: string;
+  eventName?: string | null;
   paid?: boolean;
   createdAt: string;
 }

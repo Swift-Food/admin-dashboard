@@ -16,6 +16,8 @@ export interface CateringSettings {
   completionRewardMaxDiscount: number;
   /** Days the reward code stays valid from the day it is issued. */
   completionRewardValidDays: number;
+  /** Max distance (miles) Swift will courier a catering order for a restaurant that does not self-deliver. */
+  maxCourierDeliveryMiles: number;
 }
 
 export interface Range {
@@ -32,6 +34,7 @@ export interface CateringSettingsResponse {
     completionRewardPercent: Range;
     completionRewardMaxDiscount: Range;
     completionRewardValidDays: Range;
+    maxCourierDeliveryMiles: Range;
   };
 }
 

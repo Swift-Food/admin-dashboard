@@ -8,6 +8,9 @@ import type {
 const inRange = (value: number, range: Range) =>
   Number.isFinite(value) && value >= range.min && value <= range.max;
 
+/** Mirrors the backend's DEFAULT_MAX_COURIER_DELIVERY_MILES. */
+const DEFAULT_COURIER_MILES = 5;
+
 const CARD: React.CSSProperties = {
   background: '#fff',
   border: '1px solid #e5e7eb',
@@ -41,6 +44,10 @@ const CateringSettingsScreen: React.FC = () => {
     maxDiscount: { min: 0, max: 500 },
     validDays: { min: 1, max: 365 },
   });
+  const [courierMilesLimits, setCourierMilesLimits] = useState<Range>({
+    min: 0.5,
+    max: 20,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{
@@ -54,8 +61,15 @@ const CateringSettingsScreen: React.FC = () => {
       .get()
       .then((res) => {
         if (!active) return;
-        setSaved(res.settings);
-        setDraft(res.settings);
+        // Same tolerance for the value itself: without it the input renders
+        // empty and Save stays disabled against an older backend.
+        const settings: CateringSettings = {
+          ...res.settings,
+          maxCourierDeliveryMiles:
+            res.settings.maxCourierDeliveryMiles ?? DEFAULT_COURIER_MILES,
+        };
+        setSaved(settings);
+        setDraft(settings);
         setDefaults(res.defaults);
         setLimits(res.limits.collectionLeadMinutes);
         setAutoBookLimits(res.limits.autoBookLeadHours);
@@ -64,6 +78,12 @@ const CateringSettingsScreen: React.FC = () => {
           maxDiscount: res.limits.completionRewardMaxDiscount ?? current.maxDiscount,
           validDays: res.limits.completionRewardValidDays ?? current.validDays,
         }));
+        // Tolerate a backend that predates this setting: keep the local
+        // fallback bounds rather than storing undefined, which would blow up
+        // inRange and take the whole screen down instead of one field.
+        setCourierMilesLimits(
+          (current) => res.limits.maxCourierDeliveryMiles ?? current,
+        );
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -101,7 +121,11 @@ const CateringSettingsScreen: React.FC = () => {
     inRange(draft.completionRewardMaxDiscount, rewardLimits.maxDiscount) &&
     inRange(draft.completionRewardValidDays, rewardLimits.validDays);
 
-  const allValid = leadValid && autoBookLeadHoursValid && rewardValid;
+  const courierMilesValid =
+    draft != null && inRange(draft.maxCourierDeliveryMiles, courierMilesLimits);
+
+  const allValid =
+    leadValid && autoBookLeadHoursValid && rewardValid && courierMilesValid;
 
   const handleSave = async () => {
     if (!draft || !allValid) return;
@@ -117,6 +141,8 @@ const CateringSettingsScreen: React.FC = () => {
         completionRewardMaxDiscount:
           Math.round(draft.completionRewardMaxDiscount * 100) / 100,
         completionRewardValidDays: Math.round(draft.completionRewardValidDays),
+        maxCourierDeliveryMiles:
+          Math.round(draft.maxCourierDeliveryMiles * 10) / 10,
       });
       setSaved(res.settings);
       setDraft(res.settings);
@@ -288,6 +314,64 @@ const CateringSettingsScreen: React.FC = () => {
             />
             <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
               hours ({autoBookLimits.min}–{autoBookLimits.max})
+            </span>
+          </div>
+
+          <h2
+            style={{
+              fontSize: '1.05rem',
+              fontWeight: 700,
+              color: '#051661',
+              margin: '28px 0 0',
+            }}
+          >
+            Courier delivery range
+          </h2>
+          <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '4px 0 14px' }}>
+            The furthest Swift will courier an order, measured as road distance
+            from the restaurant to the delivery address. Applies whenever Swift
+            delivers; restaurants that self-deliver are governed by their own
+            range instead, set per restaurant.
+          </p>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: '#4b5563',
+              marginBottom: 4,
+            }}
+          >
+            Max courier delivery range
+          </label>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <input
+              type="number"
+              min={courierMilesLimits.min}
+              max={courierMilesLimits.max}
+              step={0.5}
+              value={
+                Number.isFinite(draft.maxCourierDeliveryMiles)
+                  ? draft.maxCourierDeliveryMiles
+                  : ''
+              }
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  maxCourierDeliveryMiles:
+                    e.target.value === '' ? NaN : Number(e.target.value),
+                })
+              }
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${courierMilesValid ? '#d1d5db' : '#dc2626'}`,
+                fontSize: '0.9rem',
+                width: 120,
+              }}
+            />
+            <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+              miles ({courierMilesLimits.min}–{courierMilesLimits.max})
             </span>
           </div>
 

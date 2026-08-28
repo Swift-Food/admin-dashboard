@@ -6,7 +6,8 @@ export type MealSessionDeliveryStatus =
   | "booked"
   | "out_for_delivery"
   | "delivered"
-  | "failed";
+  | "failed"
+  | "self_delivery";
 
 export interface SessionMenuItem {
   quantity: number;
@@ -135,6 +136,22 @@ export interface CateringMealSession {
     }
   >;
   cateringOrder?: CateringOrderInfo;
+  /** Per-restaurant self/courier decision, stamped at payment or by an admin */
+  restaurantFulfillment?: Record<
+    string,
+    {
+      method: "self" | "courier";
+      distanceMiles: number;
+      rangeMiles: number;
+      resolvedAt: string;
+    }
+  > | null;
+}
+
+export interface SelfDeliveryPayout {
+  restaurantId: string;
+  amount: number;
+  note?: string;
 }
 
 export interface AdminDeliverySession {

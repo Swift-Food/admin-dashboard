@@ -5,6 +5,7 @@ import type {
 } from "../types/catering-session.types";
 import cateringDeliveryService from "../services/catering-delivery.service";
 import CourierBookingSection from "../components/CourierBookingSection";
+import SelfDeliverySection from "../components/SelfDeliverySection";
 import { Modal } from "../components/Modal";
 
 // Status configuration
@@ -48,6 +49,12 @@ const STATUS_CONFIG: Record<
     bgColor: "bg-red-100",
     borderColor: "border-red-300",
   },
+  self_delivery: {
+    label: "Self-delivery",
+    color: "text-teal-800",
+    bgColor: "bg-teal-100",
+    borderColor: "border-teal-300",
+  },
 };
 
 // Tab configuration
@@ -63,6 +70,7 @@ const TABS = [
     statuses: [
       "booked",
       "out_for_delivery",
+      "self_delivery",
       "failed",
     ] as MealSessionDeliveryStatus[],
   },
@@ -148,12 +156,21 @@ const SessionDetailModal = ({
 
         <div className="p-6">
           <div className="space-y-6">
-              {/* Courier Booking */}
-              <CourierBookingSection
-                key={entry.activeBooking?.id ?? "no-booking"}
+              {/* Self-delivery switch / management */}
+              <SelfDeliverySection
+                key={`self-${session.deliveryStatus}`}
                 entry={entry}
                 onChanged={onChanged}
               />
+
+              {/* Courier Booking (a self-delivery session only shows it for its booking history) */}
+              {session.deliveryStatus !== "self_delivery" || entry.bookings.length > 0 ? (
+                <CourierBookingSection
+                  key={entry.activeBooking?.id ?? "no-booking"}
+                  entry={entry}
+                  onChanged={onChanged}
+                />
+              ) : null}
 
               {/* Session Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -540,7 +557,7 @@ const CateringSessionsScreen = () => {
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-8 p-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-6 gap-4 mb-6">
+          <div className="grid grid-cols-7 gap-4 mb-6">
             {Object.entries(STATUS_CONFIG).map(([status, config]) => {
               const count = allSessions.filter(
                 (entry) => entry.session.deliveryStatus === status

@@ -3,6 +3,7 @@ import type {
   AdminDeliverySession,
   BookableProvider,
   CateringDeliveryBooking,
+  CateringMealSession,
   DeliveryPricePreview,
   GetAllSessionsParams,
   PackageCounts,
@@ -77,10 +78,44 @@ const getRiderLocation = async (
   return res.data;
 };
 
+/** One restaurant delivers its own part of the session; optionally pay it for that. */
+const setRestaurantSelfDelivery = async (
+  mealSessionId: string,
+  restaurantId: string,
+  body: { amount?: number; note?: string }
+): Promise<CateringMealSession> => {
+  const res = await http.post<CateringMealSession>(
+    `catering-delivery/admin/sessions/${mealSessionId}/restaurants/${restaurantId}/self-delivery`,
+    body
+  );
+  return res.data;
+};
+
+const revertRestaurantToCourier = async (
+  mealSessionId: string,
+  restaurantId: string
+): Promise<CateringMealSession> => {
+  const res = await http.post<CateringMealSession>(
+    `catering-delivery/admin/sessions/${mealSessionId}/restaurants/${restaurantId}/courier`
+  );
+  return res.data;
+};
+
+/** Self-delivery sessions have no courier webhook, so an admin confirms delivery. */
+const markDelivered = async (mealSessionId: string): Promise<CateringMealSession> => {
+  const res = await http.post<CateringMealSession>(
+    `catering-delivery/admin/sessions/${mealSessionId}/mark-delivered`
+  );
+  return res.data;
+};
+
 export default {
   getSessions,
   bookCourier,
   getPricePreview,
   cancelBooking,
   getRiderLocation,
+  setRestaurantSelfDelivery,
+  revertRestaurantToCourier,
+  markDelivered,
 };

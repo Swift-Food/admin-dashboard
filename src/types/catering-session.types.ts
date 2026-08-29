@@ -175,8 +175,10 @@ export interface CourierConstraintResult {
   serviceLevel: "express" | "same_day";
   windowMinutes: number;
   zone: string | null;
-  /** What the rate card says the fare would be, when known */
-  cardEstimate: number | null;
+  /** Our own estimate of the fare (boxes included), when the distance is known */
+  fareEstimate: number | null;
+  /** 'measured' = fitted to the courier's own API quotes; 'card' = their published rate card */
+  estimateSource: "measured" | "card" | null;
   violations: CourierConstraintViolation[];
 }
 

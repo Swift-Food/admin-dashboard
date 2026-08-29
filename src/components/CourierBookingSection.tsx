@@ -382,10 +382,18 @@ const CourierBookingSection = ({
                   <dt className="text-gray-500">Service</dt>
                   <dd className="font-medium text-right">
                     {confirmQuote.isExpress ? "Express" : "Same-day"}
+                    {confirmQuote.constraints?.zone ? ` · ${confirmQuote.constraints.zone}` : ""}
                     {confirmQuote.windowMinutes != null ? (
                       <span className="block text-xs font-normal text-gray-500">
                         {confirmQuote.windowMinutes} min between collection and delivery
                         {confirmQuote.isExpress ? " (under 2h)" : ""}
+                      </span>
+                    ) : null}
+                    {confirmQuote.constraints?.fareEstimate != null &&
+                    Math.abs(confirmQuote.constraints.fareEstimate - confirmQuote.price) > 1 ? (
+                      <span className="block text-xs font-normal text-amber-700">
+                        Our estimate was {confirmQuote.currency}
+                        {confirmQuote.constraints.fareEstimate.toFixed(2)} — their tariff may have changed
                       </span>
                     ) : null}
                   </dd>

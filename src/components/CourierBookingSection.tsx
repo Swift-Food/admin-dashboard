@@ -1,5 +1,5 @@
 import { useState } from "react";
-import cateringDeliveryService from "../services/catering-delivery.service";
+import cateringDeliveryService, { isManualBooking } from "../services/catering-delivery.service";
 import { Modal } from "./Modal";
 import type {
   AdminDeliverySession,
@@ -97,6 +97,11 @@ const CourierBookingSection = ({
   const [confirmQuote, setConfirmQuote] = useState<DeliveryPricePreview | null>(null);
   // What the same route would cost as same-day, when the quote is express.
   const [sameDayQuote, setSameDayQuote] = useState<DeliveryPricePreview | null>(null);
+  // "Handled manually": the courier was booked on its own dashboard, outside the system.
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualRef, setManualRef] = useState("");
+  const [manualPrice, setManualPrice] = useState("");
+  const [manualNotes, setManualNotes] = useState("");
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -111,6 +116,7 @@ const CourierBookingSection = ({
   };
 
   const canBook = session.deliveryStatus === "awaiting_booking" && !activeBooking;
+  const manual = isManualBooking(activeBooking);
   const providerKey = activeBooking?.provider ?? provider;
   const providerLabel = (key: string) =>
     providers.find((p) => p.key === key)?.label ?? PROVIDER_LABEL[key] ?? key;
@@ -134,9 +140,15 @@ const CourierBookingSection = ({
         </div> : null}
 
       {activeBooking ? <div className="text-xs space-y-1 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+          {manual ? (
+            <p className="text-amber-800 font-semibold">
+              Handled manually — booked on {providerLabel(activeBooking.provider)}'s dashboard, so no automatic updates:
+              mark pickup and delivery below.
+            </p>
+          ) : null}
           <p>
             <span className="font-semibold">Ref:</span>{" "}
-            {activeBooking.externalReference ?? activeBooking.externalOrderId}
+            {activeBooking.externalReference ?? (manual ? "not recorded" : activeBooking.externalOrderId)}
             {activeBooking.quotedPrice ? <span className="ml-2 font-semibold">
                 {activeBooking.currency ?? "£"}
                 {activeBooking.quotedPrice}
@@ -178,10 +190,45 @@ const CourierBookingSection = ({
                 Where's the rider?
               </button>
             )}
+            {manual && session.deliveryStatus === "booked" ? (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await cateringDeliveryService.markPickedUp(session.id);
+                    onChanged();
+                  })
+                }
+                className="px-2 py-1 rounded bg-indigo-600 text-white font-semibold disabled:opacity-50"
+              >
+                Mark picked up
+              </button>
+            ) : null}
+            {manual && (session.deliveryStatus === "booked" || session.deliveryStatus === "out_for_delivery") ? (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await cateringDeliveryService.markDelivered(session.id);
+                    onChanged();
+                  })
+                }
+                className="px-2 py-1 rounded bg-green-600 text-white font-semibold disabled:opacity-50"
+              >
+                Mark delivered
+              </button>
+            ) : null}
             <button
               disabled={busy}
               onClick={() => {
-                if (!window.confirm(`Cancel this courier booking with ${providerLabel(activeBooking.provider)}?`)) return;
+                if (
+                  !window.confirm(
+                    manual
+                      ? "Remove this manual booking record? (Cancel it with the courier yourself — this only updates our system.)"
+                      : `Cancel this courier booking with ${providerLabel(activeBooking.provider)}?`
+                  )
+                )
+                  return;
                 run(async () => {
                   await cateringDeliveryService.cancelBooking(activeBooking.id);
                   onChanged();
@@ -189,7 +236,7 @@ const CourierBookingSection = ({
               }}
               className="px-2 py-1 rounded bg-red-600 text-white font-semibold disabled:opacity-50"
             >
-              Cancel courier
+              {manual ? "Remove booking" : "Cancel courier"}
             </button>
           </div>
           {/* Stored position is capability-keyed: any provider that pushes rider
@@ -247,6 +294,92 @@ const CourierBookingSection = ({
             courier company in "Who delivers" above. Boxes are pre-filled from the portions; adjust if needed.
           </p>
           {rulesLine ? <p className="text-xs text-gray-500">{rulesLine}</p> : null}
+
+          {/* Handled manually: booked on the courier's dashboard, outside the system */}
+          <div className="border border-amber-200 bg-amber-50/50 rounded px-3 py-2 text-xs space-y-2">
+            {!manualOpen ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-700">
+                  Already booked this on {providerLabel(provider)}'s own dashboard?
+                </span>
+                <button
+                  disabled={busy}
+                  onClick={() => setManualOpen(true)}
+                  className="px-3 py-1 rounded bg-white border border-amber-600 text-amber-800 font-semibold whitespace-nowrap disabled:opacity-50"
+                >
+                  Handled manually…
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-700">
+                  Record a booking you made on <span className="font-semibold">{providerLabel(provider)}</span>'s dashboard.
+                  Nothing is sent to the courier; the session just shows as booked, and you mark pickup and delivery
+                  here when they happen.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <label className="text-gray-700">
+                    Courier reference
+                    <input
+                      value={manualRef}
+                      onChange={(e) => setManualRef(e.target.value)}
+                      placeholder="e.g. PV-12345"
+                      className="mt-1 block w-40 border border-gray-300 rounded px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-gray-700">
+                    Price £
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={manualPrice}
+                      onChange={(e) => setManualPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="mt-1 block w-24 border border-gray-300 rounded px-2 py-1"
+                    />
+                  </label>
+                  <label className="text-gray-700 flex-1 min-w-[200px]">
+                    Notes
+                    <input
+                      value={manualNotes}
+                      onChange={(e) => setManualNotes(e.target.value)}
+                      placeholder="optional"
+                      className="mt-1 block w-full border border-gray-300 rounded px-2 py-1"
+                    />
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={busy}
+                    onClick={() => setManualOpen(false)}
+                    className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 font-semibold disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      run(async () => {
+                        await cateringDeliveryService.recordManualBooking(session.id, {
+                          provider,
+                          reference: manualRef.trim() || undefined,
+                          price: manualPrice ? Number(manualPrice) : undefined,
+                          notes: manualNotes.trim() || undefined,
+                        });
+                        setManualOpen(false);
+                        onChanged();
+                      })
+                    }
+                    className="ml-auto px-3 py-1.5 rounded bg-amber-600 text-white font-semibold disabled:opacity-50"
+                  >
+                    Record as booked with {providerLabel(provider)}
+                    {manualPrice ? ` for £${Number(manualPrice).toFixed(2)}` : ""}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           {!providerConfigured ? (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
               {providerLabel(provider)} is not set up yet (no API credentials on the server), so quotes and bookings with it will fail.

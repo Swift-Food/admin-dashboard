@@ -122,6 +122,30 @@ const markDelivered = async (mealSessionId: string): Promise<CateringMealSession
   return res.data;
 };
 
+/** Ops booked the courier on the courier's own dashboard: record it here. */
+const recordManualBooking = async (
+  mealSessionId: string,
+  body: { provider?: BookableProvider; reference?: string; price?: number; notes?: string }
+): Promise<CateringDeliveryBooking> => {
+  const res = await http.post<CateringDeliveryBooking>(
+    `catering-delivery/admin/sessions/${mealSessionId}/manual-booking`,
+    body
+  );
+  return res.data;
+};
+
+/** Manual bookings only: ops confirms the courier collected. */
+const markPickedUp = async (mealSessionId: string): Promise<CateringMealSession> => {
+  const res = await http.post<CateringMealSession>(
+    `catering-delivery/admin/sessions/${mealSessionId}/mark-picked-up`
+  );
+  return res.data;
+};
+
+/** A booking recorded by hand (no courier order id behind it). */
+export const isManualBooking = (booking: Pick<CateringDeliveryBooking, "externalOrderId"> | null | undefined) =>
+  !!booking && booking.externalOrderId.startsWith("manual:");
+
 export default {
   getSessions,
   getProviders,
@@ -132,4 +156,6 @@ export default {
   setRestaurantSelfDelivery,
   revertRestaurantToCourier,
   markDelivered,
+  recordManualBooking,
+  markPickedUp,
 };

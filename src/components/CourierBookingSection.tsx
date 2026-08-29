@@ -33,35 +33,41 @@ const boxSummary = (p: PackageCounts): string =>
     .map((size) => `${p[size]} ${size}`)
     .join(", ") || "no boxes";
 
-// Pedivan's published service rules (London zone): servicing 07:30–18:00,
-// same-day bookings cut off at 15:00, express = under 2h collection→delivery.
-const SERVICE_OPEN_MIN = 7 * 60 + 30;
-const SERVICE_CLOSE_MIN = 18 * 60;
-const SAME_DAY_CUTOFF_MIN = 15 * 60;
-
-const toMinutes = (hhmm?: string | null): number | null => {
-  if (!hhmm) return null;
-  const [h, m] = hhmm.split(":").map(Number);
-  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
+/** The courier's rules that a quote says this booking breaks (the backend holds the rules). */
+const ViolationList = ({
+  quote,
+  className = "",
+}: {
+  quote: DeliveryPricePreview | null;
+  className?: string;
+}) => {
+  const violations = quote?.constraints?.violations ?? [];
+  if (violations.length === 0) return null;
+  return (
+    <>
+      {violations.map((v) => (
+        <div
+          key={v.code + v.message}
+          className={`${className} text-xs rounded px-3 py-2 border ${
+            v.severity === "block"
+              ? "bg-red-50 border-red-200 text-red-800"
+              : "bg-amber-50 border-amber-200 text-amber-900"
+          }`}
+        >
+          {v.message}
+        </div>
+      ))}
+    </>
+  );
 };
 
-/** Things Pedivan's ops team would reject or cancel by hand — shown before booking. */
-const serviceWarnings = (session: AdminDeliverySession["session"]): string[] => {
-  const warnings: string[] = [];
-  const deliverAt = toMinutes(session.eventTime);
-  const collectAt = toMinutes(session.collectionTime);
-  const outside = (min: number | null) => min !== null && (min < SERVICE_OPEN_MIN || min > SERVICE_CLOSE_MIN);
-  if (outside(collectAt) || outside(deliverAt)) {
-    warnings.push(
-      `Collection ${session.collectionTime || "?"} → delivery ${session.eventTime || "?"} is outside the courier's servicing hours (07:30–18:00). Their ops team may cancel this booking by hand.`
-    );
-  }
-  const now = new Date();
-  const isToday = new Date(session.sessionDate).toDateString() === now.toDateString();
-  if (isToday && now.getHours() * 60 + now.getMinutes() >= SAME_DAY_CUTOFF_MIN) {
-    warnings.push("It is past the courier's 15:00 cut-off for same-day bookings.");
-  }
-  return warnings;
+/** One line of the courier's published rules, from the backend's rule set. */
+const rulesSummary = (rules: CourierProviderInfo["rules"]): string | null => {
+  if (!rules) return null;
+  const zone = rules.zones.find((z) => z.postcodeDistricts !== null) ?? rules.zones[0];
+  if (!zone) return null;
+  const expressH = rules.serviceLevels.expressMaxWindowMinutes / 60;
+  return `${zone.name}: ${zone.servicingOpen}–${zone.servicingClose}, book by ${zone.sameDayCutoff} on the day, express when collection→delivery is under ${expressH}h, ${rules.packaging.boxType} box per ${rules.packaging.portionsPerBox} portions.`;
 };
 
 /** Book / cancel / inspect the courier for one meal session. */
@@ -109,7 +115,7 @@ const CourierBookingSection = ({
   const providerLabel = (key: string) =>
     providers.find((p) => p.key === key)?.label ?? PROVIDER_LABEL[key] ?? key;
   const providerConfigured = providers.length === 0 || providers.some((p) => p.key === provider && p.configured);
-  const warnings = serviceWarnings(session);
+  const rulesLine = rulesSummary(providers.find((p) => p.key === provider)?.rules);
 
   const quoteCurrent = () =>
     cateringDeliveryService.getPricePreview(session.id, packages, undefined, provider);
@@ -238,8 +244,9 @@ const CourierBookingSection = ({
       {canBook ? <div className="space-y-2">
           <p className="text-xs text-gray-500">
             Booking with <span className="font-semibold text-gray-700">{providerLabel(provider)}</span> — change the
-            courier company in "Who delivers" above. Boxes: one medium box per 40 portions is pre-filled; adjust if needed.
+            courier company in "Who delivers" above. Boxes are pre-filled from the portions; adjust if needed.
           </p>
+          {rulesLine ? <p className="text-xs text-gray-500">{rulesLine}</p> : null}
           {!providerConfigured ? (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
               {providerLabel(provider)} is not set up yet (no API credentials on the server), so quotes and bookings with it will fail.
@@ -274,11 +281,7 @@ const CourierBookingSection = ({
             onChange={(e) => setDropNotes(e.target.value)}
             className="block w-full border border-gray-300 rounded px-2 py-1 text-xs"
           />
-          {warnings.map((w) => (
-            <div key={w} className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
-              {w}
-            </div>
-          ))}
+          <ViolationList quote={price} />
           <div className="flex items-center gap-2">
             <button
               disabled={busy}
@@ -438,11 +441,7 @@ const CourierBookingSection = ({
               </div>
             ) : null}
 
-            {warnings.map((w) => (
-              <div key={w} className="mb-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
-                {w}
-              </div>
-            ))}
+            <ViolationList quote={confirmQuote} className="mb-3" />
 
             {error ? (
               <div className="mb-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded px-3 py-2">{error}</div>
@@ -469,10 +468,14 @@ const CourierBookingSection = ({
                     onChanged();
                   })
                 }
-                disabled={busy}
+                disabled={busy || confirmQuote.constraints?.violations.some((v) => v.severity === "block")}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
               >
-                {busy ? "Booking..." : `Yes, book for ${confirmQuote.currency}${confirmQuote.price.toFixed(2)}`}
+                {busy
+                  ? "Booking..."
+                  : confirmQuote.constraints?.violations.some((v) => v.severity === "block")
+                    ? "Cannot book: fix the times first"
+                    : `Yes, book for ${confirmQuote.currency}${confirmQuote.price.toFixed(2)}`}
               </button>
             </div>
           </div>

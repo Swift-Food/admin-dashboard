@@ -162,6 +162,24 @@ export interface AdminDeliverySession {
   needsRebooking: boolean;
 }
 
+/** One of the courier's published rules that this booking breaks. */
+export interface CourierConstraintViolation {
+  code: string;
+  /** block = the courier will not take it; warn = their ops may cancel it by hand or charge more */
+  severity: "block" | "warn";
+  message: string;
+}
+
+export interface CourierConstraintResult {
+  provider: string;
+  serviceLevel: "express" | "same_day";
+  windowMinutes: number;
+  zone: string | null;
+  /** What the rate card says the fare would be, when known */
+  cardEstimate: number | null;
+  violations: CourierConstraintViolation[];
+}
+
 export interface DeliveryPricePreview {
   currency: string;
   price: number;
@@ -170,13 +188,36 @@ export interface DeliveryPricePreview {
   isExpress?: boolean;
   /** Minutes between collection and delivery on the session. */
   windowMinutes?: number;
+  /** The courier's published rules applied to this booking (null when we have none for it). */
+  constraints?: CourierConstraintResult | null;
 }
 
-/** A courier company the admin can book with, and whether its credentials are set up. */
+/** A courier company's published service rules, as held by the backend. */
+export interface CourierServiceRules {
+  serviceLevels: {
+    expressMaxWindowMinutes: number;
+    sameDayMaxWindowMinutes: number;
+    overnight: boolean;
+  };
+  zones: Array<{
+    name: string;
+    postcodeDistricts: string[] | null;
+    servicingOpen: string;
+    servicingClose: string;
+    sameDayCutoff: string;
+    expressCutoff: string;
+    vehicles: string;
+  }>;
+  packaging: { boxType: "small" | "medium" | "large"; portionsPerBox: number };
+  source: string;
+}
+
+/** A courier company the admin can book with, whether its credentials are set up, and its rules. */
 export interface CourierProviderInfo {
   key: BookableProvider;
   label: string;
   configured: boolean;
+  rules?: CourierServiceRules | null;
 }
 
 export interface GetAllSessionsParams {

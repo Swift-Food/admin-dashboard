@@ -1,11 +1,18 @@
 import { useState } from "react";
 import cateringDeliveryService from "../services/catering-delivery.service";
+import { Modal } from "./Modal";
 import type {
   AdminDeliverySession,
   BookableProvider,
   DeliveryPricePreview,
   PackageCounts,
 } from "../types/catering-session.types";
+
+const boxSummary = (p: PackageCounts): string =>
+  (["small", "medium", "large"] as const)
+    .filter((size) => p[size] > 0)
+    .map((size) => `${p[size]} ${size}`)
+    .join(", ") || "no boxes";
 
 const errText = (e: unknown): string =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -44,6 +51,9 @@ const CourierBookingSection = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [riderPos, setRiderPos] = useState<[number, number] | null>(null);
+  // A fresh quote fetched when "Book courier" is pressed; the booking only
+  // goes ahead once it has been confirmed against this price.
+  const [confirmQuote, setConfirmQuote] = useState<DeliveryPricePreview | null>(null);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -246,21 +256,117 @@ const CourierBookingSection = ({
               disabled={busy}
               onClick={() =>
                 run(async () => {
-                  await cateringDeliveryService.bookCourier(session.id, {
+                  // Always quote the boxes/provider as they are right now, then ask.
+                  const quote = await cateringDeliveryService.getPricePreview(
+                    session.id,
                     packages,
-                    pickupNotes: pickupNotes || undefined,
-                    dropNotes: dropNotes || undefined,
-                    provider,
-                  });
-                  onChanged();
+                    undefined,
+                    provider
+                  );
+                  setPrice(quote);
+                  setConfirmQuote(quote);
                 })
               }
               className="ml-auto px-3 py-1.5 rounded bg-indigo-600 text-white text-xs font-semibold disabled:opacity-50"
             >
-              Book courier
+              Book courier...
             </button>
           </div>
         </div> : null}
+
+      {/* Booking confirmation: nothing is sent to the courier until this is accepted */}
+      <Modal open={!!confirmQuote} onClose={() => { if (!busy) setConfirmQuote(null); }} overlayOpacity={60}>
+        {confirmQuote ? (
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
+            <h3 className="text-lg font-bold mb-1 text-gray-900">Book this courier?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              This creates a real booking with {PROVIDER_LABEL[provider] ?? provider}. Check the details first.
+            </p>
+
+            <dl className="text-sm text-gray-800 space-y-2 mb-5">
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Price</dt>
+                <dd className="font-bold text-gray-900 text-base">
+                  {confirmQuote.currency}
+                  {confirmQuote.price.toFixed(2)}
+                  {confirmQuote.miles != null ? (
+                    <span className="ml-1 text-xs font-normal text-gray-500">({confirmQuote.miles.toFixed(1)} mi)</span>
+                  ) : null}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Courier</dt>
+                <dd className="font-medium">{PROVIDER_LABEL[provider] ?? provider}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Boxes</dt>
+                <dd className="font-medium">{boxSummary(packages)}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Session</dt>
+                <dd className="font-medium text-right">
+                  {session.sessionName} · {new Date(session.sessionDate).toLocaleDateString("en-GB")}
+                  {session.collectionTime ? ` · collect ${session.collectionTime}` : ""}
+                  {session.eventTime ? ` · deliver ${session.eventTime}` : ""}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Pickup</dt>
+                <dd className="font-medium text-right">
+                  {Object.values(session.restaurantPickupAddresses ?? {})
+                    .map((a) => a.name)
+                    .join(", ") || "—"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-gray-500">Drop</dt>
+                <dd className="font-medium text-right">{session.cateringOrder?.deliveryAddress || "—"}</dd>
+              </div>
+              {pickupNotes || dropNotes ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-gray-500">Notes</dt>
+                  <dd className="text-right text-xs">
+                    {pickupNotes ? <div>Pickup: {pickupNotes}</div> : null}
+                    {dropNotes ? <div>Delivery: {dropNotes}</div> : null}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+
+            {error ? (
+              <div className="mb-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded px-3 py-2">{error}</div>
+            ) : null}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmQuote(null)}
+                disabled={busy}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  run(async () => {
+                    await cateringDeliveryService.bookCourier(session.id, {
+                      packages,
+                      pickupNotes: pickupNotes || undefined,
+                      dropNotes: dropNotes || undefined,
+                      provider,
+                    });
+                    setConfirmQuote(null);
+                    onChanged();
+                  })
+                }
+                disabled={busy}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {busy ? "Booking..." : `Yes, book for ${confirmQuote.currency}${confirmQuote.price.toFixed(2)}`}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       {bookings.length > (activeBooking ? 1 : 0) && (
         <details className="text-xs text-gray-600">

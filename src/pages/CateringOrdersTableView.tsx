@@ -4,6 +4,7 @@ import cateringService, { type SendPaymentLinkDto } from "../services/catering.s
 import { Modal } from "../components/Modal";
 import { RefundModal } from "../components/refund/RefundModal";
 import { RefundHistoryList } from "../components/refund/RefundHistoryList";
+import OrderStatusTimeline from "../components/OrderStatusTimeline";
 
 const CANCELLATION_TRIGGER_LABELS: Record<string, string> = {
   RESTAURANT_NO_RESPONSE: "Automatically cancelled - no restaurant response",
@@ -370,6 +371,9 @@ const CateringOrderDetailsModal = ({ order, isOpen, onClose, onOrderUpdated }: {
         </div>
 
         <div className="p-5">
+          {/* Order progress: placed → reviewed → restaurants confirmed → paid → delivery → completed */}
+          <OrderStatusTimeline orderId={order.id} refreshKey={`${order.status}:${order.updatedAt ?? ""}:${refundHistoryToken}`} />
+
           {/* Customer & Event Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div className="bg-gray-50/70 p-4 rounded-xl border border-gray-200/80">

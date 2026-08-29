@@ -56,6 +56,43 @@ const completeOrder = async (orderId: string): Promise<CateringOrder> => {
   return res.data;
 };
 
+export interface TimelineStep {
+  key: string;
+  label: string;
+  state: "done" | "current" | "pending" | "skipped" | "failed";
+  at: string | null;
+  detail: string | null;
+}
+
+export interface TimelineSessionRow {
+  sessionId: string;
+  name: string;
+  date: string;
+  collectionTime: string | null;
+  eventTime: string | null;
+  restaurants: string[];
+  deliveryStatus: string;
+  selfDelivery: boolean;
+  provider: string | null;
+  bookedAt: string | null;
+  outForDeliveryAt: string | null;
+  deliveredAt: string | null;
+}
+
+export interface OrderTimeline {
+  orderId: string;
+  reference: string;
+  status: string;
+  steps: TimelineStep[];
+  sessions: TimelineSessionRow[];
+}
+
+/** Placed → reviewed → restaurants confirmed → paid → delivery arranged → picked up → delivered → completed. */
+const getOrderTimeline = async (orderId: string): Promise<OrderTimeline> => {
+  const res = await http.get<OrderTimeline>(`catering-orders/${orderId}/timeline`);
+  return res.data;
+};
+
 const bulkUpdateAdminNotes = async (orders: Array<{ orderId: string; adminNotes?: string }>): Promise<void> => {
   await http.patch("catering-orders/notes", { orders });
 };
@@ -121,6 +158,7 @@ const downloadChecklistsZip = async (from: string, to: string): Promise<Blob> =>
 
 export default {
   getOrders,
+  getOrderTimeline,
   reviewOrder,
   sendPaymentLink,
   cancelOrder,

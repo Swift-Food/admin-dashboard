@@ -1,24 +1,40 @@
 import { useState } from "react";
 import cateringDeliveryService from "../services/catering-delivery.service";
-import type { AdminDeliverySession } from "../types/catering-session.types";
+import type {
+  AdminDeliverySession,
+  BookableProvider,
+  CourierProviderInfo,
+} from "../types/catering-session.types";
 
 const errText = (e: unknown): string =>
   (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message?.toString() ??
   (e as Error).message ??
   "Request failed";
 
+const FALLBACK_PROVIDERS: CourierProviderInfo[] = [
+  { key: "pedivan", label: "Pedivan", configured: true },
+  { key: "pedalme", label: "Pedal Me", configured: true },
+];
+
 /**
- * Per-restaurant delivery method for one session. A restaurant marked
- * "delivers itself" is left out of the courier booking (its pickup and its
- * portions); when every restaurant delivers itself the session has no
- * courier at all and an admin marks it delivered here.
+ * Who delivers each restaurant's part of one session, plus which courier
+ * company will be booked for the parts that need a courier. A restaurant
+ * marked "delivers itself" is left out of the courier booking (its pickup
+ * and its portions); when every restaurant delivers itself the session has
+ * no courier at all and an admin marks it delivered here.
  */
 const SelfDeliverySection = ({
   entry,
   onChanged,
+  provider,
+  providers,
+  onProviderChange,
 }: {
   entry: AdminDeliverySession;
   onChanged: () => void;
+  provider: BookableProvider;
+  providers: CourierProviderInfo[];
+  onProviderChange: (provider: BookableProvider) => void;
 }) => {
   const { session, activeBooking } = entry;
   const [busy, setBusy] = useState(false);
@@ -43,6 +59,7 @@ const SelfDeliverySection = ({
   const canChange =
     (status === "awaiting_booking" || status === "failed" || status === "self_delivery") && !activeBooking;
   const allSelf = status === "self_delivery";
+  const providerOptions = providers.length ? providers : FALLBACK_PROVIDERS;
 
   // One row per restaurant on the session, with its current method
   const restaurants = Array.from(
@@ -64,12 +81,28 @@ const SelfDeliverySection = ({
 
   return (
     <div className="border border-teal-200 bg-teal-50/40 rounded-lg p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h3 className="text-sm font-bold text-gray-800">Who delivers</h3>
         {allSelf ? (
           <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800">
             No courier: restaurant delivers
           </span>
+        ) : canChange ? (
+          <label className="text-xs text-gray-700 flex items-center gap-2">
+            Courier company
+            <select
+              value={provider}
+              onChange={(e) => onProviderChange(e.target.value as BookableProvider)}
+              className="border border-gray-300 rounded px-2 py-1 bg-white"
+            >
+              {providerOptions.map((p) => (
+                <option key={p.key} value={p.key} disabled={!p.configured}>
+                  {p.label}
+                  {p.configured ? "" : " (not set up yet)"}
+                </option>
+              ))}
+            </select>
+          </label>
         ) : null}
       </div>
 
@@ -87,7 +120,9 @@ const SelfDeliverySection = ({
                   r.self ? "bg-teal-100 text-teal-800" : "bg-gray-100 text-gray-700"
                 }`}
               >
-                {r.self ? "Delivers itself" : "Courier"}
+                {r.self
+                  ? "Delivers itself"
+                  : `Courier (${providerOptions.find((p) => p.key === provider)?.label ?? provider})`}
               </span>
               {canChange && !r.self && editing !== r.restaurantId ? (
                 <button

@@ -4,15 +4,10 @@ import { Modal } from "./Modal";
 import type {
   AdminDeliverySession,
   BookableProvider,
+  CourierProviderInfo,
   DeliveryPricePreview,
   PackageCounts,
 } from "../types/catering-session.types";
-
-const boxSummary = (p: PackageCounts): string =>
-  (["small", "medium", "large"] as const)
-    .filter((size) => p[size] > 0)
-    .map((size) => `${p[size]} ${size}`)
-    .join(", ") || "no boxes";
 
 const errText = (e: unknown): string =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -32,13 +27,54 @@ const BOOKING_STATE_BADGE: Record<string, string> = {
   failed: "bg-red-100 text-red-800",
 };
 
-/** Book / cancel / inspect the Pedivan courier for one meal session. */
+const boxSummary = (p: PackageCounts): string =>
+  (["small", "medium", "large"] as const)
+    .filter((size) => p[size] > 0)
+    .map((size) => `${p[size]} ${size}`)
+    .join(", ") || "no boxes";
+
+// Pedivan's published service rules (London zone): servicing 07:30–18:00,
+// same-day bookings cut off at 15:00, express = under 2h collection→delivery.
+const SERVICE_OPEN_MIN = 7 * 60 + 30;
+const SERVICE_CLOSE_MIN = 18 * 60;
+const SAME_DAY_CUTOFF_MIN = 15 * 60;
+
+const toMinutes = (hhmm?: string | null): number | null => {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(":").map(Number);
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
+};
+
+/** Things Pedivan's ops team would reject or cancel by hand — shown before booking. */
+const serviceWarnings = (session: AdminDeliverySession["session"]): string[] => {
+  const warnings: string[] = [];
+  const deliverAt = toMinutes(session.eventTime);
+  const collectAt = toMinutes(session.collectionTime);
+  const outside = (min: number | null) => min !== null && (min < SERVICE_OPEN_MIN || min > SERVICE_CLOSE_MIN);
+  if (outside(collectAt) || outside(deliverAt)) {
+    warnings.push(
+      `Collection ${session.collectionTime || "?"} → delivery ${session.eventTime || "?"} is outside the courier's servicing hours (07:30–18:00). Their ops team may cancel this booking by hand.`
+    );
+  }
+  const now = new Date();
+  const isToday = new Date(session.sessionDate).toDateString() === now.toDateString();
+  if (isToday && now.getHours() * 60 + now.getMinutes() >= SAME_DAY_CUTOFF_MIN) {
+    warnings.push("It is past the courier's 15:00 cut-off for same-day bookings.");
+  }
+  return warnings;
+};
+
+/** Book / cancel / inspect the courier for one meal session. */
 const CourierBookingSection = ({
   entry,
   onChanged,
+  provider,
+  providers,
 }: {
   entry: AdminDeliverySession;
   onChanged: () => void;
+  provider: BookableProvider;
+  providers: CourierProviderInfo[];
 }) => {
   const { session, activeBooking, bookings, suggestedPackages, needsRebooking } = entry;
   const [packages, setPackages] = useState<PackageCounts>(
@@ -47,13 +83,14 @@ const CourierBookingSection = ({
   const [pickupNotes, setPickupNotes] = useState("");
   const [dropNotes, setDropNotes] = useState("");
   const [price, setPrice] = useState<DeliveryPricePreview | null>(null);
-  const [provider, setProvider] = useState<BookableProvider>("pedivan");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [riderPos, setRiderPos] = useState<[number, number] | null>(null);
   // A fresh quote fetched when "Book courier" is pressed; the booking only
   // goes ahead once it has been confirmed against this price.
   const [confirmQuote, setConfirmQuote] = useState<DeliveryPricePreview | null>(null);
+  // What the same route would cost as same-day, when the quote is express.
+  const [sameDayQuote, setSameDayQuote] = useState<DeliveryPricePreview | null>(null);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -69,11 +106,18 @@ const CourierBookingSection = ({
 
   const canBook = session.deliveryStatus === "awaiting_booking" && !activeBooking;
   const providerKey = activeBooking?.provider ?? provider;
+  const providerLabel = (key: string) =>
+    providers.find((p) => p.key === key)?.label ?? PROVIDER_LABEL[key] ?? key;
+  const providerConfigured = providers.length === 0 || providers.some((p) => p.key === provider && p.configured);
+  const warnings = serviceWarnings(session);
+
+  const quoteCurrent = () =>
+    cateringDeliveryService.getPricePreview(session.id, packages, undefined, provider);
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-800">Courier ({PROVIDER_LABEL[providerKey] ?? providerKey})</h3>
+        <h3 className="text-sm font-bold text-gray-800">Courier ({providerLabel(providerKey)})</h3>
         {needsRebooking ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
             Details changed — rebook needed
           </span> : null}
@@ -102,7 +146,7 @@ const CourierBookingSection = ({
             Last webhook:{" "}
             {activeBooking.lastWebhookAt
               ? new Date(activeBooking.lastWebhookAt).toLocaleString()
-              : `never (no updates from ${PROVIDER_LABEL[activeBooking.provider] ?? activeBooking.provider} yet)`}
+              : `never (no updates from ${providerLabel(activeBooking.provider)} yet)`}
           </p>
           <div className="flex gap-2 pt-1">
             {activeBooking.trackingUrl ? <a
@@ -131,7 +175,7 @@ const CourierBookingSection = ({
             <button
               disabled={busy}
               onClick={() => {
-                if (!window.confirm(`Cancel this courier booking with ${PROVIDER_LABEL[activeBooking.provider] ?? activeBooking.provider}?`)) return;
+                if (!window.confirm(`Cancel this courier booking with ${providerLabel(activeBooking.provider)}?`)) return;
                 run(async () => {
                   await cateringDeliveryService.cancelBooking(activeBooking.id);
                   onChanged();
@@ -192,20 +236,15 @@ const CourierBookingSection = ({
         </div> : null}
 
       {canBook ? <div className="space-y-2">
-          <label className="text-xs text-gray-700 block">
-            Courier
-            <select
-              value={provider}
-              onChange={(e) => {
-                setProvider(e.target.value as BookableProvider);
-                setPrice(null);
-              }}
-              className="mt-1 block w-40 border border-gray-300 rounded px-2 py-1"
-            >
-              <option value="pedivan">Pedivan</option>
-              <option value="pedalme">Pedal Me</option>
-            </select>
-          </label>
+          <p className="text-xs text-gray-500">
+            Booking with <span className="font-semibold text-gray-700">{providerLabel(provider)}</span> — change the
+            courier company in "Who delivers" above. Boxes: one medium box per 40 portions is pre-filled; adjust if needed.
+          </p>
+          {!providerConfigured ? (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
+              {providerLabel(provider)} is not set up yet (no API credentials on the server), so quotes and bookings with it will fail.
+            </div>
+          ) : null}
           <div className="flex gap-3">
             {(["small", "medium", "large"] as const).map((size) => (
               <label key={size} className="text-xs text-gray-700">
@@ -235,14 +274,17 @@ const CourierBookingSection = ({
             onChange={(e) => setDropNotes(e.target.value)}
             className="block w-full border border-gray-300 rounded px-2 py-1 text-xs"
           />
+          {warnings.map((w) => (
+            <div key={w} className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
+              {w}
+            </div>
+          ))}
           <div className="flex items-center gap-2">
             <button
               disabled={busy}
               onClick={() =>
                 run(async () => {
-                  setPrice(
-                    await cateringDeliveryService.getPricePreview(session.id, packages, undefined, provider)
-                  );
+                  setPrice(await quoteCurrent());
                 })
               }
               className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-xs font-semibold disabled:opacity-50"
@@ -251,19 +293,34 @@ const CourierBookingSection = ({
             </button>
             {price ? <span className="text-xs font-semibold text-gray-700">
                 {price.currency}{price.price.toFixed(2)}{price.miles != null ? ` (${price.miles.toFixed(1)} mi)` : ""}
+                {price.isExpress != null ? (
+                  <span className={`ml-2 px-1.5 py-0.5 rounded ${price.isExpress ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800"}`}>
+                    {price.isExpress ? "express" : "same-day"}
+                  </span>
+                ) : null}
               </span> : null}
             <button
               disabled={busy}
               onClick={() =>
                 run(async () => {
                   // Always quote the boxes/provider as they are right now, then ask.
-                  const quote = await cateringDeliveryService.getPricePreview(
-                    session.id,
-                    packages,
-                    undefined,
-                    provider
-                  );
+                  const quote = await quoteCurrent();
+                  let sameDay: DeliveryPricePreview | null = null;
+                  if (quote.isExpress) {
+                    try {
+                      sameDay = await cateringDeliveryService.getPricePreview(
+                        session.id,
+                        packages,
+                        undefined,
+                        provider,
+                        false
+                      );
+                    } catch {
+                      sameDay = null;
+                    }
+                  }
                   setPrice(quote);
+                  setSameDayQuote(sameDay);
                   setConfirmQuote(quote);
                 })
               }
@@ -274,16 +331,39 @@ const CourierBookingSection = ({
           </div>
         </div> : null}
 
+      {bookings.length > (activeBooking ? 1 : 0) && (
+        <details className="text-xs text-gray-600">
+          <summary className="cursor-pointer font-semibold">
+            Booking history ({bookings.length})
+          </summary>
+          <ul className="mt-1 space-y-1">
+            {bookings.map((b) => (
+              <li key={b.id} className="flex items-center gap-2">
+                <span className="font-semibold">{providerLabel(b.provider)}</span>
+                <span className={`px-1.5 py-0.5 rounded ${BOOKING_STATE_BADGE[b.state] ?? ""}`}>
+                  {b.state}
+                </span>
+                <span>{b.externalReference ?? b.externalOrderId}</span>
+                <span className="text-gray-400">
+                  {new Date(b.createdAt).toLocaleString()}
+                  {b.cancelReason ? ` — ${b.cancelReason}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       {/* Booking confirmation: nothing is sent to the courier until this is accepted */}
       <Modal open={!!confirmQuote} onClose={() => { if (!busy) setConfirmQuote(null); }} overlayOpacity={60}>
         {confirmQuote ? (
           <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
             <h3 className="text-lg font-bold mb-1 text-gray-900">Book this courier?</h3>
             <p className="text-xs text-gray-500 mb-4">
-              This creates a real booking with {PROVIDER_LABEL[provider] ?? provider}. Check the details first.
+              This creates a real booking with {providerLabel(provider)}. Check the details first.
             </p>
 
-            <dl className="text-sm text-gray-800 space-y-2 mb-5">
+            <dl className="text-sm text-gray-800 space-y-2 mb-4">
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Price</dt>
                 <dd className="font-bold text-gray-900 text-base">
@@ -294,9 +374,23 @@ const CourierBookingSection = ({
                   ) : null}
                 </dd>
               </div>
+              {confirmQuote.isExpress != null ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-gray-500">Service</dt>
+                  <dd className="font-medium text-right">
+                    {confirmQuote.isExpress ? "Express" : "Same-day"}
+                    {confirmQuote.windowMinutes != null ? (
+                      <span className="block text-xs font-normal text-gray-500">
+                        {confirmQuote.windowMinutes} min between collection and delivery
+                        {confirmQuote.isExpress ? " (under 2h)" : ""}
+                      </span>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Courier</dt>
-                <dd className="font-medium">{PROVIDER_LABEL[provider] ?? provider}</dd>
+                <dd className="font-medium">{providerLabel(provider)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Boxes</dt>
@@ -333,6 +427,23 @@ const CourierBookingSection = ({
               ) : null}
             </dl>
 
+            {confirmQuote.isExpress && sameDayQuote ? (
+              <div className="mb-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
+                Express because collection is under 2 hours before delivery. The same route as same-day would be{" "}
+                <span className="font-semibold">
+                  {sameDayQuote.currency}
+                  {sameDayQuote.price.toFixed(2)}
+                </span>{" "}
+                — move the collection time to 2+ hours before delivery if that works for the food.
+              </div>
+            ) : null}
+
+            {warnings.map((w) => (
+              <div key={w} className="mb-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded px-3 py-2">
+                {w}
+              </div>
+            ))}
+
             {error ? (
               <div className="mb-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded px-3 py-2">{error}</div>
             ) : null}
@@ -367,29 +478,6 @@ const CourierBookingSection = ({
           </div>
         ) : null}
       </Modal>
-
-      {bookings.length > (activeBooking ? 1 : 0) && (
-        <details className="text-xs text-gray-600">
-          <summary className="cursor-pointer font-semibold">
-            Booking history ({bookings.length})
-          </summary>
-          <ul className="mt-1 space-y-1">
-            {bookings.map((b) => (
-              <li key={b.id} className="flex items-center gap-2">
-                <span className="font-semibold">{PROVIDER_LABEL[b.provider] ?? b.provider}</span>
-                <span className={`px-1.5 py-0.5 rounded ${BOOKING_STATE_BADGE[b.state] ?? ""}`}>
-                  {b.state}
-                </span>
-                <span>{b.externalReference ?? b.externalOrderId}</span>
-                <span className="text-gray-400">
-                  {new Date(b.createdAt).toLocaleString()}
-                  {b.cancelReason ? ` — ${b.cancelReason}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import type {
   AdminDeliverySession,
+  BookableProvider,
+  CourierProviderInfo,
   MealSessionDeliveryStatus,
 } from "../types/catering-session.types";
 import cateringDeliveryService from "../services/catering-delivery.service";
@@ -93,6 +95,18 @@ const SessionDetailModal = ({
   onClose: () => void;
   onChanged: () => void;
 }) => {
+  // Courier company for this session's booking — chosen in "Who delivers",
+  // used by the booking panel. Lives here so it survives the 30s refresh.
+  const [provider, setProvider] = useState<BookableProvider>("pedivan");
+  const [providers, setProviders] = useState<CourierProviderInfo[]>([]);
+  useEffect(() => {
+    if (!isOpen) return;
+    cateringDeliveryService
+      .getProviders()
+      .then(setProviders)
+      .catch(() => setProviders([]));
+  }, [isOpen]);
+
   if (!isOpen || !entry) return null;
 
   const { session } = entry;
@@ -161,6 +175,9 @@ const SessionDetailModal = ({
                 key={`self-${session.deliveryStatus}`}
                 entry={entry}
                 onChanged={onChanged}
+                provider={provider}
+                providers={providers}
+                onProviderChange={setProvider}
               />
 
               {/* Courier Booking (a self-delivery session only shows it for its booking history) */}
@@ -169,6 +186,8 @@ const SessionDetailModal = ({
                   key={entry.activeBooking?.id ?? "no-booking"}
                   entry={entry}
                   onChanged={onChanged}
+                  provider={provider}
+                  providers={providers}
                 />
               ) : null}
 

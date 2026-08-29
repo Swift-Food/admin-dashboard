@@ -166,6 +166,17 @@ export interface DeliveryPricePreview {
   currency: string;
   price: number;
   miles?: number;
+  /** Service level the quote was made at (express = under 2h collection→delivery). */
+  isExpress?: boolean;
+  /** Minutes between collection and delivery on the session. */
+  windowMinutes?: number;
+}
+
+/** A courier company the admin can book with, and whether its credentials are set up. */
+export interface CourierProviderInfo {
+  key: BookableProvider;
+  label: string;
+  configured: boolean;
 }
 
 export interface GetAllSessionsParams {

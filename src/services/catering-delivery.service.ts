@@ -4,13 +4,14 @@ import type {
   BookableProvider,
   CateringDeliveryBooking,
   CateringMealSession,
+  CourierProviderInfo,
   DeliveryPricePreview,
   GetAllSessionsParams,
   PackageCounts,
 } from "../types/catering-session.types";
 
 /**
- * Pedivan courier bookings for catering meal sessions.
+ * Courier bookings for catering meal sessions.
  * Base path: /catering-delivery/admin
  */
 
@@ -25,6 +26,12 @@ const getSessions = async (
   const res = await http.get<AdminDeliverySession[]>(
     qs ? `catering-delivery/admin/sessions?${qs}` : "catering-delivery/admin/sessions"
   );
+  return res.data;
+};
+
+/** Courier companies we can book with, and whether their credentials are set up. */
+const getProviders = async (): Promise<CourierProviderInfo[]> => {
+  const res = await http.get<CourierProviderInfo[]>("catering-delivery/admin/providers");
   return res.data;
 };
 
@@ -45,15 +52,21 @@ const bookCourier = async (
   return res.data;
 };
 
+/**
+ * Live quote. `isExpress` overrides the service level derived from the
+ * session's collection→delivery window (used to show the same-day price for
+ * an express session); the booking itself always uses the real window.
+ */
 const getPricePreview = async (
   mealSessionId: string,
   packages: PackageCounts,
   pickupRestaurantId?: string,
-  provider?: BookableProvider
+  provider?: BookableProvider,
+  isExpress?: boolean
 ): Promise<DeliveryPricePreview> => {
   const res = await http.post<DeliveryPricePreview>(
     `catering-delivery/admin/sessions/${mealSessionId}/price`,
-    { packages, pickupRestaurantId, provider }
+    { packages, pickupRestaurantId, provider, ...(isExpress === undefined ? {} : { isExpress }) }
   );
   return res.data;
 };
@@ -111,6 +124,7 @@ const markDelivered = async (mealSessionId: string): Promise<CateringMealSession
 
 export default {
   getSessions,
+  getProviders,
   bookCourier,
   getPricePreview,
   cancelBooking,

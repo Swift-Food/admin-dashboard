@@ -27,6 +27,8 @@ const LINE: Record<TimelineStep["state"], string> = {
   failed: "bg-red-300",
 };
 
+const PROVIDER_LABEL: Record<string, string> = { pedivan: "Pedivan", pedalme: "Pedal Me", swift: "Swift" };
+
 const glyph = (state: TimelineStep["state"]) =>
   state === "done" ? "✓" : state === "failed" ? "✕" : state === "skipped" ? "–" : "";
 
@@ -108,32 +110,57 @@ const OrderStatusTimeline = ({ orderId, refreshKey }: { orderId: string; refresh
         </dl>
       ) : null}
 
-      {/* Per-session delivery */}
-      {sessions.length > 1 ? (
+      {/* Per-session, per-restaurant delivery */}
+      {sessions.length ? (
         <table className="mt-3 w-full text-xs">
           <thead>
             <tr className="text-left text-gray-500">
               <th className="py-1 pr-2 font-medium">Session</th>
-              <th className="py-1 pr-2 font-medium">Restaurants</th>
-              <th className="py-1 pr-2 font-medium">Delivery</th>
+              <th className="py-1 pr-2 font-medium">Restaurant</th>
+              <th className="py-1 pr-2 font-medium">Collect</th>
+              <th className="py-1 pr-2 font-medium">How it gets there</th>
               <th className="py-1 pr-2 font-medium">Booked</th>
               <th className="py-1 pr-2 font-medium">Picked up</th>
               <th className="py-1 font-medium">Delivered</th>
             </tr>
           </thead>
           <tbody className="text-gray-800">
-            {sessions.map((s) => (
-              <tr key={s.sessionId} className="border-t border-gray-200/80">
-                <td className="py-1 pr-2 font-medium">
-                  {s.name} · {new Date(s.date).toLocaleDateString("en-GB")} {s.eventTime ?? ""}
-                </td>
-                <td className="py-1 pr-2">{s.restaurants.join(", ")}</td>
-                <td className="py-1 pr-2">{s.selfDelivery ? "Restaurant delivers" : `${s.provider ?? "Courier"} · ${s.deliveryStatus.replace(/_/g, " ")}`}</td>
-                <td className="py-1 pr-2">{s.selfDelivery ? "—" : (fmt(s.bookedAt) ?? "not yet")}</td>
-                <td className="py-1 pr-2">{s.selfDelivery ? "—" : (fmt(s.outForDeliveryAt) ?? "not yet")}</td>
-                <td className="py-1">{fmt(s.deliveredAt) ?? "not yet"}</td>
-              </tr>
-            ))}
+            {sessions.flatMap((s) => {
+              const rows = s.restaurantDetails.length
+                ? s.restaurantDetails
+                : [{ restaurantId: "-", name: "No restaurants", method: "courier" as const, collectionTime: null }];
+              const booked = ["booked", "out_for_delivery", "delivered"].includes(s.deliveryStatus);
+              return rows.map((r, i) => (
+                <tr key={`${s.sessionId}-${r.restaurantId}`} className="border-t border-gray-200/80 align-top">
+                  {i === 0 ? (
+                    <td className="py-1 pr-2 font-medium" rowSpan={rows.length}>
+                      {s.name}
+                      <span className="block text-gray-500 font-normal">
+                        {new Date(s.date).toLocaleDateString("en-GB")} {s.eventTime ?? ""}
+                      </span>
+                    </td>
+                  ) : null}
+                  <td className="py-1 pr-2 font-medium">{r.name}</td>
+                  <td className="py-1 pr-2">{r.collectionTime ?? s.collectionTime ?? "—"}</td>
+                  <td className="py-1 pr-2">
+                    {r.method === "self" ? (
+                      <span className="px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 font-semibold">Delivers itself</span>
+                    ) : booked ? (
+                      <span>
+                        <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">{PROVIDER_LABEL[s.provider ?? ""] ?? s.provider ?? "Courier"}</span>
+                        {s.bookingReference ? <span className="ml-1 text-gray-500">ref {s.bookingReference}</span> : null}
+                        <span className="ml-1 text-gray-500">{s.deliveryStatus.replace(/_/g, " ")}</span>
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">Courier not booked yet</span>
+                    )}
+                  </td>
+                  <td className="py-1 pr-2">{r.method === "self" ? "—" : (fmt(s.bookedAt) ?? "not yet")}</td>
+                  <td className="py-1 pr-2">{r.method === "self" ? "—" : (fmt(s.outForDeliveryAt) ?? "not yet")}</td>
+                  <td className="py-1">{fmt(s.deliveredAt) ?? "not yet"}</td>
+                </tr>
+              ));
+            })}
           </tbody>
         </table>
       ) : null}

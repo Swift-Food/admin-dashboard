@@ -64,6 +64,13 @@ export interface TimelineStep {
   detail: string | null;
 }
 
+export interface TimelineSessionRestaurant {
+  restaurantId: string;
+  name: string;
+  method: "courier" | "self";
+  collectionTime: string | null;
+}
+
 export interface TimelineSessionRow {
   sessionId: string;
   name: string;
@@ -71,9 +78,11 @@ export interface TimelineSessionRow {
   collectionTime: string | null;
   eventTime: string | null;
   restaurants: string[];
+  restaurantDetails: TimelineSessionRestaurant[];
   deliveryStatus: string;
   selfDelivery: boolean;
   provider: string | null;
+  bookingReference: string | null;
   bookedAt: string | null;
   outForDeliveryAt: string | null;
   deliveredAt: string | null;

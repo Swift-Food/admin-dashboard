@@ -20,6 +20,15 @@ const PROVIDER_LABEL: Record<string, string> = {
   swift: "Swift",
 };
 
+/** Pedal Me's official vehicle names for the wire values we send. */
+const SERVICE_TIER_LABEL: Record<string, string> = {
+  cargo: "Large Cargo",
+  cargoSmall: "Small Cargo",
+  cargoTiny: "Tiny Cargo",
+  cargoMicro: "Micro Cargo",
+  trailer: "Trailer",
+};
+
 const BOOKING_STATE_BADGE: Record<string, string> = {
   active: "bg-blue-100 text-blue-800",
   completed: "bg-green-100 text-green-800",
@@ -153,7 +162,7 @@ const CourierBookingSection = ({
                 {activeBooking.currency ?? "£"}
                 {activeBooking.quotedPrice}
               </span> : null}
-            {activeBooking.serviceTier && <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-xs">{activeBooking.serviceTier}</span>}
+            {activeBooking.serviceTier && <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-xs">{SERVICE_TIER_LABEL[activeBooking.serviceTier] ?? activeBooking.serviceTier}</span>}
           </p>
           <p>
             <span className="font-semibold">Provider status:</span>{" "}

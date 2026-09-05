@@ -1,4 +1,4 @@
-import { Clock, X, User, CreditCard, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { Clock, X, User, CreditCard, AlertCircle, CheckCircle, XCircle, FileText } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { withdrawalService } from "../services/withdrawal.service";
 import { Modal } from "../components/Modal";
@@ -110,6 +110,7 @@ const WithdrawalDetailsModal = ({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [payoutInfo, setPayoutInfo] = useState<any>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     if (withdrawal?.stripePayoutId) {
@@ -161,6 +162,22 @@ const WithdrawalDetailsModal = ({
       alert("Failed to reject withdrawal. Please try again.");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleOpenRemittance = async () => {
+    setDownloadingPdf(true);
+    try {
+      const blob = await withdrawalService.downloadRemittance(withdrawal.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      // Give the new tab time to load the blob before releasing it.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      console.error("Error opening remittance advice:", error);
+      alert("Failed to load the remittance PDF. Please try again.");
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -309,6 +326,15 @@ const WithdrawalDetailsModal = ({
             >
               Close
             </button>
+
+            {withdrawal.stripePayoutId ? <button
+                onClick={handleOpenRemittance}
+                disabled={downloadingPdf}
+                className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                <FileText size={18} className="mr-2" />
+                {downloadingPdf ? "Loading..." : "Remittance PDF"}
+              </button> : null}
 
             {canApprove ? <button
                 onClick={() => setShowApproveConfirm(true)}

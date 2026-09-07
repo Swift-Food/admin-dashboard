@@ -385,19 +385,23 @@ const CourierBookingSection = ({
                   onClick={() => setManualOpen(true)}
                   className="px-3 py-1 rounded bg-white border border-amber-600 text-amber-800 font-semibold whitespace-nowrap disabled:opacity-50"
                 >
-                  Already booked there…
+                  {canLookUp ? "Link it by booking ID…" : "Record it by hand…"}
                 </button>
               </div>
             ) : canLookUp ? (
               <>
                 <p className="text-gray-700">
-                  Paste the booking ID from <span className="font-semibold">{providerLabel(provider)}</span> and we
-                  fetch the rest — price, vehicle, times and tracking. Their updates then come through automatically,
+                  Paste the <span className="font-semibold">booking ID</span> from{" "}
+                  <span className="font-semibold">{providerLabel(provider)}</span> — not the order number — and we
+                  fetch the rest: price, vehicle, times and tracking. Their updates then come through automatically,
                   so you never have to mark pickup or delivery by hand.
                 </p>
                 <div className="flex flex-wrap items-end gap-2">
                   <label className="text-gray-700 flex-1 min-w-[220px]">
                     {providerLabel(provider)} booking ID
+                    <span className="ml-1 font-normal text-gray-500">
+                      — e.g. uixfp2p3J5eQ23Kr4
+                    </span>
                     <input
                       value={lookupId}
                       onChange={(e) => {
@@ -407,6 +411,9 @@ const CourierBookingSection = ({
                       placeholder="e.g. uixfp2p3J5eQ23Kr4"
                       className="mt-1 block w-full border border-gray-300 rounded px-2 py-1 font-mono"
                     />
+                    <span className="mt-1 block text-gray-500">
+                      Open the booking on {providerLabel(provider)} — the ID is the code at the end of its web address.
+                    </span>
                   </label>
                   <button
                     disabled={busy || !lookupId.trim()}

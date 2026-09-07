@@ -160,6 +160,11 @@ export interface AdminDeliverySession {
   activeBooking: CateringDeliveryBooking | null;
   suggestedPackages: PackageCounts;
   needsRebooking: boolean;
+  /**
+   * The number the backend would give the courier for this pickup, so the
+   * booking form can offer it. Null when the restaurant holds nothing usable.
+   */
+  suggestedPickupPhone: string | null;
 }
 
 /** One of the courier's published rules that this booking breaks. */

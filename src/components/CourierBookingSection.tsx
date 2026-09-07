@@ -119,7 +119,7 @@ const CourierBookingSection = ({
   provider: BookableProvider;
   providers: CourierProviderInfo[];
 }) => {
-  const { session, activeBooking, bookings, suggestedPackages, needsRebooking } = entry;
+  const { session, activeBooking, bookings, suggestedPackages, needsRebooking, suggestedPickupPhone } = entry;
   const [packages, setPackages] = useState<PackageCounts>(
     activeBooking?.packages ?? suggestedPackages
   );
@@ -128,7 +128,9 @@ const CourierBookingSection = ({
   // Courier-only, never stored: the person the rider asks for, and a
   // number to reach them on when the restaurant record has none.
   const [pickupContactName, setPickupContactName] = useState("");
-  const [pickupContactPhone, setPickupContactPhone] = useState("");
+  // Prefilled with the restaurant's own number when we hold a usable one,
+  // so there is only something to type when there genuinely isn't.
+  const [pickupContactPhone, setPickupContactPhone] = useState(suggestedPickupPhone ?? "");
   // "" = let the courier's portion table pick the vehicle.
   const [serviceTier, setServiceTier] = useState("");
   const [price, setPrice] = useState<DeliveryPricePreview | null>(null);
@@ -628,7 +630,11 @@ const CourierBookingSection = ({
               className="flex-1 min-w-[160px] block border border-gray-300 rounded px-2 py-1 text-xs"
             />
             <input
-              placeholder="Pickup contact phone (optional)"
+              placeholder={
+                suggestedPickupPhone
+                  ? "Pickup contact phone"
+                  : "Pickup contact phone — none on file, please add one"
+              }
               value={pickupContactPhone}
               onChange={(e) => setPickupContactPhone(e.target.value)}
               className="flex-1 min-w-[160px] block border border-gray-300 rounded px-2 py-1 text-xs"

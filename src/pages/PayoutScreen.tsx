@@ -333,7 +333,7 @@ const WithdrawalDetailsModal = ({
                 className="flex-1 min-w-[120px] bg-blue-500 hover:bg-blue-600 text-black font-medium py-3 px-4 rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 <FileText size={18} className="mr-2" />
-                {downloadingPdf ? "Loading..." : "Remittance PDF"}
+                {downloadingPdf ? "Loading..." : "Withdrawal statement"}
               </button> : null}
 
             {canApprove ? <button

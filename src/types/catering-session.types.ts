@@ -194,14 +194,26 @@ export interface DeliveryPricePreview {
   constraints?: CourierConstraintResult | null;
 }
 
-/** A courier company's published service rules, as held by the backend. */
+/** One vehicle class a courier offers, and the portions it tops out at. */
+export interface CourierServiceTier {
+  service: string;
+  label: string;
+  maxPortions: number | null;
+}
+
+/**
+ * A courier company's published service rules, as held by the backend.
+ * Everything except `source` is optional: we hold a full rate card for
+ * Pedivan but only tiers and a portion ceiling for Pedal Me, and inventing
+ * the rest would be worse than leaving it out.
+ */
 export interface CourierServiceRules {
-  serviceLevels: {
+  serviceLevels?: {
     expressMaxWindowMinutes: number;
     sameDayMaxWindowMinutes: number;
     overnight: boolean;
   };
-  zones: Array<{
+  zones?: Array<{
     name: string;
     postcodeDistricts: string[] | null;
     servicingOpen: string;
@@ -210,6 +222,10 @@ export interface CourierServiceRules {
     expressCutoff: string;
     vehicles: string;
   }>;
+  /** Beyond this, Swift delivers it — no courier will take the job. */
+  maxPortions?: number;
+  /** Vehicle classes the admin can choose between (Pedal Me's cargo bikes). */
+  serviceTiers?: CourierServiceTier[];
   packaging: { boxType: "small" | "medium" | "large"; portionsPerBox: number };
   source: string;
 }

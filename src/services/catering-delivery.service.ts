@@ -43,6 +43,8 @@ const bookCourier = async (
     dropNotes?: string;
     pickupRestaurantId?: string;
     provider?: BookableProvider;
+    /** Vehicle class to book; omitted = sized automatically from the portions. */
+    serviceTier?: string;
   }
 ): Promise<CateringDeliveryBooking> => {
   const res = await http.post<CateringDeliveryBooking>(
@@ -62,11 +64,18 @@ const getPricePreview = async (
   packages: PackageCounts,
   pickupRestaurantId?: string,
   provider?: BookableProvider,
-  isExpress?: boolean
+  isExpress?: boolean,
+  serviceTier?: string
 ): Promise<DeliveryPricePreview> => {
   const res = await http.post<DeliveryPricePreview>(
     `catering-delivery/admin/sessions/${mealSessionId}/price`,
-    { packages, pickupRestaurantId, provider, ...(isExpress === undefined ? {} : { isExpress }) }
+    {
+      packages,
+      pickupRestaurantId,
+      provider,
+      ...(isExpress === undefined ? {} : { isExpress }),
+      ...(serviceTier ? { serviceTier } : {}),
+    }
   );
   return res.data;
 };

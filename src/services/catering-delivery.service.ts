@@ -6,6 +6,7 @@ import type {
   CateringMealSession,
   CourierProviderInfo,
   DeliveryPricePreview,
+  ProviderExistingBooking,
   GetAllSessionsParams,
   PackageCounts,
 } from "../types/catering-session.types";
@@ -143,6 +144,32 @@ const recordManualBooking = async (
   return res.data;
 };
 
+/**
+ * Read a booking straight from the courier by its id, so a booking made on
+ * their dashboard can be checked before it is attached to the session.
+ */
+const lookupProviderBooking = async (
+  provider: BookableProvider,
+  externalOrderId: string
+): Promise<ProviderExistingBooking> => {
+  const res = await http.get<ProviderExistingBooking>(
+    `catering-delivery/admin/providers/${provider}/bookings/${encodeURIComponent(externalOrderId)}`
+  );
+  return res.data;
+};
+
+/** Attach that booking to the session, pulling price, vehicle and tracking in. */
+const linkExistingBooking = async (
+  mealSessionId: string,
+  body: { provider: BookableProvider; externalOrderId: string }
+): Promise<CateringDeliveryBooking> => {
+  const res = await http.post<CateringDeliveryBooking>(
+    `catering-delivery/admin/sessions/${mealSessionId}/link-booking`,
+    body
+  );
+  return res.data;
+};
+
 /** Manual bookings only: ops confirms the courier collected. */
 const markPickedUp = async (mealSessionId: string): Promise<CateringMealSession> => {
   const res = await http.post<CateringMealSession>(
@@ -162,6 +189,8 @@ export default {
   getPricePreview,
   cancelBooking,
   getRiderLocation,
+  lookupProviderBooking,
+  linkExistingBooking,
   setRestaurantSelfDelivery,
   revertRestaurantToCourier,
   markDelivered,

@@ -194,6 +194,28 @@ export interface DeliveryPricePreview {
   constraints?: CourierConstraintResult | null;
 }
 
+/**
+ * A booking read back from the courier's own system by its id — how a booking
+ * made on their dashboard is checked before being attached to a session.
+ */
+export interface ProviderExistingBooking {
+  externalOrderId: string;
+  /** The courier's own status word, e.g. "Scheduled". */
+  providerStatus: string;
+  /** False while it is still a draft, or once cancelled. */
+  isConfirmed: boolean;
+  price: number | null;
+  currency: string;
+  serviceTier: string | null;
+  trackingUrl: string | null;
+  taskIds: { pickupIds: string[]; dropoffIds: string[] } | null;
+  startDate: string | null;
+  endDate: string | null;
+  pickupAddress: string | null;
+  dropAddress: string | null;
+  orderReference: string | null;
+}
+
 /** One vehicle class a courier offers, and the portions it tops out at. */
 export interface CourierServiceTier {
   service: string;

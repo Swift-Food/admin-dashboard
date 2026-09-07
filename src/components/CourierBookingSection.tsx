@@ -7,7 +7,17 @@ import type {
   CourierProviderInfo,
   DeliveryPricePreview,
   PackageCounts,
+  ProviderExistingBooking,
 } from "../types/catering-session.types";
+
+/** "08 Sep, 17:15" — courier times, in the reader's own timezone. */
+const formatWhen = (iso: string): string =>
+  new Date(iso).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 const errText = (e: unknown): string =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -126,8 +136,11 @@ const CourierBookingSection = ({
   const [confirmQuote, setConfirmQuote] = useState<DeliveryPricePreview | null>(null);
   // What the same route would cost as same-day, when the quote is express.
   const [sameDayQuote, setSameDayQuote] = useState<DeliveryPricePreview | null>(null);
-  // "Handled manually": the courier was booked on its own dashboard, outside the system.
+  // The courier was booked on its own dashboard: look it up by id and attach
+  // it, or (for couriers with no lookup API) record what the admin types.
   const [manualOpen, setManualOpen] = useState(false);
+  const [lookupId, setLookupId] = useState("");
+  const [found, setFound] = useState<ProviderExistingBooking | null>(null);
   const [manualRef, setManualRef] = useState("");
   const [manualPrice, setManualPrice] = useState("");
   const [manualNotes, setManualNotes] = useState("");
@@ -150,6 +163,8 @@ const CourierBookingSection = ({
   const providerLabel = (key: string) =>
     providers.find((p) => p.key === key)?.label ?? PROVIDER_LABEL[key] ?? key;
   const providerConfigured = providers.length === 0 || providers.some((p) => p.key === provider && p.configured);
+  // Only Pedal Me exposes an API for reading a booking back by its id.
+  const canLookUp = provider === "pedalme";
   const providerRules = providers.find((p) => p.key === provider)?.rules;
   const rulesLine = rulesSummary(providerRules);
   const tiers = providerRules?.serviceTiers ?? [];
@@ -355,7 +370,7 @@ const CourierBookingSection = ({
           </p>
           {rulesLine ? <p className="text-xs text-gray-500">{rulesLine}</p> : null}
 
-          {/* Handled manually: booked on the courier's dashboard, outside the system */}
+          {/* Already booked on the courier's dashboard: pull it in by its id. */}
           <div className="border border-amber-200 bg-amber-50/50 rounded px-3 py-2 text-xs space-y-2">
             {!manualOpen ? (
               <div className="flex items-center justify-between gap-3">
@@ -367,15 +382,115 @@ const CourierBookingSection = ({
                   onClick={() => setManualOpen(true)}
                   className="px-3 py-1 rounded bg-white border border-amber-600 text-amber-800 font-semibold whitespace-nowrap disabled:opacity-50"
                 >
-                  Handled manually…
+                  Already booked there…
                 </button>
               </div>
+            ) : canLookUp ? (
+              <>
+                <p className="text-gray-700">
+                  Paste the booking ID from <span className="font-semibold">{providerLabel(provider)}</span> and we
+                  fetch the rest — price, vehicle, times and tracking. Their updates then come through automatically,
+                  so you never have to mark pickup or delivery by hand.
+                </p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="text-gray-700 flex-1 min-w-[220px]">
+                    {providerLabel(provider)} booking ID
+                    <input
+                      value={lookupId}
+                      onChange={(e) => {
+                        setLookupId(e.target.value);
+                        setFound(null);
+                      }}
+                      placeholder="e.g. uixfp2p3J5eQ23Kr4"
+                      className="mt-1 block w-full border border-gray-300 rounded px-2 py-1 font-mono"
+                    />
+                  </label>
+                  <button
+                    disabled={busy || !lookupId.trim()}
+                    onClick={() =>
+                      run(async () => {
+                        setFound(
+                          await cateringDeliveryService.lookupProviderBooking(provider, lookupId.trim())
+                        );
+                      })
+                    }
+                    className="px-3 py-1.5 rounded bg-white border border-amber-600 text-amber-800 font-semibold disabled:opacity-50"
+                  >
+                    {busy ? "Looking up…" : "Look up"}
+                  </button>
+                </div>
+
+                {found ? (
+                  <div className="bg-white border border-gray-200 rounded px-3 py-2 space-y-1">
+                    <p className="font-semibold text-gray-800">
+                      Found on {providerLabel(provider)} — {found.providerStatus}
+                    </p>
+                    <p className="text-gray-700">
+                      {found.price != null ? (
+                        <span className="font-semibold">
+                          {found.currency}
+                          {found.price.toFixed(2)}
+                        </span>
+                      ) : (
+                        "no price yet"
+                      )}
+                      {found.serviceTier ? ` · ${tierLabel(found.serviceTier)}` : ""}
+                      {found.orderReference ? ` · order ${found.orderReference}` : ""}
+                    </p>
+                    {found.startDate || found.endDate ? (
+                      <p className="text-gray-600">
+                        {found.startDate ? `Collect ${formatWhen(found.startDate)}` : ""}
+                        {found.endDate ? ` · deliver by ${formatWhen(found.endDate)}` : ""}
+                      </p>
+                    ) : null}
+                    {found.pickupAddress ? <p className="text-gray-500">From {found.pickupAddress}</p> : null}
+                    {found.dropAddress ? <p className="text-gray-500">To {found.dropAddress}</p> : null}
+                    {!found.isConfirmed ? (
+                      <p className="text-amber-800 font-semibold">
+                        This is still {found.providerStatus} on {providerLabel(provider)} — confirm it there first.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      setManualOpen(false);
+                      setFound(null);
+                    }}
+                    className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 font-semibold disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={busy || !found?.isConfirmed}
+                    onClick={() =>
+                      run(async () => {
+                        await cateringDeliveryService.linkExistingBooking(session.id, {
+                          provider,
+                          externalOrderId: lookupId.trim(),
+                        });
+                        setManualOpen(false);
+                        setFound(null);
+                        onChanged();
+                      })
+                    }
+                    className="ml-auto px-3 py-1.5 rounded bg-amber-600 text-white font-semibold disabled:opacity-50"
+                  >
+                    {found?.isConfirmed
+                      ? `Attach this booking${found.price != null ? ` (${found.currency}${found.price.toFixed(2)})` : ""}`
+                      : "Look it up first"}
+                  </button>
+                </div>
+              </>
             ) : (
               <>
                 <p className="text-gray-700">
                   Record a booking you made on <span className="font-semibold">{providerLabel(provider)}</span>'s dashboard.
-                  Nothing is sent to the courier; the session just shows as booked, and you mark pickup and delivery
-                  here when they happen.
+                  {providerLabel(provider)} has no API for reading a booking back, so type what you have. Nothing is sent
+                  to the courier, and you mark pickup and delivery here when they happen.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <label className="text-gray-700">

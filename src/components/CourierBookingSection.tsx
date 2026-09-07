@@ -159,6 +159,9 @@ const CourierBookingSection = ({
 
   const canBook = session.deliveryStatus === "awaiting_booking" && !activeBooking;
   const manual = isManualBooking(activeBooking);
+  // Ops moves a booking along by hand while the courier is sending us nothing —
+  // a hand-recorded one, or a real booking whose updates have never arrived.
+  const marksByHand = !!activeBooking && (manual || !activeBooking.lastWebhookAt);
   const providerKey = activeBooking?.provider ?? provider;
   const providerLabel = (key: string) =>
     providers.find((p) => p.key === key)?.label ?? PROVIDER_LABEL[key] ?? key;
@@ -265,7 +268,7 @@ const CourierBookingSection = ({
                 Where's the rider?
               </button>
             )}
-            {manual && session.deliveryStatus === "booked" ? (
+            {marksByHand && session.deliveryStatus === "booked" ? (
               <button
                 disabled={busy}
                 onClick={() =>
@@ -279,7 +282,7 @@ const CourierBookingSection = ({
                 Mark picked up
               </button>
             ) : null}
-            {manual && (session.deliveryStatus === "booked" || session.deliveryStatus === "out_for_delivery") ? (
+            {marksByHand && (session.deliveryStatus === "booked" || session.deliveryStatus === "out_for_delivery") ? (
               <button
                 disabled={busy}
                 onClick={() =>

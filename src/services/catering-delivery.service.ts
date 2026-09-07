@@ -46,6 +46,10 @@ const bookCourier = async (
     provider?: BookableProvider;
     /** Vehicle class to book; omitted = sized automatically from the portions. */
     serviceTier?: string;
+    /** Person the rider asks for — typed per booking, never stored. */
+    pickupContactName?: string;
+    /** Overrides the restaurant's stored number for this booking only. */
+    pickupContactPhone?: string;
   }
 ): Promise<CateringDeliveryBooking> => {
   const res = await http.post<CateringDeliveryBooking>(

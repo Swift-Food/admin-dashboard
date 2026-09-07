@@ -125,6 +125,10 @@ const CourierBookingSection = ({
   );
   const [pickupNotes, setPickupNotes] = useState("");
   const [dropNotes, setDropNotes] = useState("");
+  // Courier-only, never stored: the person the rider asks for, and a
+  // number to reach them on when the restaurant record has none.
+  const [pickupContactName, setPickupContactName] = useState("");
+  const [pickupContactPhone, setPickupContactPhone] = useState("");
   // "" = let the courier's portion table pick the vehicle.
   const [serviceTier, setServiceTier] = useState("");
   const [price, setPrice] = useState<DeliveryPricePreview | null>(null);
@@ -614,6 +618,22 @@ const CourierBookingSection = ({
             onChange={(e) => setPickupNotes(e.target.value)}
             className="block w-full border border-gray-300 rounded px-2 py-1 text-xs"
           />
+          {/* Who the rider asks for. We only hold the business name, so this is
+              typed per booking rather than kept on the restaurant. */}
+          <div className="flex flex-wrap gap-2">
+            <input
+              placeholder="Pickup contact name (optional)"
+              value={pickupContactName}
+              onChange={(e) => setPickupContactName(e.target.value)}
+              className="flex-1 min-w-[160px] block border border-gray-300 rounded px-2 py-1 text-xs"
+            />
+            <input
+              placeholder="Pickup contact phone (optional)"
+              value={pickupContactPhone}
+              onChange={(e) => setPickupContactPhone(e.target.value)}
+              className="flex-1 min-w-[160px] block border border-gray-300 rounded px-2 py-1 text-xs"
+            />
+          </div>
           <input
             placeholder="Delivery notes (optional)"
             value={dropNotes}
@@ -775,6 +795,14 @@ const CourierBookingSection = ({
                 <dt className="text-gray-500">Drop</dt>
                 <dd className="font-medium text-right">{session.cateringOrder?.deliveryAddress || "—"}</dd>
               </div>
+              {pickupContactName || pickupContactPhone ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-gray-500">Pickup contact</dt>
+                  <dd className="font-medium text-right">
+                    {[pickupContactName, pickupContactPhone].filter(Boolean).join(" · ")}
+                  </dd>
+                </div>
+              ) : null}
               {pickupNotes || dropNotes ? (
                 <div className="flex justify-between gap-4">
                   <dt className="text-gray-500">Notes</dt>
@@ -818,6 +846,8 @@ const CourierBookingSection = ({
                       packages,
                       pickupNotes: pickupNotes || undefined,
                       dropNotes: dropNotes || undefined,
+                      pickupContactName: pickupContactName.trim() || undefined,
+                      pickupContactPhone: pickupContactPhone.trim() || undefined,
                       provider,
                       serviceTier: serviceTier || undefined,
                     });

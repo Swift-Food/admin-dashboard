@@ -57,6 +57,27 @@ export interface EarlyWithdrawalOrderLine {
 // Mock Service (replace with actual API calls)
 
 
+/**
+ * The reason a request failed, in words. A PDF request is made with
+ * responseType "blob", so axios hands back the server's JSON error wrapped in
+ * a Blob — reading only `data.message` turned every failure into an
+ * unhelpful "please try again".
+ */
+async function errorMessage(e: unknown): Promise<string> {
+  const data = (e as { response?: { data?: unknown } })?.response?.data;
+  if (data instanceof Blob) {
+    try {
+      const parsed = JSON.parse(await data.text());
+      if (parsed?.message) return String(parsed.message);
+    } catch {
+      /* not JSON — fall through to the generic message */
+    }
+  } else if ((data as { message?: string })?.message) {
+    return String((data as { message?: string }).message);
+  }
+  return (e as Error)?.message ?? "Please try again.";
+}
+
 // Timer Component
 const WithdrawalTimer = ({ requestedAt }: { requestedAt: string }) => {
   const [timeElapsed, setTimeElapsed] = useState("");
@@ -174,8 +195,8 @@ const WithdrawalDetailsModal = ({
       // Give the new tab time to load the blob before releasing it.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
-      console.error("Error opening remittance advice:", error);
-      alert("Failed to load the remittance PDF. Please try again.");
+      console.error("Error opening the withdrawal statement:", error);
+      alert(`Could not open the withdrawal statement.\n\n${await errorMessage(error)}`);
     } finally {
       setDownloadingPdf(false);
     }

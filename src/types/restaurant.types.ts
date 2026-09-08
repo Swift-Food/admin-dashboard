@@ -84,6 +84,19 @@ export interface UpdateAvailabilityDto {
   deviceToken: string | null;
 }
 
+// Self-delivery settings live on a dedicated endpoint
+// (`GET|PUT restaurants/:restaurantId/delivery-settings`), not the generic
+// restaurant update DTO below — same reasoning as the VAT number pair.
+export interface RestaurantDeliverySettings {
+  selfDeliveryEnabled: boolean;
+  maxDeliveryRangeMiles: number;
+}
+
+export interface UpdateRestaurantDeliverySettingsDto {
+  selfDeliveryEnabled?: boolean;
+  maxDeliveryRangeMiles?: number;
+}
+
 export interface UpdateRestaurantDto {
   restaurant_name?: string;
   restaurant_description?: string;

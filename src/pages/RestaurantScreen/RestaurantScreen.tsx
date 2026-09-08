@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   AlertCircle,
   Plus,
@@ -15,11 +15,17 @@ import {
   updateRestaurantStatus,
   updateRestaurant,
   updateRestaurantVatNumber,
+  getRestaurantDeliverySettings,
+  updateRestaurantDeliverySettings,
   deleteRestaurant,
   uploadRestaurantImage,
 } from "../../services/restaurant.service";
 import http from "../../services/http";
-import type { RestaurantResponse, UpdateRestaurantDto } from "../../services/restaurant.service";
+import type {
+  RestaurantResponse,
+  RestaurantDeliverySettings,
+  UpdateRestaurantDto,
+} from "../../services/restaurant.service";
 import { updateAddress } from "../../services/address.service";
 
 import { AddRestaurantModal } from "../../components/AddRestaurantModal";
@@ -139,6 +145,25 @@ const RestaurantAdminDashboard = () => {
   const [editVatNumber, setEditVatNumber] = useState<string>("");
   const [originalVatNumber, setOriginalVatNumber] = useState<string>("");
 
+  // Self-delivery settings are also on a dedicated endpoint (same reasoning
+  // as VAT number), but unlike VAT number they aren't embedded in the
+  // restaurant list response, so they're fetched fresh whenever editing
+  // starts. `deliverySettingsStatus` gates both the fields (disabled until
+  // "ready") and whether saveChanges is allowed to write them, so a slow or
+  // failed fetch never gets silently overwritten with stale defaults.
+  const [editSelfDeliveryEnabled, setEditSelfDeliveryEnabled] = useState(false);
+  const [editMaxDeliveryRangeMiles, setEditMaxDeliveryRangeMiles] = useState(5);
+  const [originalDeliverySettings, setOriginalDeliverySettings] =
+    useState<RestaurantDeliverySettings | null>(null);
+  const [deliverySettingsStatus, setDeliverySettingsStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  // Guards against a stale GET resolving after editing has moved on to a
+  // different restaurant (or restarted for the same one): set to the
+  // requested restaurantId at fetch time, checked before every write in
+  // loadDeliverySettings's .then/.catch below.
+  const deliverySettingsRequestRef = useRef<string | null>(null);
+
   // Catering hours editing state - kept separate from editForm since it's a
   // day-by-day structure, converted to the flat cateringOperatingHours array
   // only when saving.
@@ -233,6 +258,28 @@ const RestaurantAdminDashboard = () => {
     }
   };
 
+  const loadDeliverySettings = (restaurantId: string) => {
+    // Re-pointing the ref here (not just on unrelated mount) is what makes
+    // this safe to call again for the same restaurant too: it invalidates
+    // any request already in flight, so a duplicate call can't race itself.
+    deliverySettingsRequestRef.current = restaurantId;
+    setDeliverySettingsStatus("loading");
+    setOriginalDeliverySettings(null);
+    getRestaurantDeliverySettings(restaurantId)
+      .then((settings) => {
+        if (deliverySettingsRequestRef.current !== restaurantId) return;
+        setEditSelfDeliveryEnabled(settings.selfDeliveryEnabled);
+        setEditMaxDeliveryRangeMiles(settings.maxDeliveryRangeMiles);
+        setOriginalDeliverySettings(settings);
+        setDeliverySettingsStatus("ready");
+      })
+      .catch((err) => {
+        if (deliverySettingsRequestRef.current !== restaurantId) return;
+        console.error("Failed to load delivery settings:", err);
+        setDeliverySettingsStatus("error");
+      });
+  };
+
   const handleExpandRestaurant = (restaurantId: string) => {
     setExpandedId(expandedId === restaurantId ? null : restaurantId);
   };
@@ -259,6 +306,7 @@ const RestaurantAdminDashboard = () => {
     });
     setEditVatNumber(restaurant.vatNumber || "");
     setOriginalVatNumber(restaurant.vatNumber || "");
+    loadDeliverySettings(restaurant.id);
 
     const newSchedule = createDefaultHoursSchedule();
     const existingHours = restaurant.cateringOperatingHours;
@@ -479,6 +527,21 @@ const RestaurantAdminDashboard = () => {
           restaurantId,
           normalisedVat || null,
         );
+      }
+
+      // Save delivery settings via dedicated endpoint if changed. Only when
+      // the initial GET actually resolved — a slow/failed fetch must never
+      // let a stale default (toggle off, range 5) clobber the saved value.
+      if (deliverySettingsStatus === "ready" && originalDeliverySettings) {
+        const deliverySettingsChanged =
+          editSelfDeliveryEnabled !== originalDeliverySettings.selfDeliveryEnabled ||
+          editMaxDeliveryRangeMiles !== originalDeliverySettings.maxDeliveryRangeMiles;
+        if (deliverySettingsChanged) {
+          await updateRestaurantDeliverySettings(restaurantId, {
+            selfDeliveryEnabled: editSelfDeliveryEnabled,
+            maxDeliveryRangeMiles: editMaxDeliveryRangeMiles,
+          });
+        }
       }
 
       // Update local state
@@ -924,6 +987,55 @@ const RestaurantAdminDashboard = () => {
                                           Featured restaurant
                                         </span>
                                       </label>
+                                    </div>
+
+                                    <div className="form-field full-width">
+                                      <label className="field-label">
+                                        Delivery
+                                        <span className="field-hint">
+                                          {deliverySettingsStatus === "loading"
+                                            ? "Loading current settings…"
+                                            : deliverySettingsStatus === "error"
+                                            ? "Failed to load — reopen editor to retry"
+                                            : "Who delivers this restaurant's catering orders, and how far"}
+                                        </span>
+                                      </label>
+                                      <label className="checkbox-label restaurant-type-toggle">
+                                        <input
+                                          type="checkbox"
+                                          checked={editSelfDeliveryEnabled}
+                                          disabled={deliverySettingsStatus !== "ready"}
+                                          onChange={(e) =>
+                                            setEditSelfDeliveryEnabled(e.target.checked)
+                                          }
+                                          className="form-checkbox"
+                                        />
+                                        <span className="checkbox-label-text">
+                                          Restaurant delivers its own orders (within the range below)
+                                        </span>
+                                      </label>
+                                      <label className="field-label" style={{ marginTop: "0.75rem" }}>
+                                        Max delivery range (miles)
+                                        <span className="field-hint">
+                                          {editSelfDeliveryEnabled
+                                            ? "Within this range the restaurant delivers; beyond it a Swift courier collects the order"
+                                            : "Orders beyond this distance are not accepted"}
+                                        </span>
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0.5"
+                                        max="20"
+                                        step="0.5"
+                                        value={editMaxDeliveryRangeMiles}
+                                        disabled={deliverySettingsStatus !== "ready"}
+                                        onChange={(e) =>
+                                          setEditMaxDeliveryRangeMiles(
+                                            parseFloat(e.target.value) || 0.5
+                                          )
+                                        }
+                                        className="form-input"
+                                      />
                                     </div>
 
                                     <div className="form-field full-width">

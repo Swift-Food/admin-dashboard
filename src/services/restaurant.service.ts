@@ -1,7 +1,9 @@
 import http from "./http";
 import type {
   Restaurant,
+  RestaurantDeliverySettings,
   UpdateAvailabilityDto,
+  UpdateRestaurantDeliverySettingsDto,
   UpdateRestaurantDto,
 } from "../types/restaurant.types";
 
@@ -240,6 +242,28 @@ const updateRestaurantVatNumber = async (
   return res.data;
 };
 
+// Dedicated endpoint, same reasoning as VAT number above — self-delivery
+// settings aren't part of UpdateRestaurantDto.
+const getRestaurantDeliverySettings = async (
+  id: string
+): Promise<RestaurantDeliverySettings> => {
+  const res = await http.get<RestaurantDeliverySettings>(
+    `/restaurants/${id}/delivery-settings`
+  );
+  return res.data;
+};
+
+const updateRestaurantDeliverySettings = async (
+  id: string,
+  dto: UpdateRestaurantDeliverySettingsDto
+): Promise<RestaurantDeliverySettings> => {
+  const res = await http.put<RestaurantDeliverySettings>(
+    `/restaurants/${id}/delivery-settings`,
+    dto
+  );
+  return res.data;
+};
+
 const deleteRestaurant = async (id: string): Promise<void> => {
   await http.delete(`/restaurant/${id}`);
 };
@@ -425,6 +449,8 @@ export {
   updateRestaurantStatus,
   updateRestaurantVatNumber,
   updateRestaurant,
+  getRestaurantDeliverySettings,
+  updateRestaurantDeliverySettings,
   // Delete operations
   deleteRestaurant,
   // Create operations
@@ -450,6 +476,8 @@ export type {
   // Request DTOs
   UpdateAvailabilityDto,
   UpdateRestaurantDto,
+  RestaurantDeliverySettings,
+  UpdateRestaurantDeliverySettingsDto,
   CreateRestaurantUserDto,
   CreateAddressDto,
   CreateRestaurantDto,

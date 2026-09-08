@@ -12,18 +12,12 @@ import "leaflet/dist/leaflet.css";
 import Sidebar from "./components/Sidebar";
 import type { SidebarPage, AdminMode } from "./components/Sidebar";
 import PromotionsScreen from "./pages/PromotionsScreen";
-import DriverStatusScreen from "./pages/DriverStatusScreen";
-import MapScreen from "./pages/MapScreen";
-import StatisticsScreen from "./pages/StatisticsScreen";
-import AllOrdersScreen from "./pages/OrdersScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
 import CategoriesScreen from "./pages/CategoriesScreen/CategoriesScreen";
 import BundlesScreen from "./pages/BundlesScreen/BundlesScreen";
 import CateringOrdersScreen from "./pages/CateringOrdersTableView";
 import CateringFinancialsScreen from "./pages/CateringFinancialsScreen";
-import OrderFinancialsScreen from "./pages/OrderFinancialsScreen";
 import WithdrawalAdminDashboard from "./pages/PayoutScreen";
-import CorporateOrdersScreen from "./pages/CorporateOrdersTableView";
 import StripeAccountsScreen from "./pages/StripeAccountsScreen";
 import MiscellaneousScreen from "./pages/MiscellaneousScreen";
 import EventCategoriesScreen from "./pages/EventCategoriesScreen/EventCategoriesScreen";
@@ -48,7 +42,6 @@ import LoginScreen from "./pages/LoginScreen";
 // Map URL paths to SidebarPage IDs
 export const pathToPageMap: Record<string, SidebarPage> = {
   home: "home",
-  orders: "orders",
   "catering-orders": "catering",
   "catering-sessions": "catering-sessions",
   "chatbot-logs": "chatbot-logs",
@@ -58,16 +51,11 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   "catering-settings": "catering-settings",
   "commission-invoices": "commission-invoices",
   "catering-financials": "catering-financials",
-  "order-financials": "order-financials",
-  "corporate-orders": "corporate",
   restaurants: "restaurant",
   categories: "categories",
   promotions: "promotions",
   payouts: "payout",
   "stripe-accounts": "stripe-accounts",
-  drivers: "driver-status",
-  statistics: "statistics",
-  map: "map",
   miscellaneous: "miscellaneous",
   "event-categories": "event-categories",
   events: "events",
@@ -84,7 +72,6 @@ export const pathToPageMap: Record<string, SidebarPage> = {
 // Map SidebarPage IDs to URL paths
 export const pageToPathMap: Record<SidebarPage, string> = {
   home: "home",
-  orders: "orders",
   catering: "catering-orders",
   "catering-sessions": "catering-sessions",
   "chatbot-logs": "chatbot-logs",
@@ -94,16 +81,11 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   "catering-settings": "catering-settings",
   "commission-invoices": "commission-invoices",
   "catering-financials": "catering-financials",
-  "order-financials": "order-financials",
-  corporate: "corporate-orders",
   restaurant: "restaurants",
   categories: "categories",
   promotions: "promotions",
   payout: "payouts",
   "stripe-accounts": "stripe-accounts",
-  "driver-status": "drivers",
-  statistics: "statistics",
-  map: "map",
   miscellaneous: "miscellaneous",
   "event-categories": "event-categories",
   events: "events",
@@ -120,7 +102,6 @@ export const pageToPathMap: Record<SidebarPage, string> = {
 // Define which pages belong to which mode
 const swiftPages: SidebarPage[] = [
   "home",
-  "orders",
   "catering",
   "catering-sessions",
   "chatbot-logs",
@@ -130,16 +111,11 @@ const swiftPages: SidebarPage[] = [
   "catering-settings",
   "commission-invoices",
   "catering-financials",
-  "order-financials",
-  "corporate",
   "restaurant",
   "categories",
   "promotions",
   "payout",
   "stripe-accounts",
-  "driver-status",
-  "statistics",
-  "map",
   "miscellaneous",
   "catering-bundles",
   "pending-transfers",
@@ -200,8 +176,6 @@ function PageRenderer() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case "orders":
-        return <AllOrdersScreen />;
       case "promotions":
         return <PromotionsScreen />;
       case "catering":
@@ -222,8 +196,6 @@ function PageRenderer() {
         return <ReviewsScreen />;
       case "catering-financials":
         return <CateringFinancialsScreen />;
-      case "order-financials":
-        return <OrderFinancialsScreen />;
       case "bundles":
         return <BundlesScreen bundleType="prismo" />;
       case "catering-bundles":
@@ -234,14 +206,6 @@ function PageRenderer() {
         return <RestaurantAdminDashboard />;
       case "categories":
         return <CategoriesScreen />;
-      case "driver-status":
-        return <DriverStatusScreen />;
-      case "statistics":
-        return <StatisticsScreen />;
-      case "map":
-        return <MapScreen />;
-      case "corporate":
-        return <CorporateOrdersScreen />;
       case "stripe-accounts":
         return <StripeAccountsScreen />;
       case "miscellaneous":

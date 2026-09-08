@@ -34,7 +34,6 @@ export type AdminMode = "swift" | "prismo" | "coworking";
 
 export type SidebarPage =
   | "home"
-  | "orders"
   | "promotions"
   | "restaurant"
   | "categories"
@@ -42,17 +41,12 @@ export type SidebarPage =
   | "events"
   | "calendars"
   | "event-locations"
-  | "driver-status"
-  | "statistics"
-  | "map"
   | "catering"
   | "catering-sessions"
   | "catering-financials"
-  | "order-financials"
   | "bundles"
   | "catering-bundles"
   | "payout"
-  | "corporate"
   | "stripe-accounts"
   | "coworking-spaces"
   | "pending-transfers"
@@ -157,11 +151,6 @@ const navSections: NavSection[] = [
       {
         id: "catering-financials",
         label: "Catering Financials",
-        icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
-      },
-      {
-        id: "order-financials",
-        label: "Order Financials",
         icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
       },
     ],
@@ -293,35 +282,6 @@ const navSections: NavSection[] = [
         id: "pending-transfers",
         label: "Pending Transfers",
         icon: <FontAwesomeIcon icon={faRightLeft} style={iconCommonStyle} />,
-      },
-    ],
-  },
-  {
-    id: "operations",
-    label: "Operations",
-    mode: "swift",
-    items: [
-      {
-        id: "driver-status",
-        label: "Drivers",
-        icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
-      },
-    ],
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    mode: "swift",
-    items: [
-      {
-        id: "statistics",
-        label: "Statistics",
-        icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
-      },
-      {
-        id: "map",
-        label: "Map",
-        icon: <FontAwesomeIcon icon={faMap} style={iconCommonStyle} />,
       },
     ],
   },

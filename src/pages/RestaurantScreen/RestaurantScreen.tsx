@@ -8,6 +8,7 @@ import {
   MapPin,
   ExternalLink,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 
 import {
@@ -172,6 +173,23 @@ const RestaurantAdminDashboard = () => {
   );
   const [hoursEditorExpanded, setHoursEditorExpanded] = useState(false);
 
+  // Edit-form sections are collapsed by default; bodies are hidden with CSS
+  // rather than unmounted so in-progress input state survives collapsing.
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+  const sectionClass = (key: string) =>
+    openSections.has(key) ? "edit-form-section open" : "edit-form-section";
+
   // Delete modal state
   const [deleteModalRestaurant, setDeleteModalRestaurant] = useState<RestaurantResponse | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -306,6 +324,7 @@ const RestaurantAdminDashboard = () => {
     });
     setEditVatNumber(restaurant.vatNumber || "");
     setOriginalVatNumber(restaurant.vatNumber || "");
+    setOpenSections(new Set());
     loadDeliverySettings(restaurant.id);
 
     const newSchedule = createDefaultHoursSchedule();
@@ -788,455 +807,526 @@ const RestaurantAdminDashboard = () => {
 
                               {editingId === restaurant.id ? (
                                 <div className="edit-form">
-                                  <div className="edit-form-grid">
-                                    <div className="form-field">
-                                      <label className="field-label">Restaurant Name</label>
-                                      <input
-                                        type="text"
-                                        value={editForm.restaurant_name || ""}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, restaurant_name: e.target.value })
-                                        }
-                                        className="form-input"
-                                      />
-                                    </div>
+                                  <section className={sectionClass("profile")}>
+                                    <button
+                                      type="button"
+                                      className="edit-form-section-header"
+                                      onClick={() => toggleSection("profile")}
+                                    >
+                                      <h4 className="edit-form-section-title">Profile</h4>
+                                      <ChevronDown size={16} className="edit-form-section-chevron" />
+                                    </button>
+                                    <div className="edit-form-grid">
+                                      <div className="form-field">
+                                        <label className="field-label">Restaurant Name</label>
+                                        <input
+                                          type="text"
+                                          value={editForm.restaurant_name || ""}
+                                          onChange={(e) =>
+                                            setEditForm({ ...editForm, restaurant_name: e.target.value })
+                                          }
+                                          className="form-input"
+                                        />
+                                      </div>
 
-                                    <div className="form-field">
-                                      <label className="field-label">
-                                        Commission Rate (%)
-                                        <span className="field-hint">Platform fee percentage</span>
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        step="0.5"
-                                        value={editForm.commission ?? 20}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, commission: parseFloat(e.target.value) || 0 })
-                                        }
-                                        className="form-input"
-                                      />
-                                    </div>
+                                      <div className="form-field">
+                                        <label className="field-label">Price Range</label>
+                                        <select
+                                          value={editForm.priceRange ?? ""}
+                                          onChange={(e) =>
+                                            setEditForm({ ...editForm, priceRange: e.target.value || undefined })
+                                          }
+                                          className="form-input"
+                                        >
+                                          <option value="">Not set</option>
+                                          <option value="Budget">Budget</option>
+                                          <option value="Moderate">Moderate</option>
+                                          <option value="Premium">Premium</option>
+                                          <option value="Luxury">Luxury</option>
+                                        </select>
+                                      </div>
 
-                                    <div className="form-field">
-                                      <label className="field-label">
-                                        VAT Number
-                                        <span className="field-hint">UK format: GB followed by 9 digits. Leave blank if not VAT-registered.</span>
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={editVatNumber}
-                                        onChange={(e) => setEditVatNumber(e.target.value)}
-                                        placeholder="GB123456789"
-                                        className="form-input"
-                                        maxLength={20}
-                                      />
-                                    </div>
-
-                                    <div className="form-field">
-                                      <label className="field-label">FSA Rating</label>
-                                      <select
-                                        value={editForm.fsa ?? ""}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, fsa: e.target.value ? parseInt(e.target.value) : undefined })
-                                        }
-                                        className="form-input"
-                                      >
-                                        <option value="">Not Set</option>
-                                        <option value="5">5 - Very Good</option>
-                                        <option value="4">4 - Good</option>
-                                        <option value="3">3 - Generally Satisfactory</option>
-                                        <option value="2">2 - Improvement Necessary</option>
-                                        <option value="1">1 - Major Improvement Necessary</option>
-                                        <option value="0">0 - Urgent Improvement Necessary</option>
-                                      </select>
-                                    </div>
-
-                                    <div className="form-field">
-                                      <label className="field-label">FSA Link</label>
-                                      <input
-                                        type="url"
-                                        value={editForm.fsaLink || ""}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, fsaLink: e.target.value })
-                                        }
-                                        className="form-input"
-                                        placeholder="https://ratings.food.gov.uk/..."
-                                      />
-                                    </div>
-
-                                    <div className="form-field">
-                                      <label className="field-label">Price Range</label>
-                                      <select
-                                        value={editForm.priceRange ?? ""}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, priceRange: e.target.value || undefined })
-                                        }
-                                        className="form-input"
-                                      >
-                                        <option value="">Not set</option>
-                                        <option value="Budget">Budget</option>
-                                        <option value="Moderate">Moderate</option>
-                                        <option value="Premium">Premium</option>
-                                        <option value="Luxury">Luxury</option>
-                                      </select>
-                                    </div>
-
-                                    <div className="form-field full-width">
-                                      <label className="field-label">
-                                        Tags
-                                        <span className="field-hint">Up to 5 tags</span>
-                                      </label>
-                                      <div className="tags-input-container">
-                                        {(editForm.tags || []).map((tag, i) => (
-                                          <span key={i} className="tag-chip">
-                                            {tag}
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const newTags = (editForm.tags || []).filter((_, idx) => idx !== i);
-                                                setEditForm({ ...editForm, tags: newTags });
-                                              }}
-                                              className="tag-chip-remove"
-                                            >
-                                              ×
-                                            </button>
-                                          </span>
-                                        ))}
-                                        {(editForm.tags || []).length < 5 && (
-                                          <input
-                                            type="text"
-                                            className="tag-input"
-                                            placeholder="Add tag, press Enter"
-                                            onKeyDown={(e) => {
-                                              if (e.key === "Enter" || e.key === ",") {
-                                                e.preventDefault();
-                                                const val = e.currentTarget.value.trim();
-                                                if (val && (editForm.tags || []).length < 5) {
-                                                  setEditForm({ ...editForm, tags: [...(editForm.tags || []), val] });
-                                                  e.currentTarget.value = "";
+                                      <div className="form-field full-width">
+                                        <label className="field-label">
+                                          Tags
+                                          <span className="field-hint">Up to 5 tags</span>
+                                        </label>
+                                        <div className="tags-input-container">
+                                          {(editForm.tags || []).map((tag, i) => (
+                                            <span key={i} className="tag-chip">
+                                              {tag}
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const newTags = (editForm.tags || []).filter((_, idx) => idx !== i);
+                                                  setEditForm({ ...editForm, tags: newTags });
+                                                }}
+                                                className="tag-chip-remove"
+                                              >
+                                                ×
+                                              </button>
+                                            </span>
+                                          ))}
+                                          {(editForm.tags || []).length < 5 && (
+                                            <input
+                                              type="text"
+                                              className="tag-input"
+                                              placeholder="Add tag, press Enter"
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === ",") {
+                                                  e.preventDefault();
+                                                  const val = e.currentTarget.value.trim();
+                                                  if (val && (editForm.tags || []).length < 5) {
+                                                    setEditForm({ ...editForm, tags: [...(editForm.tags || []), val] });
+                                                    e.currentTarget.value = "";
+                                                  }
                                                 }
-                                              }
-                                            }}
-                                          />
-                                        )}
+                                              }}
+                                            />
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div className="form-field full-width">
+                                        <label className="field-label">Description</label>
+                                        <textarea
+                                          value={editForm.restaurant_description || ""}
+                                          onChange={(e) =>
+                                            setEditForm({ ...editForm, restaurant_description: e.target.value })
+                                          }
+                                          className="form-textarea"
+                                          rows={3}
+                                          placeholder="Restaurant description..."
+                                        />
+                                      </div>
+
+                                      <div className="form-field full-width">
+                                        <label className="field-label">
+                                          Restaurant Logo
+                                          <span className="field-hint">Circular logo shown on menu item cards</span>
+                                        </label>
+                                        <CateringImageUpload
+                                          imageUrl={editForm.logoImageUrl}
+                                          isUploading={uploadingLogoImage}
+                                          onImageSelect={handleLogoImageSelect}
+                                          onImageRemove={() => setEditForm({ ...editForm, logoImageUrl: "" })}
+                                          previewAspectRatio="1"
+                                        />
                                       </div>
                                     </div>
+                                  </section>
 
-                                    <div className="form-field">
-                                      <label className="field-label">Status</label>
-                                      <select
-                                        value={editForm.status ?? "inactive"}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, status: e.target.value as "active" | "inactive" | "coming_soon" })
-                                        }
-                                        className="form-input"
-                                      >
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                        <option value="coming_soon">Coming Soon</option>
-                                      </select>
-                                    </div>
-
-                                    <div className="form-field">
-                                      <label className="field-label">
-                                        Visibility
-                                        <span className="field-hint">
-                                          Show this restaurant on the site
-                                        </span>
-                                      </label>
-                                      <label className="checkbox-label restaurant-type-toggle">
-                                        <input
-                                          type="checkbox"
-                                          checked={isEditingShowOnSite}
+                                  <section className={sectionClass("visibility")}>
+                                    <button
+                                      type="button"
+                                      className="edit-form-section-header"
+                                      onClick={() => toggleSection("visibility")}
+                                    >
+                                      <h4 className="edit-form-section-title">Status &amp; visibility</h4>
+                                      <ChevronDown size={16} className="edit-form-section-chevron" />
+                                    </button>
+                                    <div className="edit-form-grid">
+                                      <div className="form-field">
+                                        <label className="field-label">Status</label>
+                                        <select
+                                          value={editForm.status ?? "inactive"}
                                           onChange={(e) =>
-                                            setEditForm({
-                                              ...editForm,
-                                              showOnSite: e.target.checked,
-                                            })
+                                            setEditForm({ ...editForm, status: e.target.value as "active" | "inactive" | "coming_soon" })
                                           }
-                                          className="form-checkbox"
-                                        />
-                                        <span className="checkbox-label-text">
-                                          Show on site
-                                        </span>
-                                      </label>
-                                    </div>
+                                          className="form-input"
+                                        >
+                                          <option value="active">Active</option>
+                                          <option value="inactive">Inactive</option>
+                                          <option value="coming_soon">Coming Soon</option>
+                                        </select>
+                                      </div>
 
-                                    <div className="form-field">
-                                      <label className="field-label">
-                                        Featured
-                                        <span className="field-hint">
-                                          Show this restaurant first in the catering browse list
-                                        </span>
-                                      </label>
-                                      <label className="checkbox-label restaurant-type-toggle">
+                                      <div className="form-field">
+                                        <label className="field-label">
+                                          Visibility
+                                          <span className="field-hint">
+                                            Show this restaurant on the site
+                                          </span>
+                                        </label>
+                                        <label className="checkbox-label restaurant-type-toggle">
+                                          <input
+                                            type="checkbox"
+                                            checked={isEditingShowOnSite}
+                                            onChange={(e) =>
+                                              setEditForm({
+                                                ...editForm,
+                                                showOnSite: e.target.checked,
+                                              })
+                                            }
+                                            className="form-checkbox"
+                                          />
+                                          <span className="checkbox-label-text">
+                                            Show on site
+                                          </span>
+                                        </label>
+                                      </div>
+
+                                      <div className="form-field">
+                                        <label className="field-label">
+                                          Featured
+                                          <span className="field-hint">
+                                            Show this restaurant first in the catering browse list
+                                          </span>
+                                        </label>
+                                        <label className="checkbox-label restaurant-type-toggle">
+                                          <input
+                                            type="checkbox"
+                                            checked={editForm.featured ?? false}
+                                            onChange={(e) =>
+                                              setEditForm({
+                                                ...editForm,
+                                                featured: e.target.checked,
+                                              })
+                                            }
+                                            className="form-checkbox"
+                                          />
+                                          <span className="checkbox-label-text">
+                                            Featured restaurant
+                                          </span>
+                                        </label>
+                                      </div>
+
+                                      {isEditingShowOnSite ? <div className="form-field full-width">
+                                          <label className="field-label">
+                                            Catering Image
+                                            <span className="field-hint">Image shown on catering menu</span>
+                                          </label>
+                                          <CateringImageUpload
+                                            imageUrl={editForm.images}
+                                            isUploading={uploadingImage}
+                                            onImageSelect={handleImageSelect}
+                                            onImageRemove={() => setEditForm({ ...editForm, images: "" })}
+                                          />
+                                        </div> : null}
+                                    </div>
+                                  </section>
+
+                                  <section className={sectionClass("commercial")}>
+                                    <button
+                                      type="button"
+                                      className="edit-form-section-header"
+                                      onClick={() => toggleSection("commercial")}
+                                    >
+                                      <h4 className="edit-form-section-title">Commission &amp; VAT</h4>
+                                      <ChevronDown size={16} className="edit-form-section-chevron" />
+                                    </button>
+                                    <div className="edit-form-grid">
+                                      <div className="form-field">
+                                        <label className="field-label">
+                                          Commission Rate (%)
+                                          <span className="field-hint">Platform fee percentage</span>
+                                        </label>
                                         <input
-                                          type="checkbox"
-                                          checked={editForm.featured ?? false}
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          step="0.5"
+                                          value={editForm.commission ?? 20}
                                           onChange={(e) =>
-                                            setEditForm({
-                                              ...editForm,
-                                              featured: e.target.checked,
-                                            })
+                                            setEditForm({ ...editForm, commission: parseFloat(e.target.value) || 0 })
                                           }
-                                          className="form-checkbox"
+                                          className="form-input"
                                         />
-                                        <span className="checkbox-label-text">
-                                          Featured restaurant
-                                        </span>
-                                      </label>
-                                    </div>
+                                      </div>
 
-                                    <div className="form-field full-width">
-                                      <label className="field-label">
-                                        Delivery
-                                        <span className="field-hint">
+                                      <div className="form-field">
+                                        <label className="field-label">
+                                          VAT Number
+                                          <span className="field-hint">UK format: GB followed by 9 digits. Leave blank if not VAT-registered.</span>
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={editVatNumber}
+                                          onChange={(e) => setEditVatNumber(e.target.value)}
+                                          placeholder="GB123456789"
+                                          className="form-input"
+                                          maxLength={20}
+                                        />
+                                      </div>
+                                    </div>
+                                  </section>
+
+                                  <section className={sectionClass("hygiene")}>
+                                    <button
+                                      type="button"
+                                      className="edit-form-section-header"
+                                      onClick={() => toggleSection("hygiene")}
+                                    >
+                                      <h4 className="edit-form-section-title">Food hygiene</h4>
+                                      <ChevronDown size={16} className="edit-form-section-chevron" />
+                                    </button>
+                                    <div className="edit-form-grid">
+                                      <div className="form-field">
+                                        <label className="field-label">FSA Rating</label>
+                                        <select
+                                          value={editForm.fsa ?? ""}
+                                          onChange={(e) =>
+                                            setEditForm({ ...editForm, fsa: e.target.value ? parseInt(e.target.value) : undefined })
+                                          }
+                                          className="form-input"
+                                        >
+                                          <option value="">Not Set</option>
+                                          <option value="5">5 - Very Good</option>
+                                          <option value="4">4 - Good</option>
+                                          <option value="3">3 - Generally Satisfactory</option>
+                                          <option value="2">2 - Improvement Necessary</option>
+                                          <option value="1">1 - Major Improvement Necessary</option>
+                                          <option value="0">0 - Urgent Improvement Necessary</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="form-field">
+                                        <label className="field-label">FSA Link</label>
+                                        <input
+                                          type="url"
+                                          value={editForm.fsaLink || ""}
+                                          onChange={(e) =>
+                                            setEditForm({ ...editForm, fsaLink: e.target.value })
+                                          }
+                                          className="form-input"
+                                          placeholder="https://ratings.food.gov.uk/..."
+                                        />
+                                      </div>
+                                    </div>
+                                  </section>
+
+                                  <section className={sectionClass("delivery")}>
+                                    <button
+                                      type="button"
+                                      className="edit-form-section-header"
+                                      onClick={() => toggleSection("delivery")}
+                                    >
+                                      <div>
+                                        <h4 className="edit-form-section-title">Delivery</h4>
+                                        <span className="edit-form-section-hint">
                                           {deliverySettingsStatus === "loading"
                                             ? "Loading current settings…"
                                             : deliverySettingsStatus === "error"
                                             ? "Failed to load — reopen editor to retry"
-                                            : "Who delivers this restaurant's catering orders, and how far"}
+                                            : "Pickup address, who delivers this restaurant's catering orders, and how far"}
                                         </span>
-                                      </label>
-                                      <label className="checkbox-label restaurant-type-toggle">
-                                        <input
-                                          type="checkbox"
-                                          checked={editSelfDeliveryEnabled}
-                                          disabled={deliverySettingsStatus !== "ready"}
-                                          onChange={(e) =>
-                                            setEditSelfDeliveryEnabled(e.target.checked)
-                                          }
-                                          className="form-checkbox"
-                                        />
-                                        <span className="checkbox-label-text">
-                                          Restaurant delivers its own orders (within the range below)
-                                        </span>
-                                      </label>
-                                      <label className="field-label" style={{ marginTop: "0.75rem" }}>
-                                        Max delivery range (miles)
-                                        <span className="field-hint">
-                                          {editSelfDeliveryEnabled
-                                            ? "Within this range the restaurant delivers; beyond it a Swift courier collects the order"
-                                            : "Orders beyond this distance are not accepted"}
-                                        </span>
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="0.5"
-                                        max="20"
-                                        step="0.5"
-                                        value={editMaxDeliveryRangeMiles}
-                                        disabled={deliverySettingsStatus !== "ready"}
-                                        onChange={(e) =>
-                                          setEditMaxDeliveryRangeMiles(
-                                            parseFloat(e.target.value) || 0.5
-                                          )
-                                        }
-                                        className="form-input"
-                                      />
-                                    </div>
-
-                                    <div className="form-field full-width">
-                                      <div className="hours-editor-header">
+                                      </div>
+                                      <ChevronDown size={16} className="edit-form-section-chevron" />
+                                    </button>
+                                    <div className="edit-form-grid">
+                                      <div className="form-field full-width">
                                         <label className="field-label">
-                                          Catering Hours
+                                          Delivery Address
                                           <span className="field-hint">
-                                            Weekly schedule used for catering ordering availability
+                                            Used for delivery price calculations. Search to update.
                                           </span>
                                         </label>
-                                        <button
-                                          type="button"
-                                          onClick={() => setHoursEditorExpanded((prev) => !prev)}
-                                          className="hours-editor-toggle"
-                                        >
-                                          {hoursEditorExpanded ? "Collapse" : "Edit Hours"}
-                                        </button>
-                                      </div>
-                                      {!hoursEditorExpanded && (
-                                        <p className="hours-editor-summary">
-                                          {formatCateringHours(restaurant.cateringOperatingHours)}
-                                        </p>
-                                      )}
-                                      {hoursEditorExpanded ? <div className="hours-editor">
-                                        {HOURS_DAYS.map((day) => {
-                                          const dayData = hoursSchedule[day];
-                                          return (
-                                            <div key={day} className="hours-editor-day">
-                                              <div className="hours-editor-day-header">
-                                                <label className="checkbox-label restaurant-type-toggle">
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={dayData.enabled}
-                                                    onChange={() => toggleHoursDay(day)}
-                                                    className="form-checkbox"
-                                                  />
-                                                  <span className="checkbox-label-text">{day}</span>
-                                                </label>
-                                                {dayData.enabled ? <button
-                                                    type="button"
-                                                    onClick={() => addHoursSlot(day)}
-                                                    className="hours-editor-add-slot"
-                                                  >
-                                                    + Add slot
-                                                  </button> : null}
-                                              </div>
-                                              {!dayData.enabled && (
-                                                <p className="hours-editor-closed">Closed</p>
-                                              )}
-                                              {dayData.enabled ? dayData.slots.map((slot, slotIdx) => (
-                                                  <div key={slotIdx} className="hours-editor-slot">
-                                                    <select
-                                                      value={slot.open}
-                                                      onChange={(e) =>
-                                                        updateHoursSlot(day, slotIdx, "open", e.target.value)
-                                                      }
-                                                      className="form-input"
-                                                    >
-                                                      {HOURS_TIME_OPTIONS.map((opt) => (
-                                                        <option key={opt.value} value={opt.value}>
-                                                          {opt.label}
-                                                        </option>
-                                                      ))}
-                                                    </select>
-                                                    <span>-</span>
-                                                    <select
-                                                      value={slot.close}
-                                                      onChange={(e) =>
-                                                        updateHoursSlot(day, slotIdx, "close", e.target.value)
-                                                      }
-                                                      className="form-input"
-                                                    >
-                                                      {HOURS_TIME_OPTIONS.map((opt) => (
-                                                        <option key={opt.value} value={opt.value}>
-                                                          {opt.label}
-                                                        </option>
-                                                      ))}
-                                                    </select>
-                                                    {dayData.slots.length > 1 && (
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => removeHoursSlot(day, slotIdx)}
-                                                        className="tag-chip-remove"
-                                                      >
-                                                        ×
-                                                      </button>
-                                                    )}
-                                                  </div>
-                                                )) : null}
-                                            </div>
-                                          );
-                                        })}
-                                      </div> : null}
-                                    </div>
-
-                                    <div className="form-field full-width">
-                                      <label className="field-label">Description</label>
-                                      <textarea
-                                        value={editForm.restaurant_description || ""}
-                                        onChange={(e) =>
-                                          setEditForm({ ...editForm, restaurant_description: e.target.value })
-                                        }
-                                        className="form-textarea"
-                                        rows={3}
-                                        placeholder="Restaurant description..."
-                                      />
-                                    </div>
-
-                                    <div className="form-field full-width">
-                                      <label className="field-label">
-                                        Delivery Address
-                                        <span className="field-hint">
-                                          Used for delivery price calculations. Search to update.
-                                        </span>
-                                      </label>
-                                      <GooglePlacesAutocomplete
-                                        onPlaceSelect={(place) => setPendingAddress(place)}
-                                        defaultValue={
-                                          restaurant.address
-                                            ? [
-                                                restaurant.address.addressLine1,
-                                                restaurant.address.city,
-                                                restaurant.address.zipcode,
-                                              ]
-                                                .filter(Boolean)
-                                                .join(", ")
-                                            : ""
-                                        }
-                                      />
-                                      {(pendingAddress || restaurant.address) ? <div className="address-preview">
-                                          <div className="address-preview-grid">
-                                            <div className="address-preview-item">
-                                              <span className="address-preview-label">Street</span>
-                                              <span className="address-preview-value">
-                                                {pendingAddress?.addressLine1 ||
-                                                  restaurant.address?.addressLine1 ||
-                                                  "—"}
-                                              </span>
-                                            </div>
-                                            <div className="address-preview-item">
-                                              <span className="address-preview-label">City</span>
-                                              <span className="address-preview-value">
-                                                {pendingAddress?.city ||
-                                                  restaurant.address?.city ||
-                                                  "—"}
-                                              </span>
-                                            </div>
-                                            <div className="address-preview-item">
-                                              <span className="address-preview-label">Postcode</span>
-                                              <span className="address-preview-value">
-                                                {pendingAddress?.zipcode ||
-                                                  restaurant.address?.zipcode ||
-                                                  "—"}
-                                              </span>
-                                            </div>
-                                            <div className="address-preview-item">
-                                              <span className="address-preview-label">Coordinates</span>
-                                              <span className="address-preview-value">
-                                                {(
-                                                  pendingAddress?.location ||
-                                                  restaurant.address?.location
-                                                )
-                                                  ? `${(pendingAddress?.location?.latitude ?? restaurant.address?.location?.latitude)?.toFixed(6)}, ${(pendingAddress?.location?.longitude ?? restaurant.address?.location?.longitude)?.toFixed(6)}`
-                                                  : "—"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                          {pendingAddress ? <div className="address-changed-badge">
-                                              <MapPin size={12} />
-                                              Address updated — save to apply
-                                            </div> : null}
-                                        </div> : null}
-                                    </div>
-
-                                    <div className="form-field full-width">
-                                      <label className="field-label">
-                                        Restaurant Logo
-                                        <span className="field-hint">Circular logo shown on menu item cards</span>
-                                      </label>
-                                      <CateringImageUpload
-                                        imageUrl={editForm.logoImageUrl}
-                                        isUploading={uploadingLogoImage}
-                                        onImageSelect={handleLogoImageSelect}
-                                        onImageRemove={() => setEditForm({ ...editForm, logoImageUrl: "" })}
-                                        previewAspectRatio="1"
-                                      />
-                                    </div>
-
-                                    {isEditingShowOnSite ? <div className="form-field full-width">
-                                        <label className="field-label">
-                                          Catering Image
-                                          <span className="field-hint">Image shown on catering menu</span>
-                                        </label>
-                                        <CateringImageUpload
-                                          imageUrl={editForm.images}
-                                          isUploading={uploadingImage}
-                                          onImageSelect={handleImageSelect}
-                                          onImageRemove={() => setEditForm({ ...editForm, images: "" })}
+                                        <GooglePlacesAutocomplete
+                                          onPlaceSelect={(place) => setPendingAddress(place)}
+                                          defaultValue={
+                                            restaurant.address
+                                              ? [
+                                                  restaurant.address.addressLine1,
+                                                  restaurant.address.city,
+                                                  restaurant.address.zipcode,
+                                                ]
+                                                  .filter(Boolean)
+                                                  .join(", ")
+                                              : ""
+                                          }
                                         />
-                                      </div> : null}
-                                  </div>
+                                        {(pendingAddress || restaurant.address) ? <div className="address-preview">
+                                            <div className="address-preview-grid">
+                                              <div className="address-preview-item">
+                                                <span className="address-preview-label">Street</span>
+                                                <span className="address-preview-value">
+                                                  {pendingAddress?.addressLine1 ||
+                                                    restaurant.address?.addressLine1 ||
+                                                    "—"}
+                                                </span>
+                                              </div>
+                                              <div className="address-preview-item">
+                                                <span className="address-preview-label">City</span>
+                                                <span className="address-preview-value">
+                                                  {pendingAddress?.city ||
+                                                    restaurant.address?.city ||
+                                                    "—"}
+                                                </span>
+                                              </div>
+                                              <div className="address-preview-item">
+                                                <span className="address-preview-label">Postcode</span>
+                                                <span className="address-preview-value">
+                                                  {pendingAddress?.zipcode ||
+                                                    restaurant.address?.zipcode ||
+                                                    "—"}
+                                                </span>
+                                              </div>
+                                              <div className="address-preview-item">
+                                                <span className="address-preview-label">Coordinates</span>
+                                                <span className="address-preview-value">
+                                                  {(
+                                                    pendingAddress?.location ||
+                                                    restaurant.address?.location
+                                                  )
+                                                    ? `${(pendingAddress?.location?.latitude ?? restaurant.address?.location?.latitude)?.toFixed(6)}, ${(pendingAddress?.location?.longitude ?? restaurant.address?.location?.longitude)?.toFixed(6)}`
+                                                    : "—"}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            {pendingAddress ? <div className="address-changed-badge">
+                                                <MapPin size={12} />
+                                                Address updated — save to apply
+                                              </div> : null}
+                                          </div> : null}
+                                      </div>
+
+                                      <div className="form-field full-width">
+                                        <label className="checkbox-label restaurant-type-toggle">
+                                          <input
+                                            type="checkbox"
+                                            checked={editSelfDeliveryEnabled}
+                                            disabled={deliverySettingsStatus !== "ready"}
+                                            onChange={(e) =>
+                                              setEditSelfDeliveryEnabled(e.target.checked)
+                                            }
+                                            className="form-checkbox"
+                                          />
+                                          <span className="checkbox-label-text">
+                                            Restaurant delivers its own orders (within the max delivery range)
+                                          </span>
+                                        </label>
+                                      </div>
+
+                                      <div className="form-field">
+                                        <label className="field-label">
+                                          Max delivery range (miles)
+                                          <span className="field-hint">
+                                            {editSelfDeliveryEnabled
+                                              ? "Within this range the restaurant delivers; beyond it a Swift courier collects the order"
+                                              : "Orders beyond this distance are not accepted"}
+                                          </span>
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="0.5"
+                                          max="20"
+                                          step="0.5"
+                                          value={editMaxDeliveryRangeMiles}
+                                          disabled={deliverySettingsStatus !== "ready"}
+                                          onChange={(e) =>
+                                            setEditMaxDeliveryRangeMiles(
+                                              parseFloat(e.target.value) || 0.5
+                                            )
+                                          }
+                                          className="form-input"
+                                        />
+                                      </div>
+                                    </div>
+                                  </section>
+
+                                  <section className={sectionClass("hours")}>
+                                    <button
+                                      type="button"
+                                      className="edit-form-section-header"
+                                      onClick={() => toggleSection("hours")}
+                                    >
+                                      <div>
+                                        <h4 className="edit-form-section-title">Catering hours</h4>
+                                        <span className="edit-form-section-hint">
+                                          Weekly schedule used for catering ordering availability
+                                        </span>
+                                      </div>
+                                      <ChevronDown size={16} className="edit-form-section-chevron" />
+                                    </button>
+                                    <div className="edit-form-grid">
+                                      <div className="form-field full-width">
+                                        <div className="hours-editor-header">
+                                          {!hoursEditorExpanded && (
+                                            <p className="hours-editor-summary">
+                                              {formatCateringHours(restaurant.cateringOperatingHours)}
+                                            </p>
+                                          )}
+                                          <button
+                                            type="button"
+                                            onClick={() => setHoursEditorExpanded((prev) => !prev)}
+                                            className="hours-editor-toggle"
+                                          >
+                                            {hoursEditorExpanded ? "Collapse" : "Edit Hours"}
+                                          </button>
+                                        </div>
+                                        {hoursEditorExpanded ? <div className="hours-editor">
+                                          {HOURS_DAYS.map((day) => {
+                                            const dayData = hoursSchedule[day];
+                                            return (
+                                              <div key={day} className="hours-editor-day">
+                                                <div className="hours-editor-day-header">
+                                                  <label className="checkbox-label restaurant-type-toggle">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={dayData.enabled}
+                                                      onChange={() => toggleHoursDay(day)}
+                                                      className="form-checkbox"
+                                                    />
+                                                    <span className="checkbox-label-text">{day}</span>
+                                                  </label>
+                                                  {dayData.enabled ? <button
+                                                      type="button"
+                                                      onClick={() => addHoursSlot(day)}
+                                                      className="hours-editor-add-slot"
+                                                    >
+                                                      + Add slot
+                                                    </button> : null}
+                                                </div>
+                                                {!dayData.enabled && (
+                                                  <p className="hours-editor-closed">Closed</p>
+                                                )}
+                                                {dayData.enabled ? dayData.slots.map((slot, slotIdx) => (
+                                                    <div key={slotIdx} className="hours-editor-slot">
+                                                      <select
+                                                        value={slot.open}
+                                                        onChange={(e) =>
+                                                          updateHoursSlot(day, slotIdx, "open", e.target.value)
+                                                        }
+                                                        className="form-input"
+                                                      >
+                                                        {HOURS_TIME_OPTIONS.map((opt) => (
+                                                          <option key={opt.value} value={opt.value}>
+                                                            {opt.label}
+                                                          </option>
+                                                        ))}
+                                                      </select>
+                                                      <span>-</span>
+                                                      <select
+                                                        value={slot.close}
+                                                        onChange={(e) =>
+                                                          updateHoursSlot(day, slotIdx, "close", e.target.value)
+                                                        }
+                                                        className="form-input"
+                                                      >
+                                                        {HOURS_TIME_OPTIONS.map((opt) => (
+                                                          <option key={opt.value} value={opt.value}>
+                                                            {opt.label}
+                                                          </option>
+                                                        ))}
+                                                      </select>
+                                                      {dayData.slots.length > 1 && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => removeHoursSlot(day, slotIdx)}
+                                                          className="tag-chip-remove"
+                                                        >
+                                                          ×
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  )) : null}
+                                              </div>
+                                            );
+                                          })}
+                                        </div> : null}
+                                      </div>
+                                    </div>
+                                  </section>
                                 </div>
                               ) : (
                                 <div className="settings-display">

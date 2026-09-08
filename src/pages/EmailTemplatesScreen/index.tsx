@@ -8,27 +8,45 @@ import type {
 import TemplateList from './TemplateList';
 import TemplatePreviewPane from './TemplatePreview';
 
-type Message = { type: 'success' | 'error'; text: string };
+/**
+ * `source` keeps the two independent failures apart: a list failure is fatal to
+ * the page, a preview failure is not, and a successful preview must not clear
+ * the list's banner.
+ */
+type Message = {
+  type: 'success' | 'error';
+  text: string;
+  source: 'list' | 'preview';
+};
 
 /**
  * Turns an axios failure into something an admin can act on. 403 is the common
  * case (signed in, but not UserRole.ADMIN) and deserves its own wording rather
  * than a blank screen.
  */
-const toMessage = (err: unknown, fallback: string): Message => {
+const toMessage = (
+  err: unknown,
+  fallback: string,
+  source: Message['source'],
+): Message => {
   if (axios.isAxiosError(err)) {
     const status = err.response?.status;
     if (status === 403) {
       return {
         type: 'error',
         text: 'Your account does not have admin access to the email template catalogue.',
+        source,
       };
     }
     if (status === 404) {
-      return { type: 'error', text: 'That template no longer exists.' };
+      return { type: 'error', text: 'That template no longer exists.', source };
     }
   }
-  return { type: 'error', text: err instanceof Error ? err.message : fallback };
+  return {
+    type: 'error',
+    text: err instanceof Error ? err.message : fallback,
+    source,
+  };
 };
 
 const SKELETON_BAR: React.CSSProperties = {
@@ -62,7 +80,7 @@ const EmailTemplatesScreen: React.FC = () => {
       })
       .catch((err: unknown) => {
         if (!active) return;
-        setMessage(toMessage(err, 'Failed to load email templates.'));
+        setMessage(toMessage(err, 'Failed to load email templates.', 'list'));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -84,12 +102,17 @@ const EmailTemplatesScreen: React.FC = () => {
       .then((res) => {
         if (!active) return;
         setPreview(res);
-        setMessage(null);
+        // Only retire a previous *preview* error; a list error is still true.
+        setMessage((current) =>
+          current && current.source === 'preview' ? null : current,
+        );
       })
       .catch((err: unknown) => {
         if (!active) return;
         setPreview(null);
-        setMessage(toMessage(err, 'Failed to load the template preview.'));
+        setMessage(
+          toMessage(err, 'Failed to load the template preview.', 'preview'),
+        );
       })
       .finally(() => {
         if (active) setPreviewLoading(false);
@@ -105,6 +128,9 @@ const EmailTemplatesScreen: React.FC = () => {
     // server for a variant the new template does not declare.
     setVariant(null);
   }, []);
+
+  const selectedSummary =
+    templates.find((t) => t.id === selectedId) ?? null;
 
   return (
     <div style={{ padding: 24 }}>
@@ -178,6 +204,7 @@ const EmailTemplatesScreen: React.FC = () => {
             onSelect={handleSelect}
           />
           <TemplatePreviewPane
+            summary={selectedSummary}
             preview={preview}
             loading={previewLoading}
             variant={variant}

@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
-import type { EmailTemplatePreview } from '../../types/email-templates.types';
+import React, { useEffect, useState } from 'react';
+import type {
+  EmailTemplatePreview,
+  EmailTemplateSummary,
+} from '../../types/email-templates.types';
 
 interface TemplatePreviewProps {
+  /**
+   * The selected row's summary. Every field except `html` is already here, so
+   * the header and variables cards render without waiting for the fetch and
+   * stay mounted across a selection change.
+   */
+  summary: EmailTemplateSummary | null;
+  /** The rendered body. Null while the first fetch is in flight, or on error. */
   preview: EmailTemplatePreview | null;
   loading: boolean;
   /** Currently requested variant name, or null for the default sample params. */
@@ -22,7 +32,10 @@ const RENDER_FAILURE_PREFIX = '<p>Template failed to render:';
 
 const VARIABLES_COLLAPSE_THRESHOLD = 8;
 
+const MONOSPACE = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
 const TemplatePreview: React.FC<TemplatePreviewProps> = ({
+  summary,
   preview,
   loading,
   variant,
@@ -31,17 +44,14 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   const [mode, setMode] = useState<'desktop' | 'mobile'>('desktop');
   const [variablesExpanded, setVariablesExpanded] = useState(false);
 
-  if (loading) {
-    return (
-      <div style={{ flex: 1 }}>
-        <div style={CARD}>
-          <p style={{ margin: 0, color: '#6b7280' }}>Loading preview…</p>
-        </div>
-      </div>
-    );
-  }
+  const summaryId = summary?.id ?? null;
+  // Collapse again when the selection changes: "Show fewer" against a template
+  // the user never expanded is a lie about the list they are looking at.
+  useEffect(() => {
+    setVariablesExpanded(false);
+  }, [summaryId]);
 
-  if (!preview) {
+  if (!summary) {
     return (
       <div style={{ flex: 1 }}>
         <div style={CARD}>
@@ -54,13 +64,17 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   }
 
   const width = mode === 'mobile' ? 390 : '100%';
-  const failed = preview.html.startsWith(RENDER_FAILURE_PREFIX);
-  const collapsible =
-    preview.variables.length > VARIABLES_COLLAPSE_THRESHOLD;
+  const failed = preview?.html.startsWith(RENDER_FAILURE_PREFIX) ?? false;
+  const collapsible = summary.variables.length > VARIABLES_COLLAPSE_THRESHOLD;
   const visibleVariables =
     collapsible && !variablesExpanded
-      ? preview.variables.slice(0, VARIABLES_COLLAPSE_THRESHOLD)
-      : preview.variables;
+      ? summary.variables.slice(0, VARIABLES_COLLAPSE_THRESHOLD)
+      : summary.variables;
+  // The server is authoritative about which variant was actually rendered: it
+  // silently falls back to the default sample params for an unknown name. Only
+  // while a request is in flight does the requested name stand in, so the
+  // <select> does not jump back under the user mid-fetch.
+  const selectedVariant = preview && !loading ? preview.variant : variant;
 
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -81,7 +95,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               margin: 0,
             }}
           >
-            {preview.name}
+            {summary.name}
           </h2>
           <code
             style={{
@@ -90,17 +104,16 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               borderRadius: 999,
               padding: '3px 10px',
               fontSize: '0.72rem',
-              fontFamily:
-                'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+              fontFamily: MONOSPACE,
             }}
           >
-            {preview.id}
+            {summary.id}
           </code>
         </div>
         <p
           style={{ fontSize: '0.82rem', color: '#6b7280', margin: '6px 0 14px' }}
         >
-          {preview.description}
+          {summary.description}
         </p>
 
         <div
@@ -122,11 +135,11 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
           <span
             style={{ fontSize: '0.9rem', fontWeight: 600, color: '#111827' }}
           >
-            {preview.subjectPreview}
+            {summary.subjectPreview}
           </span>
         </div>
 
-        {preview.variants.length > 0 ? (
+        {summary.variants.length > 0 ? (
           <div
             style={{
               marginTop: 14,
@@ -142,7 +155,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               Variant
             </span>
             <select
-              value={variant ?? ''}
+              value={selectedVariant ?? ''}
               onChange={(e) => onVariantChange(e.target.value || null)}
               style={{
                 padding: '6px 8px',
@@ -152,7 +165,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               }}
             >
               <option value="">Default sample</option>
-              {preview.variants.map((name) => (
+              {summary.variants.map((name) => (
                 <option key={name} value={name}>
                   {name}
                 </option>
@@ -179,7 +192,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               margin: 0,
             }}
           >
-            Variables ({preview.variables.length})
+            Variables ({summary.variables.length})
           </h3>
           {collapsible ? (
             <button
@@ -198,12 +211,12 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
             >
               {variablesExpanded
                 ? 'Show fewer'
-                : `Show all ${preview.variables.length}`}
+                : `Show all ${summary.variables.length}`}
             </button>
           ) : null}
         </div>
 
-        {preview.variables.length === 0 ? (
+        {summary.variables.length === 0 ? (
           <p
             style={{ fontSize: '0.82rem', color: '#6b7280', margin: '10px 0 0' }}
           >
@@ -233,8 +246,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
                         fontSize: '0.82rem',
                         fontWeight: 600,
                         color: '#111827',
-                        fontFamily:
-                          'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                        fontFamily: MONOSPACE,
                       }}
                     >
                       {v.name}
@@ -291,6 +303,18 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
             }}
           >
             Preview
+            {loading ? (
+              <span
+                style={{
+                  marginLeft: 8,
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#6b7280',
+                }}
+              >
+                Loading…
+              </span>
+            ) : null}
           </h3>
           <div style={{ display: 'flex', gap: 8 }}>
             {(['desktop', 'mobile'] as const).map((option) => (
@@ -332,6 +356,13 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
           </div>
         ) : null}
 
+        {/*
+          Only this gutter changes while a preview loads: the header, subject,
+          variant select and variables above stay mounted, so clicking through
+          the catalogue does not repaint the whole pane. The previous body is
+          held at 40% opacity rather than blanked, which keeps the scroll
+          position and the gutter height stable between templates.
+        */}
         <div
           style={{
             background: '#f3f4f6',
@@ -339,28 +370,38 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
             padding: 16,
             display: 'flex',
             justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: 200,
+            opacity: loading ? 0.4 : 1,
+            transition: 'opacity 120ms ease',
           }}
         >
-          {/*
-            Sandboxed with no tokens at all: no allow-scripts and no
-            allow-same-origin, so a template cannot run script or reach the
-            parent's localStorage (where the admin JWT lives). srcDoc also keeps
-            the document's own <style> and body background from leaking out and
-            restyling the dashboard, and it matches how a mail client renders.
-            Never dangerouslySetInnerHTML.
-          */}
-          <iframe
-            title="Email preview"
-            sandbox=""
-            srcDoc={preview.html}
-            style={{
-              width,
-              height: 800,
-              border: 'none',
-              background: '#fff',
-              display: 'block',
-            }}
-          />
+          {preview ? (
+            /*
+              Sandboxed with no tokens at all: no allow-scripts and no
+              allow-same-origin, so a template cannot run script or reach the
+              parent's localStorage (where the admin JWT lives). srcDoc also
+              keeps the document's own <style> and body background from leaking
+              out and restyling the dashboard, and it matches how a mail client
+              renders. Never dangerouslySetInnerHTML.
+            */
+            <iframe
+              title="Email preview"
+              sandbox=""
+              srcDoc={preview.html}
+              style={{
+                width,
+                height: 800,
+                border: 'none',
+                background: '#fff',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+              {loading ? 'Loading preview…' : 'No preview available.'}
+            </span>
+          )}
         </div>
         <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '8px 0 0' }}>
           Links are disabled in preview.

@@ -25,6 +25,7 @@ import {
   faDatabase,
   faSliders,
   faStar,
+  faEnvelope,
 } from "@fortawesome/free-solid-svg-icons";
 import authService from "../services/auth.service";
 import cateringService from "../services/catering.service";
@@ -61,6 +62,7 @@ export type SidebarPage =
   | "reviews"
   | "catering-ai-config"
   | "catering-settings"
+  | "email-templates"
   | "miscellaneous"
   | "cache";
 
@@ -195,6 +197,11 @@ const navSections: NavSection[] = [
         id: "catering-settings" as SidebarPage,
         label: "Catering Settings",
         icon: <FontAwesomeIcon icon={faSliders} style={iconCommonStyle} />,
+      },
+      {
+        id: "email-templates" as SidebarPage,
+        label: "Email Templates",
+        icon: <FontAwesomeIcon icon={faEnvelope} style={iconCommonStyle} />,
       },
       {
         id: "restaurant",

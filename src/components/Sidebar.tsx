@@ -130,12 +130,12 @@ const navSections: NavSection[] = [
   },
   {
     id: "orders",
-    label: "Orders",
+    label: "Catering",
     mode: "swift",
     items: [
       {
         id: "catering",
-        label: "Catering Orders",
+        label: "Orders",
         icon: <FontAwesomeIcon icon={faUsers} style={iconCommonStyle} />,
       },
       {
@@ -145,12 +145,12 @@ const navSections: NavSection[] = [
       },
       {
         id: "catering-sessions",
-        label: "Drivers",
+        label: "Deliveries",
         icon: <FontAwesomeIcon icon={faMotorcycle} style={iconCommonStyle} />,
       },
       {
         id: "catering-financials",
-        label: "Catering Financials",
+        label: "Financials",
         icon: <FontAwesomeIcon icon={faChartBar} style={iconCommonStyle} />,
       },
     ],
@@ -209,8 +209,13 @@ const navSections: NavSection[] = [
       },
       {
         id: "catering-bundles",
-        label: "Catering Bundles",
+        label: "Bundles",
         icon: <FontAwesomeIcon icon={faBox} style={iconCommonStyle} />,
+      },
+      {
+        id: "miscellaneous",
+        label: "Miscellaneous",
+        icon: <FontAwesomeIcon icon={faWrench} style={iconCommonStyle} />,
       },
       {
         id: "partner-spaces" as SidebarPage,
@@ -282,18 +287,6 @@ const navSections: NavSection[] = [
         id: "pending-transfers",
         label: "Pending Transfers",
         icon: <FontAwesomeIcon icon={faRightLeft} style={iconCommonStyle} />,
-      },
-    ],
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    mode: "swift",
-    items: [
-      {
-        id: "miscellaneous",
-        label: "Miscellaneous",
-        icon: <FontAwesomeIcon icon={faWrench} style={iconCommonStyle} />,
       },
     ],
   },

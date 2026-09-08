@@ -29,6 +29,7 @@ import CateringSessionsScreen from "./pages/CateringSessionsScreen";
 import ChatbotLogsScreen from "./pages/ChatbotLogsScreen";
 import CateringAiConfigScreen from "./pages/CateringAiConfigScreen";
 import CateringSettingsScreen from "./pages/CateringSettingsScreen";
+import EmailTemplatesScreen from "./pages/EmailTemplatesScreen";
 import CommissionInvoicesScreen from "./pages/CommissionInvoicesScreen";
 import FeedbackIssuesScreen from "./pages/FeedbackIssuesScreen";
 import ReviewsScreen from "./pages/ReviewsScreen";
@@ -50,6 +51,7 @@ export const pathToPageMap: Record<string, SidebarPage> = {
   reviews: "reviews",
   "catering-ai-config": "catering-ai-config",
   "catering-settings": "catering-settings",
+  "email-templates": "email-templates",
   "commission-invoices": "commission-invoices",
   "catering-financials": "catering-financials",
   restaurants: "restaurant",
@@ -80,6 +82,7 @@ export const pageToPathMap: Record<SidebarPage, string> = {
   reviews: "reviews",
   "catering-ai-config": "catering-ai-config",
   "catering-settings": "catering-settings",
+  "email-templates": "email-templates",
   "commission-invoices": "commission-invoices",
   "catering-financials": "catering-financials",
   restaurant: "restaurants",
@@ -110,6 +113,7 @@ const swiftPages: SidebarPage[] = [
   "reviews",
   "catering-ai-config",
   "catering-settings",
+  "email-templates",
   "commission-invoices",
   "catering-financials",
   "restaurant",
@@ -189,6 +193,8 @@ function PageRenderer() {
         return <CateringAiConfigScreen />;
       case "catering-settings":
         return <CateringSettingsScreen />;
+      case "email-templates":
+        return <EmailTemplatesScreen />;
       case "commission-invoices":
         return <CommissionInvoicesScreen />;
       case "feedback-issues":

@@ -12,6 +12,7 @@ import "leaflet/dist/leaflet.css";
 import Sidebar from "./components/Sidebar";
 import type { SidebarPage, AdminMode } from "./components/Sidebar";
 import PromotionsScreen from "./pages/PromotionsScreen";
+import DashboardScreen from "./pages/DashboardScreen/DashboardScreen";
 import RestaurantAdminDashboard from "./pages/RestaurantScreen/RestaurantScreen";
 import CategoriesScreen from "./pages/CategoriesScreen/CategoriesScreen";
 import BundlesScreen from "./pages/BundlesScreen/BundlesScreen";
@@ -229,7 +230,9 @@ function PageRenderer() {
       case "home":
         if (adminMode === "coworking") return <CoworkingSpacesScreen />;
         if (adminMode === "prismo") return <PrismoDashboard />;
-        return <RestaurantAdminDashboard />;
+        // Swift's home is the ops dashboard, not the restaurant list it used
+        // to borrow.
+        return <DashboardScreen onNavigate={handleNavigate} />;
       default:
         if (adminMode === "coworking") return <CoworkingSpacesScreen />;
         if (adminMode === "prismo") return <PrismoDashboard />;

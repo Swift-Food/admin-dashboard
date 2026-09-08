@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import Modal from '../../components/Modal/Modal';
 import type {
   EmailTemplatePreview,
@@ -362,9 +364,22 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              style={{ ...TOGGLE_BUTTON, background: '#fff', color: '#051661' }}
+              aria-label="Expand preview"
+              title="Expand preview"
+              style={{
+                ...TOGGLE_BUTTON,
+                background: '#fff',
+                color: '#051661',
+                // Icon-only, so square off the horizontal padding and centre
+                // the glyph; the flex row stretches it to the toggle's height.
+                padding: '5px 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+              }}
             >
-              Expand
+              <FontAwesomeIcon icon={faExpand} style={{ fontSize: '0.85rem' }} />
             </button>
           </div>
         </div>

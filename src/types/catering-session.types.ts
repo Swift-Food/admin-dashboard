@@ -160,6 +160,11 @@ export interface AdminDeliverySession {
   activeBooking: CateringDeliveryBooking | null;
   suggestedPackages: PackageCounts;
   needsRebooking: boolean;
+  /**
+   * The number the backend would give the courier for this pickup, so the
+   * booking form can offer it. Null when the restaurant holds nothing usable.
+   */
+  suggestedPickupPhone: string | null;
 }
 
 /** One of the courier's published rules that this booking breaks. */
@@ -194,14 +199,48 @@ export interface DeliveryPricePreview {
   constraints?: CourierConstraintResult | null;
 }
 
-/** A courier company's published service rules, as held by the backend. */
+/**
+ * A booking read back from the courier's own system by its id — how a booking
+ * made on their dashboard is checked before being attached to a session.
+ */
+export interface ProviderExistingBooking {
+  externalOrderId: string;
+  /** The courier's own status word, e.g. "Scheduled". */
+  providerStatus: string;
+  /** False while it is still a draft, or once cancelled. */
+  isConfirmed: boolean;
+  price: number | null;
+  currency: string;
+  serviceTier: string | null;
+  trackingUrl: string | null;
+  taskIds: { pickupIds: string[]; dropoffIds: string[] } | null;
+  startDate: string | null;
+  endDate: string | null;
+  pickupAddress: string | null;
+  dropAddress: string | null;
+  orderReference: string | null;
+}
+
+/** One vehicle class a courier offers, and the portions it tops out at. */
+export interface CourierServiceTier {
+  service: string;
+  label: string;
+  maxPortions: number | null;
+}
+
+/**
+ * A courier company's published service rules, as held by the backend.
+ * Everything except `source` is optional: we hold a full rate card for
+ * Pedivan but only tiers and a portion ceiling for Pedal Me, and inventing
+ * the rest would be worse than leaving it out.
+ */
 export interface CourierServiceRules {
-  serviceLevels: {
+  serviceLevels?: {
     expressMaxWindowMinutes: number;
     sameDayMaxWindowMinutes: number;
     overnight: boolean;
   };
-  zones: Array<{
+  zones?: Array<{
     name: string;
     postcodeDistricts: string[] | null;
     servicingOpen: string;
@@ -210,6 +249,10 @@ export interface CourierServiceRules {
     expressCutoff: string;
     vehicles: string;
   }>;
+  /** Beyond this, Swift delivers it — no courier will take the job. */
+  maxPortions?: number;
+  /** Vehicle classes the admin can choose between (Pedal Me's cargo bikes). */
+  serviceTiers?: CourierServiceTier[];
   packaging: { boxType: "small" | "medium" | "large"; portionsPerBox: number };
   source: string;
 }

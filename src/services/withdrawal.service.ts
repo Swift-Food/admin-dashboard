@@ -24,4 +24,10 @@ export const withdrawalService = {
     const res = await http.post<{ checked: number; updated: number }>("/withdrawals/admin/reconcile");
     return res.data;
   },
+
+  /** Remittance advice PDF for one withdrawal (exists once it has a payout). */
+  downloadRemittance: async (id: string): Promise<Blob> => {
+    const res = await http.get(`/withdrawals/${id}/remittance`, { responseType: "blob" });
+    return res.data as Blob;
+  },
 };

@@ -44,6 +44,8 @@ export interface Restaurant {
   restaurant_name: string;
   restaurant_description: string | null;
   commission: number;
+  /** What a customer must spend with this restaurant, in £, per meal session. */
+  minimumOrderValue?: number;
   address?: Address;
   addressId: string;
   phoneNumber: string | null;
@@ -84,10 +86,24 @@ export interface UpdateAvailabilityDto {
   deviceToken: string | null;
 }
 
+// Self-delivery settings live on a dedicated endpoint
+// (`GET|PUT restaurants/:restaurantId/delivery-settings`), not the generic
+// restaurant update DTO below — same reasoning as the VAT number pair.
+export interface RestaurantDeliverySettings {
+  selfDeliveryEnabled: boolean;
+  maxDeliveryRangeMiles: number;
+}
+
+export interface UpdateRestaurantDeliverySettingsDto {
+  selfDeliveryEnabled?: boolean;
+  maxDeliveryRangeMiles?: number;
+}
+
 export interface UpdateRestaurantDto {
   restaurant_name?: string;
   restaurant_description?: string;
   commission?: number;
+  minimumOrderValue?: number;
   featured?: boolean;
   showOnSite?: boolean;
   fsa?: number;

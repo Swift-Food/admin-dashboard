@@ -7,17 +7,42 @@ import type {
   CourierProviderInfo,
   DeliveryPricePreview,
   PackageCounts,
+  ProviderExistingBooking,
 } from "../types/catering-session.types";
+
+/** "08 Sep, 17:15" — courier times, in the reader's own timezone. */
+const formatWhen = (iso: string): string =>
+  new Date(iso).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 const errText = (e: unknown): string =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
   (e as Error).message ??
   "Request failed";
 
+/** Used only if the providers endpoint has not answered yet. */
+const FALLBACK_PROVIDERS: CourierProviderInfo[] = [
+  { key: "pedivan", label: "Pedivan", configured: true },
+  { key: "pedalme", label: "Pedal Me", configured: true },
+];
+
 const PROVIDER_LABEL: Record<string, string> = {
   pedivan: "Pedivan",
   pedalme: "Pedal Me",
   swift: "Swift",
+};
+
+/** Pedal Me's official vehicle names for the wire values we send. */
+const SERVICE_TIER_LABEL: Record<string, string> = {
+  cargo: "Large Cargo",
+  cargoSmall: "Small Cargo",
+  cargoTiny: "Tiny Cargo",
+  cargoMicro: "Micro Cargo",
+  trailer: "Trailer",
 };
 
 const BOOKING_STATE_BADGE: Record<string, string> = {
@@ -61,14 +86,44 @@ const ViolationList = ({
   );
 };
 
-/** One line of the courier's published rules, from the backend's rule set. */
+/**
+ * One line of the courier's published rules. We hold a full rate card for
+ * Pedivan (hours, cut-offs, zones) but only tiers and a portion ceiling for
+ * Pedal Me, so each half is rendered only when we actually have it.
+ */
 const rulesSummary = (rules: CourierProviderInfo["rules"]): string | null => {
   if (!rules) return null;
-  const zone = rules.zones.find((z) => z.postcodeDistricts !== null) ?? rules.zones[0];
-  if (!zone) return null;
-  const expressH = rules.serviceLevels.expressMaxWindowMinutes / 60;
-  return `${zone.name}: ${zone.servicingOpen}–${zone.servicingClose}, book by ${zone.sameDayCutoff} on the day, express when collection→delivery is under ${expressH}h, ${rules.packaging.boxType} box per ${rules.packaging.portionsPerBox} portions.`;
+  const parts: string[] = [];
+
+  const zone = rules.zones?.find((z) => z.postcodeDistricts !== null) ?? rules.zones?.[0];
+  if (zone) {
+    parts.push(`${zone.name}: ${zone.servicingOpen}–${zone.servicingClose}, book by ${zone.sameDayCutoff} on the day`);
+  }
+  if (rules.serviceLevels) {
+    parts.push(`express when collection→delivery is under ${rules.serviceLevels.expressMaxWindowMinutes / 60}h`);
+  }
+  parts.push(`${rules.packaging.boxType} box per ${rules.packaging.portionsPerBox} portions`);
+  if (rules.maxPortions) {
+    parts.push(`over ${rules.maxPortions} portions Swift delivers it`);
+  }
+  return parts.length ? `${parts.join(", ")}.` : null;
 };
+
+/** One courier's answer for this job, gathered so the two can be read together. */
+interface CourierQuote {
+  provider: BookableProvider;
+  quote: DeliveryPricePreview | null;
+  /** Why this courier cannot be used, in their own words. */
+  error?: string;
+}
+
+/** True when a quote carries a violation the courier will refuse outright. */
+const isBlocked = (quote: DeliveryPricePreview | null): boolean =>
+  !!quote?.constraints?.violations.some((v) => v.severity === "block");
+
+/** "Tiny Cargo (up to 39 portions)" — the label for one vehicle choice. */
+const tierOptionLabel = (tier: { label: string; service: string; maxPortions: number | null }): string =>
+  tier.maxPortions ? `${tier.label} (up to ${tier.maxPortions} portions)` : tier.label;
 
 /** Book / cancel / inspect the courier for one meal session. */
 const CourierBookingSection = ({
@@ -82,12 +137,20 @@ const CourierBookingSection = ({
   provider: BookableProvider;
   providers: CourierProviderInfo[];
 }) => {
-  const { session, activeBooking, bookings, suggestedPackages, needsRebooking } = entry;
+  const { session, activeBooking, bookings, suggestedPackages, needsRebooking, suggestedPickupPhone } = entry;
   const [packages, setPackages] = useState<PackageCounts>(
     activeBooking?.packages ?? suggestedPackages
   );
   const [pickupNotes, setPickupNotes] = useState("");
   const [dropNotes, setDropNotes] = useState("");
+  // Courier-only, never stored: the person the rider asks for, and a
+  // number to reach them on when the restaurant record has none.
+  const [pickupContactName, setPickupContactName] = useState("");
+  // Prefilled with the restaurant's own number when we hold a usable one,
+  // so there is only something to type when there genuinely isn't.
+  const [pickupContactPhone, setPickupContactPhone] = useState(suggestedPickupPhone ?? "");
+  // "" = let the courier's portion table pick the vehicle.
+  const [serviceTier, setServiceTier] = useState("");
   const [price, setPrice] = useState<DeliveryPricePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,8 +160,17 @@ const CourierBookingSection = ({
   const [confirmQuote, setConfirmQuote] = useState<DeliveryPricePreview | null>(null);
   // What the same route would cost as same-day, when the quote is express.
   const [sameDayQuote, setSameDayQuote] = useState<DeliveryPricePreview | null>(null);
-  // "Handled manually": the courier was booked on its own dashboard, outside the system.
+  // Prices from every courier for this exact job, so the cheaper one is a
+  // reading rather than two rounds of quoting and remembering a number.
+  const [comparison, setComparison] = useState<CourierQuote[] | null>(null);
+  // Booking can go to a courier other than the one selected above — picking a
+  // price is the decision, and the payload carries the provider.
+  const [bookWith, setBookWith] = useState<BookableProvider>(provider);
+  // The courier was booked on its own dashboard: look it up by id and attach
+  // it, or (for couriers with no lookup API) record what the admin types.
   const [manualOpen, setManualOpen] = useState(false);
+  const [lookupId, setLookupId] = useState("");
+  const [found, setFound] = useState<ProviderExistingBooking | null>(null);
   const [manualRef, setManualRef] = useState("");
   const [manualPrice, setManualPrice] = useState("");
   const [manualNotes, setManualNotes] = useState("");
@@ -117,14 +189,59 @@ const CourierBookingSection = ({
 
   const canBook = session.deliveryStatus === "awaiting_booking" && !activeBooking;
   const manual = isManualBooking(activeBooking);
+  // Ops moves a booking along by hand while the courier is sending us nothing —
+  // a hand-recorded one, or a real booking whose updates have never arrived.
+  const marksByHand = !!activeBooking && (manual || !activeBooking.lastWebhookAt);
   const providerKey = activeBooking?.provider ?? provider;
   const providerLabel = (key: string) =>
     providers.find((p) => p.key === key)?.label ?? PROVIDER_LABEL[key] ?? key;
   const providerConfigured = providers.length === 0 || providers.some((p) => p.key === provider && p.configured);
-  const rulesLine = rulesSummary(providers.find((p) => p.key === provider)?.rules);
+  // Only Pedal Me exposes an API for reading a booking back by its id.
+  const canLookUp = provider === "pedalme";
+  const providerRules = providers.find((p) => p.key === provider)?.rules;
+  const rulesLine = rulesSummary(providerRules);
+  const tiers = providerRules?.serviceTiers ?? [];
+  const tierLabel = (key: string) =>
+    tiers.find((t) => t.service === key)?.label ?? SERVICE_TIER_LABEL[key] ?? key;
 
-  const quoteCurrent = () =>
-    cateringDeliveryService.getPricePreview(session.id, packages, undefined, provider);
+  const quoteFor = (which: BookableProvider) =>
+    cateringDeliveryService.getPricePreview(
+      session.id,
+      packages,
+      undefined,
+      which,
+      undefined,
+      // A vehicle choice belongs to the courier it was chosen for.
+      which === provider ? serviceTier || undefined : undefined
+    );
+  const quoteCurrent = () => quoteFor(provider);
+
+  /**
+   * Ask every configured courier for this same job at once. Two round trips
+   * and a remembered number was the old way to answer "which is cheaper".
+   */
+  const compareCouriers = async () => {
+    const candidates: CourierProviderInfo[] = (
+      providers.length ? providers : FALLBACK_PROVIDERS
+    ).filter((p) => p.configured !== false);
+    const results = await Promise.all(
+      candidates.map(async (p): Promise<CourierQuote> => {
+        try {
+          return { provider: p.key, quote: await quoteFor(p.key) };
+        } catch (e) {
+          return { provider: p.key, quote: null, error: errText(e) };
+        }
+      })
+    );
+    setComparison(results);
+    const cheapest = results
+      .filter((r) => r.quote && !isBlocked(r.quote))
+      .sort((a, b) => (a.quote!.price ?? 0) - (b.quote!.price ?? 0))[0];
+    if (cheapest) {
+      setBookWith(cheapest.provider);
+      setPrice(cheapest.quote);
+    }
+  };
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
@@ -146,14 +263,34 @@ const CourierBookingSection = ({
               mark pickup and delivery below.
             </p>
           ) : null}
-          <p>
-            <span className="font-semibold">Ref:</span>{" "}
-            {activeBooking.externalReference ?? (manual ? "not recorded" : activeBooking.externalOrderId)}
-            {activeBooking.quotedPrice ? <span className="ml-2 font-semibold">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>
+              <span className="font-semibold">
+                {manual ? "Ref:" : `${providerLabel(activeBooking.provider)} booking ID:`}
+              </span>{" "}
+              {/* The courier's own id — what you quote them to change or chase a booking. */}
+              <span className="font-mono select-all">
+                {activeBooking.externalReference ?? (manual ? "not recorded" : activeBooking.externalOrderId)}
+              </span>
+            </span>
+            {!manual ? (
+              <button
+                onClick={() =>
+                  navigator.clipboard
+                    ?.writeText(activeBooking.externalReference ?? activeBooking.externalOrderId)
+                    .catch(() => undefined)
+                }
+                className="px-1.5 py-0.5 rounded bg-white border border-blue-300 text-blue-800 font-semibold"
+                title="Copy the courier's booking ID"
+              >
+                Copy
+              </button>
+            ) : null}
+            {activeBooking.quotedPrice ? <span className="font-semibold">
                 {activeBooking.currency ?? "£"}
                 {activeBooking.quotedPrice}
               </span> : null}
-            {activeBooking.serviceTier && <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-xs">{activeBooking.serviceTier}</span>}
+            {activeBooking.serviceTier && <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-xs">{tierLabel(activeBooking.serviceTier)}</span>}
           </p>
           <p>
             <span className="font-semibold">Provider status:</span>{" "}
@@ -190,7 +327,7 @@ const CourierBookingSection = ({
                 Where's the rider?
               </button>
             )}
-            {manual && session.deliveryStatus === "booked" ? (
+            {marksByHand && session.deliveryStatus === "booked" ? (
               <button
                 disabled={busy}
                 onClick={() =>
@@ -204,7 +341,7 @@ const CourierBookingSection = ({
                 Mark picked up
               </button>
             ) : null}
-            {manual && (session.deliveryStatus === "booked" || session.deliveryStatus === "out_for_delivery") ? (
+            {marksByHand && (session.deliveryStatus === "booked" || session.deliveryStatus === "out_for_delivery") ? (
               <button
                 disabled={busy}
                 onClick={() =>
@@ -295,7 +432,7 @@ const CourierBookingSection = ({
           </p>
           {rulesLine ? <p className="text-xs text-gray-500">{rulesLine}</p> : null}
 
-          {/* Handled manually: booked on the courier's dashboard, outside the system */}
+          {/* Already booked on the courier's dashboard: pull it in by its id. */}
           <div className="border border-amber-200 bg-amber-50/50 rounded px-3 py-2 text-xs space-y-2">
             {!manualOpen ? (
               <div className="flex items-center justify-between gap-3">
@@ -307,15 +444,122 @@ const CourierBookingSection = ({
                   onClick={() => setManualOpen(true)}
                   className="px-3 py-1 rounded bg-white border border-amber-600 text-amber-800 font-semibold whitespace-nowrap disabled:opacity-50"
                 >
-                  Handled manually…
+                  {canLookUp ? "Link it by booking ID…" : "Record it by hand…"}
                 </button>
               </div>
+            ) : canLookUp ? (
+              <>
+                <p className="text-gray-700">
+                  Paste the <span className="font-semibold">booking ID</span> from{" "}
+                  <span className="font-semibold">{providerLabel(provider)}</span> — not the order number — and we
+                  fetch the rest: price, vehicle, times and tracking. Their updates then come through automatically,
+                  so you never have to mark pickup or delivery by hand.
+                </p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="text-gray-700 flex-1 min-w-[220px]">
+                    {providerLabel(provider)} booking ID
+                    <span className="ml-1 font-normal text-gray-500">
+                      — e.g. uixfp2p3J5eQ23Kr4
+                    </span>
+                    <input
+                      value={lookupId}
+                      onChange={(e) => {
+                        setLookupId(e.target.value);
+                        setFound(null);
+                      }}
+                      placeholder="e.g. uixfp2p3J5eQ23Kr4"
+                      className="mt-1 block w-full border border-gray-300 rounded px-2 py-1 font-mono"
+                    />
+                    <span className="mt-1 block text-gray-500">
+                      Open the booking on {providerLabel(provider)} — the ID is the code at the end of its web address.
+                    </span>
+                  </label>
+                  <button
+                    disabled={busy || !lookupId.trim()}
+                    onClick={() =>
+                      run(async () => {
+                        setFound(
+                          await cateringDeliveryService.lookupProviderBooking(provider, lookupId.trim())
+                        );
+                      })
+                    }
+                    className="px-3 py-1.5 rounded bg-white border border-amber-600 text-amber-800 font-semibold disabled:opacity-50"
+                  >
+                    {busy ? "Looking up…" : "Look up"}
+                  </button>
+                </div>
+
+                {found ? (
+                  <div className="bg-white border border-gray-200 rounded px-3 py-2 space-y-1">
+                    <p className="font-semibold text-gray-800">
+                      Found on {providerLabel(provider)} — {found.providerStatus}
+                    </p>
+                    <p className="text-gray-700">
+                      {found.price != null ? (
+                        <span className="font-semibold">
+                          {found.currency}
+                          {found.price.toFixed(2)}
+                        </span>
+                      ) : (
+                        "no price yet"
+                      )}
+                      {found.serviceTier ? ` · ${tierLabel(found.serviceTier)}` : ""}
+                      {found.orderReference ? ` · order ${found.orderReference}` : ""}
+                    </p>
+                    {found.startDate || found.endDate ? (
+                      <p className="text-gray-600">
+                        {found.startDate ? `Collect ${formatWhen(found.startDate)}` : ""}
+                        {found.endDate ? ` · deliver by ${formatWhen(found.endDate)}` : ""}
+                      </p>
+                    ) : null}
+                    {found.pickupAddress ? <p className="text-gray-500">From {found.pickupAddress}</p> : null}
+                    {found.dropAddress ? <p className="text-gray-500">To {found.dropAddress}</p> : null}
+                    {!found.isConfirmed ? (
+                      <p className="text-amber-800 font-semibold">
+                        This is still {found.providerStatus} on {providerLabel(provider)} — confirm it there first.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      setManualOpen(false);
+                      setFound(null);
+                    }}
+                    className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 font-semibold disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={busy || !found?.isConfirmed}
+                    onClick={() =>
+                      run(async () => {
+                        await cateringDeliveryService.linkExistingBooking(session.id, {
+                          provider,
+                          externalOrderId: lookupId.trim(),
+                        });
+                        setManualOpen(false);
+                        setFound(null);
+                        onChanged();
+                      })
+                    }
+                    className="ml-auto px-3 py-1.5 rounded bg-amber-600 text-white font-semibold disabled:opacity-50"
+                  >
+                    {found?.isConfirmed
+                      ? `Attach this booking${found.price != null ? ` (${found.currency}${found.price.toFixed(2)})` : ""}`
+                      : "Look it up first"}
+                  </button>
+                </div>
+              </>
             ) : (
               <>
                 <p className="text-gray-700">
                   Record a booking you made on <span className="font-semibold">{providerLabel(provider)}</span>'s dashboard.
-                  Nothing is sent to the courier; the session just shows as booked, and you mark pickup and delivery
-                  here when they happen.
+                  {providerLabel(provider)} has no API for reading a booking back, so type what you have. Nothing is sent
+                  to the courier, and you mark pickup and delivery here when they happen.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <label className="text-gray-700">
@@ -385,7 +629,7 @@ const CourierBookingSection = ({
               {providerLabel(provider)} is not set up yet (no API credentials on the server), so quotes and bookings with it will fail.
             </div>
           ) : null}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             {(["small", "medium", "large"] as const).map((size) => (
               <label key={size} className="text-xs text-gray-700">
                 {size}
@@ -401,6 +645,27 @@ const CourierBookingSection = ({
                 />
               </label>
             ))}
+            {/* Vehicle choice, for couriers that offer one (Pedal Me's cargo bikes). */}
+            {tiers.length > 0 ? (
+              <label className="text-xs text-gray-700">
+                vehicle
+                <select
+                  value={serviceTier}
+                  onChange={(e) => {
+                    setPrice(null);
+                    setServiceTier(e.target.value);
+                  }}
+                  className="mt-1 block border border-gray-300 rounded px-2 py-1 bg-white"
+                >
+                  <option value="">Automatic (from portions)</option>
+                  {tiers.map((tier) => (
+                    <option key={tier.service} value={tier.service}>
+                      {tierOptionLabel(tier)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
           </div>
           <input
             placeholder="Pickup notes (optional)"
@@ -408,6 +673,26 @@ const CourierBookingSection = ({
             onChange={(e) => setPickupNotes(e.target.value)}
             className="block w-full border border-gray-300 rounded px-2 py-1 text-xs"
           />
+          {/* Who the rider asks for. We only hold the business name, so this is
+              typed per booking rather than kept on the restaurant. */}
+          <div className="flex flex-wrap gap-2">
+            <input
+              placeholder="Pickup contact name (optional)"
+              value={pickupContactName}
+              onChange={(e) => setPickupContactName(e.target.value)}
+              className="flex-1 min-w-[160px] block border border-gray-300 rounded px-2 py-1 text-xs"
+            />
+            <input
+              placeholder={
+                suggestedPickupPhone
+                  ? "Pickup contact phone"
+                  : "Pickup contact phone — none on file, please add one"
+              }
+              value={pickupContactPhone}
+              onChange={(e) => setPickupContactPhone(e.target.value)}
+              className="flex-1 min-w-[160px] block border border-gray-300 rounded px-2 py-1 text-xs"
+            />
+          </div>
           <input
             placeholder="Delivery notes (optional)"
             value={dropNotes}
@@ -415,17 +700,89 @@ const CourierBookingSection = ({
             className="block w-full border border-gray-300 rounded px-2 py-1 text-xs"
           />
           <ViolationList quote={price} />
+
+          {comparison ? (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              {comparison
+                .slice()
+                .sort((a, b) => (a.quote?.price ?? Infinity) - (b.quote?.price ?? Infinity))
+                .map((row, index) => {
+                  const usable = !!row.quote && !isBlocked(row.quote);
+                  const cheapest = index === 0 && usable;
+                  return (
+                    <div
+                      key={row.provider}
+                      className={`flex items-center gap-3 px-3 py-2 border-b last:border-b-0 border-gray-100 ${
+                        row.provider === bookWith ? "bg-indigo-50/60" : "bg-white"
+                      }`}
+                    >
+                      <span className="font-semibold text-gray-800 w-24">{providerLabel(row.provider)}</span>
+                      {row.quote ? (
+                        <>
+                          <span className="font-bold text-gray-900">
+                            {row.quote.currency}
+                            {row.quote.price.toFixed(2)}
+                          </span>
+                          {row.quote.isExpress != null ? (
+                            <span
+                              className={`px-1.5 py-0.5 rounded ${
+                                row.quote.isExpress ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800"
+                              }`}
+                            >
+                              {row.quote.isExpress ? "express" : "same-day"}
+                            </span>
+                          ) : null}
+                          {cheapest ? (
+                            <span className="px-1.5 py-0.5 rounded bg-green-600 text-white font-semibold">cheapest</span>
+                          ) : null}
+                          {!usable ? (
+                            <span className="text-red-700">cannot take this job</span>
+                          ) : null}
+                          <button
+                            disabled={busy || !usable}
+                            onClick={() => {
+                              setBookWith(row.provider);
+                              setPrice(row.quote);
+                            }}
+                            className={`ml-auto px-2 py-1 rounded font-semibold disabled:opacity-40 ${
+                              row.provider === bookWith
+                                ? "bg-indigo-600 text-white"
+                                : "bg-white border border-indigo-500 text-indigo-700"
+                            }`}
+                          >
+                            {row.provider === bookWith ? "Selected" : "Use this"}
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-red-700">{row.error ?? "no price"}</span>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-2">
             <button
               disabled={busy}
               onClick={() =>
                 run(async () => {
+                  setComparison(null);
+                  setBookWith(provider);
                   setPrice(await quoteCurrent());
                 })
               }
               className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-xs font-semibold disabled:opacity-50"
             >
               Get price
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => run(compareCouriers)}
+              className="px-3 py-1.5 rounded bg-white border border-gray-300 text-gray-800 text-xs font-semibold disabled:opacity-50"
+              title="Quote every courier for this job at once"
+            >
+              {busy ? "Quoting…" : "Compare couriers"}
             </button>
             {price ? <span className="text-xs font-semibold text-gray-700">
                 {price.currency}{price.price.toFixed(2)}{price.miles != null ? ` (${price.miles.toFixed(1)} mi)` : ""}
@@ -440,7 +797,7 @@ const CourierBookingSection = ({
               onClick={() =>
                 run(async () => {
                   // Always quote the boxes/provider as they are right now, then ask.
-                  const quote = await quoteCurrent();
+                  const quote = await quoteFor(bookWith);
                   let sameDay: DeliveryPricePreview | null = null;
                   if (quote.isExpress) {
                     try {
@@ -448,8 +805,9 @@ const CourierBookingSection = ({
                         session.id,
                         packages,
                         undefined,
-                        provider,
-                        false
+                        bookWith,
+                        false,
+                        bookWith === provider ? serviceTier || undefined : undefined
                       );
                     } catch {
                       sameDay = null;
@@ -496,7 +854,7 @@ const CourierBookingSection = ({
           <div className="bg-white rounded-lg p-6 max-w-md mx-4 w-full">
             <h3 className="text-lg font-bold mb-1 text-gray-900">Book this courier?</h3>
             <p className="text-xs text-gray-500 mb-4">
-              This creates a real booking with {providerLabel(provider)}. Check the details first.
+              This creates a real booking with {providerLabel(bookWith)}. Check the details first.
             </p>
 
             <dl className="text-sm text-gray-800 space-y-2 mb-4">
@@ -534,12 +892,20 @@ const CourierBookingSection = ({
               ) : null}
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Courier</dt>
-                <dd className="font-medium">{providerLabel(provider)}</dd>
+                <dd className="font-medium">{providerLabel(bookWith)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Boxes</dt>
                 <dd className="font-medium">{boxSummary(packages)}</dd>
               </div>
+              {tiers.length > 0 ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-gray-500">Vehicle</dt>
+                  <dd className="font-medium">
+                    {serviceTier ? tierLabel(serviceTier) : "Automatic (from portions)"}
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Session</dt>
                 <dd className="font-medium text-right">
@@ -560,6 +926,14 @@ const CourierBookingSection = ({
                 <dt className="text-gray-500">Drop</dt>
                 <dd className="font-medium text-right">{session.cateringOrder?.deliveryAddress || "—"}</dd>
               </div>
+              {pickupContactName || pickupContactPhone ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-gray-500">Pickup contact</dt>
+                  <dd className="font-medium text-right">
+                    {[pickupContactName, pickupContactPhone].filter(Boolean).join(" · ")}
+                  </dd>
+                </div>
+              ) : null}
               {pickupNotes || dropNotes ? (
                 <div className="flex justify-between gap-4">
                   <dt className="text-gray-500">Notes</dt>
@@ -603,7 +977,10 @@ const CourierBookingSection = ({
                       packages,
                       pickupNotes: pickupNotes || undefined,
                       dropNotes: dropNotes || undefined,
-                      provider,
+                      pickupContactName: pickupContactName.trim() || undefined,
+                      pickupContactPhone: pickupContactPhone.trim() || undefined,
+                      provider: bookWith,
+                      serviceTier: bookWith === provider ? serviceTier || undefined : undefined,
                     });
                     setConfirmQuote(null);
                     onChanged();

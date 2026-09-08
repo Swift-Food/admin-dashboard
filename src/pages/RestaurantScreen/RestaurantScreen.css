@@ -723,12 +723,82 @@
 /* Edit Form */
 .edit-form {
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.edit-form-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: white;
+  overflow: hidden;
+}
+
+.edit-form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  width: 100%;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.edit-form-section-header:hover {
+  background: #f3f4f6;
+}
+
+.edit-form-section:not(.open) .edit-form-section-header {
+  border-bottom: none;
+}
+
+.edit-form-section:not(.open) .edit-form-grid {
+  display: none;
+}
+
+.edit-form-section-chevron {
+  flex-shrink: 0;
+  color: #6b7280;
+  transition: transform 0.15s ease;
+}
+
+.edit-form-section.open .edit-form-section-chevron {
+  transform: rotate(180deg);
+}
+
+.edit-form-section-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #374151;
+}
+
+.edit-form-section-hint {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #6b7280;
+  margin-top: 0.125rem;
 }
 
 .edit-form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+
+.edit-form-section .edit-form-grid {
+  padding: 1rem 1.25rem 1.25rem;
 }
 
 .form-field {
@@ -852,9 +922,13 @@
 /* Catering Hours Editor */
 .hours-editor-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.hours-editor-header .hours-editor-toggle {
+  margin-left: auto;
 }
 
 .hours-editor-toggle {

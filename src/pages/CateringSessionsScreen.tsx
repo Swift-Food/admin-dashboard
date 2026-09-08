@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import type {
   AdminDeliverySession,
   BookableProvider,
@@ -11,6 +11,33 @@ import SelfDeliverySection from "../components/SelfDeliverySection";
 import { Modal } from "../components/Modal";
 
 // Status configuration
+/**
+ * How far off a session is, in the words ops uses. A bare date does not tell
+ * you whether something is a problem — "today" does.
+ */
+const daysAway = (sessionDate: string | Date): number => {
+  const d = new Date(sessionDate);
+  if (Number.isNaN(d.getTime())) return Number.POSITIVE_INFINITY;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const then = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((then.getTime() - start.getTime()) / 86400000);
+};
+
+/** "Today · Tue 8 Sep" — the heading each day's deliveries sit under. */
+const dayHeading = (sessionDate: string | Date): string => {
+  const days = daysAway(sessionDate);
+  const date = new Date(sessionDate).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  if (days === 0) return `Today · ${date}`;
+  if (days === 1) return `Tomorrow · ${date}`;
+  if (days === -1) return `Yesterday · ${date}`;
+  return date;
+};
+
 const STATUS_CONFIG: Record<
   MealSessionDeliveryStatus,
   { label: string; color: string; bgColor: string; borderColor: string }
@@ -509,7 +536,11 @@ const CateringSessionsScreen = () => {
   const sortedSessions = [...filteredSessions].sort((a, b) => {
     const dateA = new Date(a.session.sessionDate).getTime();
     const dateB = new Date(b.session.sessionDate).getTime();
-    return activeTab === "completed" ? dateB - dateA : dateA - dateB;
+    if (dateA !== dateB) return activeTab === "completed" ? dateB - dateA : dateA - dateB;
+    // Within a day, order by collection time: a day should read as a run sheet.
+    const at = a.session.collectionTime || a.session.eventTime || "";
+    const bt = b.session.collectionTime || b.session.eventTime || "";
+    return at.localeCompare(bt);
   });
 
   // Count sessions per tab
@@ -538,19 +569,17 @@ const CateringSessionsScreen = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-8">
+      <div className="p-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Catering Sessions
-          </h1>
-          <p className="text-lg text-gray-600">
-            Monitor and track all catering meal session deliveries
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">Deliveries</h1>
+          <p className="text-sm text-gray-500">
+            Every catering session, and who is getting it there
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-2 mb-4">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -558,14 +587,14 @@ const CateringSessionsScreen = () => {
                 setActiveTab(tab.id);
                 setStatusFilter("ALL");
               }}
-              className={`px-6 py-3 rounded-xl font-bold text-base transition-all ${
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                 activeTab === tab.id
                   ? tab.id === "to_book"
-                    ? "bg-yellow-600 text-white shadow-lg"
+                    ? "bg-yellow-600 text-white shadow"
                     : tab.id === "in_progress"
-                    ? "bg-blue-600 text-white shadow-lg"
-                    : "bg-green-600 text-white shadow-lg"
-                  : "bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300"
+                    ? "bg-blue-600 text-white shadow"
+                    : "bg-green-600 text-white shadow"
+                  : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
               }`}
             >
               {tab.label} ({tabCounts[tab.id]})
@@ -574,29 +603,7 @@ const CateringSessionsScreen = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-8 p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-7 gap-4 mb-6">
-            {Object.entries(STATUS_CONFIG).map(([status, config]) => {
-              const count = allSessions.filter(
-                (entry) => entry.session.deliveryStatus === status
-              ).length;
-              return (
-                <div
-                  key={status}
-                  className={`p-4 rounded-xl border-2 ${config.borderColor} ${config.bgColor}`}
-                >
-                  <p
-                    className={`text-xs font-semibold uppercase ${config.color}`}
-                  >
-                    {config.label}
-                  </p>
-                  <p className={`text-2xl font-bold ${config.color}`}>{count}</p>
-                </div>
-              );
-            })}
-          </div>
-
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 p-4">
           {/* Filter Inputs */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
@@ -663,125 +670,146 @@ const CateringSessionsScreen = () => {
         <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Session
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-32">
+                    Collect
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Scheduled Time
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    From
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Restaurants
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    To
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Destination
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    Delivery
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-4 py-2.5 text-right text-xs font-bold text-gray-600 uppercase tracking-wider w-32" />
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {sortedSessions.map((entry) => {
+                {sortedSessions.map((entry, index) => {
                   const { session } = entry;
                   const statusConfig = STATUS_CONFIG[session.deliveryStatus];
                   const pickupRestaurants = Object.values(
                     session.restaurantPickupAddresses ?? {}
                   );
+                  const days = daysAway(session.sessionDate);
+                  const needsCourier =
+                    session.deliveryStatus === "awaiting_booking" && !entry.activeBooking;
+                  // A day heading wherever the date changes: scanning a list by
+                  // day is how anyone actually reads a delivery schedule.
+                  const previous = sortedSessions[index - 1]?.session.sessionDate;
+                  const startsNewDay =
+                    !previous ||
+                    new Date(previous).toDateString() !==
+                      new Date(session.sessionDate).toDateString();
+
                   return (
-                    <tr
-                      key={session.id}
-                      className="hover:bg-blue-50 transition-colors border-b border-gray-100"
-                    >
-                      {/* Session ID */}
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <div className="text-sm font-bold text-gray-900">
-                          {session.sessionName}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          #{session.id.slice(0, 4).toUpperCase()}
-                        </div>
-                        {session.cateringOrder?.customerName ? <div className="text-xs text-blue-600 mt-1">
-                            {session.cateringOrder.customerName}
-                          </div> : null}
-                      </td>
-
-                      {/* Scheduled Time */}
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {new Date(session.sessionDate).toLocaleDateString()}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {session.eventTime || "N/A"}
-                        </div>
-                      </td>
-
-                      {/* Restaurants */}
-                      <td className="px-6 py-5">
-                        {pickupRestaurants.length === 0 ? (
-                          <span className="text-sm text-gray-400">
-                            No restaurants
-                          </span>
-                        ) : pickupRestaurants.length === 1 ? (
-                          <div className="text-sm font-medium text-gray-900">
-                            {pickupRestaurants[0].name}
-                          </div>
-                        ) : (
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {pickupRestaurants[0].name}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              +{pickupRestaurants.length - 1} more
-                            </div>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Destination */}
-                      <td className="px-6 py-5">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {session.cateringOrder?.deliveryAddress || "N/A"}
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}
+                    <Fragment key={session.id}>
+                      {startsNewDay ? (
+                        <tr className="bg-gray-50/80">
+                          <td
+                            colSpan={5}
+                            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${
+                              days <= 1 ? "text-red-700" : "text-gray-500"
+                            }`}
                           >
-                            {statusConfig.label}
-                          </span>
-                          {entry.needsRebooking ? <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-amber-100 text-amber-800">
-                              Rebook
-                            </span> : null}
-                          {entry.activeBooking?.trackingUrl ? <a
-                              href={entry.activeBooking.trackingUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Live tracking"
-                              className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
-                            >
-                              Live ↗
-                            </a> : null}
-                        </div>
-                      </td>
+                            {dayHeading(session.sessionDate)}
+                          </td>
+                        </tr>
+                      ) : null}
+                      <tr
+                        onClick={() => setSelectedSessionId(session.id)}
+                        className="hover:bg-blue-50/60 transition-colors cursor-pointer"
+                      >
+                        {/* Collection time — what a courier booking turns on */}
+                        <td className="px-4 py-3 whitespace-nowrap align-top">
+                          <div className="text-sm font-bold text-gray-900">
+                            {session.collectionTime || session.eventTime || "—"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {session.eventTime ? `event ${session.eventTime}` : ""}
+                          </div>
+                        </td>
 
-                      {/* Actions */}
-                      <td className="px-6 py-5 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => setSelectedSessionId(session.id)}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm"
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
+                        {/* From */}
+                        <td className="px-4 py-3 align-top">
+                          <div className="text-sm text-gray-900">
+                            {pickupRestaurants.length === 0
+                              ? "No restaurants"
+                              : pickupRestaurants.map((r) => r.name).join(", ")}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {session.sessionName}
+                            {session.cateringOrder?.customerName
+                              ? ` · ${session.cateringOrder.customerName}`
+                              : ""}
+                          </div>
+                        </td>
+
+                        {/* To */}
+                        <td className="px-4 py-3 align-top">
+                          <div className="text-sm text-gray-700 max-w-xs truncate">
+                            {session.cateringOrder?.deliveryAddress || "—"}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            #{session.id.slice(0, 4).toUpperCase()}
+                          </div>
+                        </td>
+
+                        {/* Delivery */}
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={`px-2 py-0.5 inline-flex text-xs font-bold rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}
+                            >
+                              {statusConfig.label}
+                            </span>
+                            {entry.needsRebooking ? (
+                              <span className="px-2 py-0.5 inline-flex text-xs font-bold rounded-full bg-amber-100 text-amber-800">
+                                Rebook
+                              </span>
+                            ) : null}
+                            {entry.activeBooking?.trackingUrl ? (
+                              <a
+                                href={entry.activeBooking.trackingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Live tracking"
+                                className="px-2 py-0.5 inline-flex text-xs font-bold rounded-full bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
+                              >
+                                Live ↗
+                              </a>
+                            ) : null}
+                          </div>
+                          {entry.activeBooking?.quotedPrice ? (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {entry.activeBooking.currency ?? "£"}
+                              {entry.activeBooking.quotedPrice}
+                            </div>
+                          ) : null}
+                        </td>
+
+                        {/* What to do about it */}
+                        <td className="px-4 py-3 whitespace-nowrap text-right align-top">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSessionId(session.id);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                              needsCourier
+                                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            {needsCourier ? "Book courier" : "Open"}
+                          </button>
+                        </td>
+                      </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>

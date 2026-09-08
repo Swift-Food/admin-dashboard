@@ -101,11 +101,18 @@ const SECTION_HEADING: React.CSSProperties = {
  * deliberately quieter than SECTION_HEADING, which keeps the larger 0.8rem type
  * and the #051661 brand colour. Not sticky: SECTION_HEADING already occupies
  * `top: 0` while filtering, and two sticky headings would overlap there.
+ *
+ * The bottom rule is the load-bearing part of the treatment and is deliberately
+ * darker than the top one: it is what separates the heading from the white rows
+ * it introduces, so it needs contrast against white, while the top rule only
+ * has to close the band against the rows above. Padding and border sit on the
+ * same element, so both rules span the full width of the pane rather than being
+ * inset - a section break, not decoration.
  */
 const GROUP_LABEL: React.CSSProperties = {
   background: '#f3f4f6',
   borderTop: '1px solid #e5e7eb',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: '1px solid #d1d5db',
   padding: '7px 12px',
   fontSize: '0.7rem',
   fontWeight: 800,

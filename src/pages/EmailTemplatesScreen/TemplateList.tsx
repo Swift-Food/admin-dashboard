@@ -30,6 +30,18 @@ const AUDIENCE_LABEL: Record<EmailAudience, string> = {
   partner: 'To partners',
 };
 
+/**
+ * A tab is the section heading without its "To " preposition — "To customers"
+ * becomes "Customers" — so a new audience still needs only the one
+ * AUDIENCE_LABEL entry. Anything that does not start with "To " is used as-is.
+ */
+const toTabLabel = (sectionLabel: string): string => {
+  const bare = sectionLabel.startsWith('To ')
+    ? sectionLabel.slice(3)
+    : sectionLabel;
+  return bare.charAt(0).toUpperCase() + bare.slice(1);
+};
+
 interface Section {
   audience: EmailAudience;
   label: string;
@@ -66,6 +78,9 @@ const buildSections = (templates: EmailTemplateSummary[]): Section[] => {
   });
 };
 
+const countTemplates = (section: Section): number =>
+  section.groups.reduce((sum, group) => sum + group.templates.length, 0);
+
 const SECTION_HEADING: React.CSSProperties = {
   position: 'sticky',
   top: 0,
@@ -95,6 +110,14 @@ const TRUNCATE: React.CSSProperties = {
   textOverflow: 'ellipsis',
 };
 
+const TAB_STRIP: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 4,
+  padding: '8px 8px 0',
+  borderBottom: '1px solid #e5e7eb',
+};
+
 const TemplateList: React.FC<TemplateListProps> = ({
   templates,
   selectedId,
@@ -102,22 +125,71 @@ const TemplateList: React.FC<TemplateListProps> = ({
 }) => {
   const [filter, setFilter] = useState('');
 
-  const sections = useMemo(() => {
-    const needle = filter.trim().toLowerCase();
-    const matched = needle
-      ? templates.filter((t) =>
-          `${t.name} ${t.description} ${t.subjectPreview}`
-            .toLowerCase()
-            .includes(needle),
-        )
-      : templates;
-    return buildSections(matched);
-  }, [templates, filter]);
+  // Every audience present in the data, in AUDIENCE_ORDER, with its full
+  // contents. Drives the tab strip and the unfiltered single-audience view.
+  const allSections = useMemo(() => buildSections(templates), [templates]);
 
-  const matchCount = sections.reduce(
-    (total, section) =>
-      total +
-      section.groups.reduce((sum, group) => sum + group.templates.length, 0),
+  const selectedAudience = useMemo(
+    () => templates.find((t) => t.id === selectedId)?.audience ?? null,
+    [templates, selectedId],
+  );
+
+  const [activeAudience, setActiveAudience] = useState<EmailAudience | null>(
+    null,
+  );
+  // The tab follows the selection: whenever `selectedId` changes (including the
+  // page's initial auto-select, which is why the first tab is never hardcoded
+  // to 'customer') the active tab moves to that template's audience. Adjusting
+  // state during render rather than in an effect keeps the two in step within a
+  // single commit, so the list never paints the wrong tab first.
+  const [syncedId, setSyncedId] = useState<string | null>(selectedId);
+  if (selectedId !== syncedId) {
+    setSyncedId(selectedId);
+    if (selectedAudience && selectedAudience !== activeAudience) {
+      setActiveAudience(selectedAudience);
+    }
+  }
+
+  // Guard against a stored audience that the latest data no longer contains.
+  const currentAudience =
+    activeAudience && allSections.some((s) => s.audience === activeAudience)
+      ? activeAudience
+      : (allSections[0]?.audience ?? null);
+
+  const needle = filter.trim().toLowerCase();
+  const filtering = needle.length > 0;
+
+  // The filter deliberately ignores the active tab: a match in another audience
+  // must stay reachable, so results are grouped by audience and labelled.
+  const matchSections = useMemo(() => {
+    if (!needle) return null;
+    return buildSections(
+      templates.filter((t) =>
+        `${t.name} ${t.description} ${t.subjectPreview}`
+          .toLowerCase()
+          .includes(needle),
+      ),
+    );
+  }, [templates, needle]);
+
+  // Per-tab counts: total contents normally, matching contents while
+  // filtering. A zero-match tab is dimmed but kept, so the strip does not
+  // reflow while the user types.
+  const countByAudience = useMemo(() => {
+    const source = matchSections ?? allSections;
+    const counts = new Map<EmailAudience, number>();
+    for (const section of source) {
+      counts.set(section.audience, countTemplates(section));
+    }
+    return counts;
+  }, [matchSections, allSections]);
+
+  const visibleSections = matchSections
+    ? matchSections
+    : allSections.filter((s) => s.audience === currentAudience);
+
+  const matchCount = (matchSections ?? allSections).reduce(
+    (total, section) => total + countTemplates(section),
     0,
   );
 
@@ -135,6 +207,41 @@ const TemplateList: React.FC<TemplateListProps> = ({
         overflow: 'hidden',
       }}
     >
+      <div style={TAB_STRIP} role="tablist" aria-label="Audience">
+        {allSections.map((section) => {
+          const active = section.audience === currentAudience;
+          const count = countByAudience.get(section.audience) ?? 0;
+          return (
+            <button
+              key={section.audience}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveAudience(section.audience)}
+              style={{
+                padding: '8px 10px',
+                border: 'none',
+                borderBottom: active
+                  ? '2px solid #040273'
+                  : '2px solid transparent',
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                background: active ? '#eef2ff' : 'transparent',
+                color: active ? '#040273' : '#6b7280',
+                opacity: count === 0 ? 0.5 : 1,
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+              }}
+            >
+              {toTabLabel(section.label)}{' '}
+              <span style={{ fontWeight: 400 }}>({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
         <input
           type="search"
@@ -151,7 +258,9 @@ const TemplateList: React.FC<TemplateListProps> = ({
           }}
         />
         <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#6b7280' }}>
-          {matchCount} of {templates.length} templates
+          {filtering
+            ? `${matchCount} of ${templates.length} templates match, across all audiences`
+            : `${matchCount} of ${templates.length} templates`}
         </div>
       </div>
 
@@ -162,9 +271,11 @@ const TemplateList: React.FC<TemplateListProps> = ({
           </p>
         ) : null}
 
-        {sections.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.audience}>
-            <h3 style={SECTION_HEADING}>{section.label}</h3>
+            {filtering ? (
+              <h3 style={SECTION_HEADING}>{section.label}</h3>
+            ) : null}
             {section.groups.map((group) => (
               <div key={`${section.audience}:${group.name}`}>
                 <div style={GROUP_LABEL}>{group.name}</div>

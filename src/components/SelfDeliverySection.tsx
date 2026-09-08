@@ -77,6 +77,16 @@ const SelfDeliverySection = ({
     self: session.restaurantFulfillment?.[restaurantId]?.method === "self",
   }));
 
+  // What the customer paid to have this session delivered. It is the obvious
+  // default for what a restaurant delivering it themselves should be paid —
+  // but only when they are the whole session: on a shared session a courier
+  // still collects from the others, so the fee cannot go wholly to one of
+  // them. There it stays blank, with the amount shown so it can be split.
+  const sessionDeliveryFee = Number(session.deliveryFee ?? 0);
+  const soleRestaurant = restaurants.length === 1;
+  const defaultFeeFor = (): string =>
+    soleRestaurant && sessionDeliveryFee > 0 ? sessionDeliveryFee.toFixed(2) : "";
+
   if (!canChange && !restaurants.some((r) => r.self)) return null;
 
   return (
@@ -129,7 +139,7 @@ const SelfDeliverySection = ({
                   disabled={busy}
                   onClick={() => {
                     setEditing(r.restaurantId);
-                    setAmount("");
+                    setAmount(defaultFeeFor());
                     setNote("");
                     setError(null);
                   }}
@@ -167,6 +177,15 @@ const SelfDeliverySection = ({
                   If Swift pays {r.name} for the delivery, enter the amount: it is added to their payout for this order
                   and shows on their payout receipt.
                 </p>
+                {sessionDeliveryFee > 0 ? (
+                  <p className="text-gray-600">
+                    The customer paid <span className="font-semibold">£{sessionDeliveryFee.toFixed(2)}</span>{" "}
+                    delivery for this session
+                    {soleRestaurant
+                      ? ", filled in below — clear it if Swift keeps it."
+                      : ", shared with the other restaurants here, so decide what this one's share is."}
+                  </p>
+                ) : null}
                 <label className="flex items-center gap-2">
                   <span>Pay for delivery £</span>
                   <input

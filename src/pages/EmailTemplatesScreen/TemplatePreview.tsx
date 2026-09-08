@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import type {
   EmailTemplatePreview,
   EmailTemplateSummary,
@@ -6,9 +6,10 @@ import type {
 
 interface TemplatePreviewProps {
   /**
-   * The selected row's summary. Every field except `html` is already here, so
-   * the header and variables cards render without waiting for the fetch and
-   * stay mounted across a selection change.
+   * The selected row's summary. Every rendered field except `html` is already
+   * here, so the header card renders without waiting for the fetch and stays
+   * mounted across a selection change. (`variables` is still carried by the
+   * API and the type; it is deliberately not displayed.)
    */
   summary: EmailTemplateSummary | null;
   /** The rendered body. Null while the first fetch is in flight, or on error. */
@@ -30,8 +31,6 @@ const CARD: React.CSSProperties = {
 /** The backend's degraded render, from safeRender(). Shown as an error. */
 const RENDER_FAILURE_PREFIX = '<p>Template failed to render:';
 
-const VARIABLES_COLLAPSE_THRESHOLD = 8;
-
 const MONOSPACE = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
 const TemplatePreview: React.FC<TemplatePreviewProps> = ({
@@ -42,14 +41,6 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   onVariantChange,
 }) => {
   const [mode, setMode] = useState<'desktop' | 'mobile'>('desktop');
-  const [variablesExpanded, setVariablesExpanded] = useState(false);
-
-  const summaryId = summary?.id ?? null;
-  // Collapse again when the selection changes: "Show fewer" against a template
-  // the user never expanded is a lie about the list they are looking at.
-  useEffect(() => {
-    setVariablesExpanded(false);
-  }, [summaryId]);
 
   if (!summary) {
     return (
@@ -65,11 +56,6 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
 
   const width = mode === 'mobile' ? 390 : '100%';
   const failed = preview?.html.startsWith(RENDER_FAILURE_PREFIX) ?? false;
-  const collapsible = summary.variables.length > VARIABLES_COLLAPSE_THRESHOLD;
-  const visibleVariables =
-    collapsible && !variablesExpanded
-      ? summary.variables.slice(0, VARIABLES_COLLAPSE_THRESHOLD)
-      : summary.variables;
   // The server is authoritative about which variant was actually rendered: it
   // silently falls back to the default sample params for an unknown name. Only
   // while a request is in flight does the requested name stand in, so the
@@ -173,115 +159,6 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
             </select>
           </div>
         ) : null}
-      </div>
-
-      <div style={CARD}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          <h3
-            style={{
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: '#051661',
-              margin: 0,
-            }}
-          >
-            Variables ({summary.variables.length})
-          </h3>
-          {collapsible ? (
-            <button
-              type="button"
-              onClick={() => setVariablesExpanded((open) => !open)}
-              style={{
-                padding: '5px 10px',
-                background: '#fff',
-                color: '#051661',
-                border: '1px solid #051661',
-                borderRadius: 8,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {variablesExpanded
-                ? 'Show fewer'
-                : `Show all ${summary.variables.length}`}
-            </button>
-          ) : null}
-        </div>
-
-        {summary.variables.length === 0 ? (
-          <p
-            style={{ fontSize: '0.82rem', color: '#6b7280', margin: '10px 0 0' }}
-          >
-            This template takes no parameters.
-          </p>
-        ) : (
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              marginTop: 10,
-              tableLayout: 'fixed',
-            }}
-          >
-            <tbody>
-              {visibleVariables.map((v) => (
-                <tr key={v.name} style={{ borderTop: '1px solid #f3f4f6' }}>
-                  <td
-                    style={{
-                      padding: '7px 8px 7px 0',
-                      width: '40%',
-                      verticalAlign: 'top',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        color: '#111827',
-                        fontFamily: MONOSPACE,
-                      }}
-                    >
-                      {v.name}
-                    </span>
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        background: '#f3f4f6',
-                        color: '#6b7280',
-                        borderRadius: 4,
-                        padding: '1px 6px',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {v.type}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      padding: '7px 0',
-                      fontSize: '0.82rem',
-                      color: '#4b5563',
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {v.sampleValue}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
 
       <div style={CARD}>

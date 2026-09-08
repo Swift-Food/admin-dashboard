@@ -44,6 +44,8 @@ export interface Restaurant {
   restaurant_name: string;
   restaurant_description: string | null;
   commission: number;
+  /** What a customer must spend with this restaurant, in £, per meal session. */
+  minimumOrderValue?: number;
   address?: Address;
   addressId: string;
   phoneNumber: string | null;
@@ -101,6 +103,7 @@ export interface UpdateRestaurantDto {
   restaurant_name?: string;
   restaurant_description?: string;
   commission?: number;
+  minimumOrderValue?: number;
   featured?: boolean;
   showOnSite?: boolean;
   fsa?: number;

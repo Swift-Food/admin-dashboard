@@ -1036,6 +1036,28 @@ const RestaurantAdminDashboard = () => {
 
                                       <div className="form-field">
                                         <label className="field-label">
+                                          Minimum order (£)
+                                          <span className="field-hint">
+                                            What a customer must spend with this restaurant per meal session. 0 means no minimum.
+                                          </span>
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          value={editForm.minimumOrderValue ?? 50}
+                                          onChange={(e) =>
+                                            setEditForm({
+                                              ...editForm,
+                                              minimumOrderValue: parseFloat(e.target.value) || 0,
+                                            })
+                                          }
+                                          className="form-input"
+                                        />
+                                      </div>
+
+                                      <div className="form-field">
+                                        <label className="field-label">
                                           VAT Number
                                           <span className="field-hint">UK format: GB followed by 9 digits. Leave blank if not VAT-registered.</span>
                                         </label>

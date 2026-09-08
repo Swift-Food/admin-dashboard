@@ -18,6 +18,18 @@ export interface CateringSettings {
   completionRewardValidDays: number;
   /** Max distance (miles) Swift will courier a catering order for a restaurant that does not self-deliver. */
   maxCourierDeliveryMiles: number;
+  /** Email last month's commission invoices to the bookkeeper automatically. */
+  commissionInvoiceEmailEnabled: boolean;
+  /** Primary recipient for the monthly commission-invoice pack. */
+  commissionInvoiceRecipient: string;
+  /** Comma-separated CC list for that email. */
+  commissionInvoiceCc: string;
+  /** Day of the month the previous month's pack is sent (1-28). */
+  commissionInvoiceSendDay: number;
+  /** While true the pack is diverted to commissionInvoiceRedirectTo for testing. */
+  commissionInvoiceRedirectEnabled: boolean;
+  /** Test destination used while the redirect is on. */
+  commissionInvoiceRedirectTo: string;
 }
 
 export interface Range {
@@ -35,6 +47,8 @@ export interface CateringSettingsResponse {
     completionRewardMaxDiscount: Range;
     completionRewardValidDays: Range;
     maxCourierDeliveryMiles: Range;
+    commissionInvoiceSendDay?: Range;
+    commissionInvoiceCcCount?: Range;
   };
 }
 

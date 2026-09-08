@@ -193,6 +193,8 @@ const navSections: NavSection[] = [
         id: "email-templates" as SidebarPage,
         label: "Email Templates",
         icon: <FontAwesomeIcon icon={faEnvelope} style={iconCommonStyle} />,
+      },
+      {
         id: "commission-invoices" as SidebarPage,
         label: "Commission Invoices",
         icon: <FontAwesomeIcon icon={faFileInvoiceDollar} style={iconCommonStyle} />,

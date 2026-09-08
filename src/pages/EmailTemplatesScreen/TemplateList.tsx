@@ -137,12 +137,19 @@ const TemplateList: React.FC<TemplateListProps> = ({
   const [activeAudience, setActiveAudience] = useState<EmailAudience | null>(
     null,
   );
-  // The tab follows the selection: whenever `selectedId` changes (including the
-  // page's initial auto-select, which is why the first tab is never hardcoded
-  // to 'customer') the active tab moves to that template's audience. Adjusting
-  // state during render rather than in an effect keeps the two in step within a
-  // single commit, so the list never paints the wrong tab first.
-  const [syncedId, setSyncedId] = useState<string | null>(selectedId);
+  // The tab follows the selection: whenever `selectedId` changes the active tab
+  // moves to that template's audience. Adjusting state during render rather
+  // than in an effect keeps the two in step within a single commit, so the list
+  // never paints the wrong tab first.
+  //
+  // `syncedId` is seeded `null`, never from `selectedId`: this list only mounts
+  // once the parent has already auto-selected a template, so seeding it from
+  // the prop would make the branch a no-op on mount and leave the initial tab
+  // to the fallback below - i.e. the first audience in AUDIENCE_ORDER rather
+  // than the audience of the template actually selected. Seeding null costs one
+  // extra pre-commit render pass and makes the initial tab genuinely derived
+  // from the selection.
+  const [syncedId, setSyncedId] = useState<string | null>(null);
   if (selectedId !== syncedId) {
     setSyncedId(selectedId);
     if (selectedAudience && selectedAudience !== activeAudience) {
@@ -224,6 +231,9 @@ const TemplateList: React.FC<TemplateListProps> = ({
                 borderBottom: active
                   ? '2px solid #040273'
                   : '2px solid transparent',
+                // Sit the accent underline on top of TAB_STRIP's grey rule
+                // instead of stacking a second rule beneath it.
+                marginBottom: -1,
                 borderTopLeftRadius: 6,
                 borderTopRightRadius: 6,
                 background: active ? '#eef2ff' : 'transparent',

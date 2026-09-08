@@ -95,13 +95,33 @@ const SECTION_HEADING: React.CSSProperties = {
   color: '#051661',
 };
 
+/**
+ * A group heading has to hold its own against rows whose names are 0.85rem/700
+ * in near-black, so it gets a band and rules of its own - but it stays
+ * deliberately quieter than SECTION_HEADING, which keeps the larger 0.8rem type
+ * and the #051661 brand colour. Not sticky: SECTION_HEADING already occupies
+ * `top: 0` while filtering, and two sticky headings would overlap there.
+ */
 const GROUP_LABEL: React.CSSProperties = {
-  padding: '10px 12px 4px',
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: '0.05em',
+  background: '#f3f4f6',
+  borderTop: '1px solid #e5e7eb',
+  borderBottom: '1px solid #e5e7eb',
+  padding: '7px 12px',
+  fontSize: '0.7rem',
+  fontWeight: 800,
+  letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: '#6b7280',
+  color: '#374151',
+};
+
+/**
+ * The first group of a section always follows another bottom rule - the filter
+ * box's in the tab view, SECTION_HEADING's while filtering - so it drops its
+ * own top border rather than drawing a doubled 2px rule.
+ */
+const GROUP_LABEL_FIRST: React.CSSProperties = {
+  ...GROUP_LABEL,
+  borderTop: 'none',
 };
 
 const TRUNCATE: React.CSSProperties = {
@@ -286,9 +306,11 @@ const TemplateList: React.FC<TemplateListProps> = ({
             {filtering ? (
               <h3 style={SECTION_HEADING}>{section.label}</h3>
             ) : null}
-            {section.groups.map((group) => (
+            {section.groups.map((group, groupIndex) => (
               <div key={`${section.audience}:${group.name}`}>
-                <div style={GROUP_LABEL}>{group.name}</div>
+                <div style={groupIndex === 0 ? GROUP_LABEL_FIRST : GROUP_LABEL}>
+                  {group.name}
+                </div>
                 {group.templates.map((template) => {
                   const selected = template.id === selectedId;
                   return (

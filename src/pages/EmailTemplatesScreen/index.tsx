@@ -133,13 +133,30 @@ const EmailTemplatesScreen: React.FC = () => {
     templates.find((t) => t.id === selectedId) ?? null;
 
   return (
-    <div style={{ padding: 24 }}>
+    /*
+      The screen owns the viewport: a fixed-height flex column that never grows
+      past 100vh, so the page itself has no scrollbar. Everything that scrolls
+      does so inside a pane. The app shell (`<div class="min-h-screen">` +
+      `<main>` in App.tsx) sets only a *minimum* height and no header above
+      `main`, so 100vh here is the full viewport with nothing to subtract.
+    */
+    <div
+      style={{
+        padding: 24,
+        height: '100vh',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       <h1
         style={{
           fontSize: '1.5rem',
           fontWeight: 700,
           color: '#051661',
           marginBottom: 6,
+          flexShrink: 0,
         }}
       >
         Email Templates
@@ -148,8 +165,9 @@ const EmailTemplatesScreen: React.FC = () => {
         style={{
           fontSize: '0.9rem',
           color: '#4b5563',
-          marginBottom: 20,
+          marginBottom: 16,
           maxWidth: 720,
+          flexShrink: 0,
         }}
       >
         Every email Swift sends to customers, restaurants and partners, grouped
@@ -167,6 +185,7 @@ const EmailTemplatesScreen: React.FC = () => {
             fontSize: '0.9rem',
             marginBottom: 16,
             maxWidth: 720,
+            flexShrink: 0,
           }}
         >
           {message.text}
@@ -197,7 +216,17 @@ const EmailTemplatesScreen: React.FC = () => {
       ) : null}
 
       {!loading && templates.length > 0 ? (
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        // minHeight:0 is load-bearing: without it this flex child refuses to
+        // shrink below its content and the scrollbar migrates to the page.
+        <div
+          style={{
+            display: 'flex',
+            gap: 16,
+            alignItems: 'stretch',
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
           <TemplateList
             templates={templates}
             selectedId={selectedId}

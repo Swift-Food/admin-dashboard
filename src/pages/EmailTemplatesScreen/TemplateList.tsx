@@ -237,7 +237,11 @@ const TemplateList: React.FC<TemplateListProps> = ({
         borderRadius: 12,
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: 'calc(100vh - 160px)',
+        // Derived from the flex parent rather than guessed against the chrome:
+        // the pane is exactly as tall as the row the screen gives it, and
+        // minHeight:0 lets it shrink so the scroll stays inside the list below.
+        height: '100%',
+        minHeight: 0,
         overflow: 'hidden',
       }}
     >
@@ -301,7 +305,7 @@ const TemplateList: React.FC<TemplateListProps> = ({
         </div>
       </div>
 
-      <div style={{ overflowY: 'auto', flex: 1 }}>
+      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
         {matchCount === 0 ? (
           <p style={{ padding: 16, color: '#6b7280', fontSize: '0.85rem' }}>
             No templates match “{filter}”.

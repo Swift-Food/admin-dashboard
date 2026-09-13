@@ -165,6 +165,12 @@ export interface AdminDeliverySession {
    * booking form can offer it. Null when the restaurant holds nothing usable.
    */
   suggestedPickupPhone: string | null;
+  /**
+   * The pickup contact held on the restaurant — the person a rider asks for.
+   * Null until somebody names one; typing one here saves it back, so the next
+   * booking from this restaurant offers it automatically.
+   */
+  suggestedPickupName: string | null;
 }
 
 /** One of the courier's published rules that this booking breaks. */

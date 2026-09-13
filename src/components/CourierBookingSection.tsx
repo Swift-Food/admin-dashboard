@@ -137,15 +137,16 @@ const CourierBookingSection = ({
   provider: BookableProvider;
   providers: CourierProviderInfo[];
 }) => {
-  const { session, activeBooking, bookings, suggestedPackages, needsRebooking, suggestedPickupPhone } = entry;
+  const { session, activeBooking, bookings, suggestedPackages, needsRebooking, suggestedPickupPhone, suggestedPickupName } = entry;
   const [packages, setPackages] = useState<PackageCounts>(
     activeBooking?.packages ?? suggestedPackages
   );
   const [pickupNotes, setPickupNotes] = useState("");
   const [dropNotes, setDropNotes] = useState("");
-  // Courier-only, never stored: the person the rider asks for, and a
-  // number to reach them on when the restaurant record has none.
-  const [pickupContactName, setPickupContactName] = useState("");
+  // The person the rider asks for. Prefilled from the restaurant when one has
+  // been named before; whatever is booked with is saved back to the
+  // restaurant, so the same name is never typed twice.
+  const [pickupContactName, setPickupContactName] = useState(suggestedPickupName ?? "");
   // Prefilled with the restaurant's own number when we hold a usable one,
   // so there is only something to type when there genuinely isn't.
   const [pickupContactPhone, setPickupContactPhone] = useState(suggestedPickupPhone ?? "");

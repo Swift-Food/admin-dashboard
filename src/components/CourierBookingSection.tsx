@@ -1,5 +1,8 @@
 import { useState } from "react";
-import cateringDeliveryService, { isManualBooking } from "../services/catering-delivery.service";
+import cateringDeliveryService, {
+  isManualBooking,
+  type DeliverySlotOption,
+} from "../services/catering-delivery.service";
 import { Modal } from "./Modal";
 import type {
   AdminDeliverySession,
@@ -18,6 +21,10 @@ const formatWhen = (iso: string): string =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
+/** "17:15" — just the clock, for a picker where every block is the same day. */
+const formatTime = (iso: string): string =>
+  new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 const errText = (e: unknown): string =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -150,6 +157,12 @@ const CourierBookingSection = ({
   // Prefilled with the restaurant's own number when we hold a usable one,
   // so there is only something to type when there genuinely isn't.
   const [pickupContactPhone, setPickupContactPhone] = useState(suggestedPickupPhone ?? "");
+  // Drop-off slots, fetched alongside the quote so the admin confirms a
+  // window the courier has already agreed to. Null while they are being
+  // asked about, which is what the confirm modal shows a spinner for.
+  const [slotOptions, setSlotOptions] = useState<DeliverySlotOption[] | null>(null);
+  // Minutes from the window the event time implies; 0 is that default.
+  const [chosenOffset, setChosenOffset] = useState(0);
   // "" = let the courier's portion table pick the vehicle.
   const [serviceTier, setServiceTier] = useState("");
   const [price, setPrice] = useState<DeliveryPricePreview | null>(null);
@@ -816,7 +829,19 @@ const CourierBookingSection = ({
                   }
                   setPrice(quote);
                   setSameDayQuote(sameDay);
+                  setSlotOptions(null);
+                  setChosenOffset(0);
                   setConfirmQuote(quote);
+                  // Ask the courier about each slot in the background: the
+                  // quote is already on screen while they answer.
+                  cateringDeliveryService
+                    .getSlotOptions(session.id, {
+                      packages,
+                      provider: bookWith,
+                      serviceTier: bookWith === provider ? serviceTier || undefined : undefined,
+                    })
+                    .then((res) => setSlotOptions(res.blocks))
+                    .catch(() => setSlotOptions([]));
                 })
               }
               className="ml-auto px-3 py-1.5 rounded bg-indigo-600 text-white text-xs font-semibold disabled:opacity-50"
@@ -963,6 +988,58 @@ const CourierBookingSection = ({
               <div className="mb-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded px-3 py-2">{error}</div>
             ) : null}
 
+            {/* Confirm the drop-off window before anything is booked. Every
+                slot here has already been put to the courier, so a greyed one
+                is their answer, not a guess — and nothing is committed until
+                one is chosen and the booking confirmed. */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-gray-700 mb-2">
+                Drop-off window
+              </p>
+              {slotOptions === null ? (
+                <p className="text-xs text-gray-500 py-3 text-center">
+                  Checking times with the courier…
+                </p>
+              ) : slotOptions.length === 0 ? (
+                <p className="text-xs text-gray-500">
+                  Couldn't load other times — booking will use the delivery time on the order.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {slotOptions.map((slot) => {
+                    const chosen = slot.offsetMinutes === chosenOffset;
+                    return (
+                      <button
+                        key={slot.offsetMinutes}
+                        type="button"
+                        disabled={!slot.available || busy}
+                        title={slot.available ? undefined : slot.reason}
+                        onClick={() => setChosenOffset(slot.offsetMinutes)}
+                        className={`px-2 py-2 rounded text-xs font-semibold border transition-colors ${
+                          chosen
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                            : slot.available
+                              ? "border-gray-300 bg-white text-gray-800 hover:border-indigo-400"
+                              : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed line-through"
+                        }`}
+                      >
+                        {formatTime(slot.start)}–{formatTime(slot.end)}
+                        <span className="block font-normal mt-0.5">
+                          {!slot.available
+                            ? "unavailable"
+                            : slot.isDefault
+                              ? "as ordered"
+                              : slot.price != null
+                                ? `£${slot.price.toFixed(2)}`
+                                : ""}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmQuote(null)}
@@ -982,6 +1059,7 @@ const CourierBookingSection = ({
                       pickupContactPhone: pickupContactPhone.trim() || undefined,
                       provider: bookWith,
                       serviceTier: bookWith === provider ? serviceTier || undefined : undefined,
+                      windowOffsetMinutes: chosenOffset || undefined,
                     });
                     setConfirmQuote(null);
                     onChanged();

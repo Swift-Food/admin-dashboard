@@ -46,10 +46,15 @@ const bookCourier = async (
     provider?: BookableProvider;
     /** Vehicle class to book; omitted = sized automatically from the portions. */
     serviceTier?: string;
-    /** Person the rider asks for — typed per booking, never stored. */
+    /** Person the rider asks for. Remembered on the restaurant for next time. */
     pickupContactName?: string;
     /** Overrides the restaurant's stored number for this booking only. */
     pickupContactPhone?: string;
+    /**
+     * The chosen slot, as minutes from the window the event time implies.
+     * Omitted books that default window.
+     */
+    windowOffsetMinutes?: number;
   }
 ): Promise<CateringDeliveryBooking> => {
   const res = await http.post<CateringDeliveryBooking>(
@@ -182,6 +187,37 @@ const markPickedUp = async (mealSessionId: string): Promise<CateringMealSession>
   return res.data;
 };
 
+/**
+ * One drop-off window a session could be booked into. `available` is the
+ * courier's own answer — each block is put to them as a draft before it is
+ * offered, so an unavailable one carries their reason rather than a guess.
+ */
+export interface DeliverySlotOption {
+  start: string;
+  end: string;
+  offsetMinutes: number;
+  isDefault: boolean;
+  available: boolean;
+  price?: number;
+  reason?: string;
+}
+
+const getSlotOptions = async (
+  mealSessionId: string,
+  body: {
+    packages: PackageCounts;
+    pickupRestaurantId?: string;
+    provider?: BookableProvider;
+    serviceTier?: string;
+  }
+): Promise<{ blocks: DeliverySlotOption[] }> => {
+  const res = await http.post<{ blocks: DeliverySlotOption[] }>(
+    `catering-delivery/admin/sessions/${mealSessionId}/slot-options`,
+    body
+  );
+  return res.data;
+};
+
 /** A booking recorded by hand (no courier order id behind it). */
 export const isManualBooking = (booking: Pick<CateringDeliveryBooking, "externalOrderId"> | null | undefined) =>
   !!booking && booking.externalOrderId.startsWith("manual:");
@@ -200,4 +236,5 @@ export default {
   markDelivered,
   recordManualBooking,
   markPickedUp,
+  getSlotOptions,
 };

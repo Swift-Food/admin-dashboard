@@ -4,6 +4,7 @@ import cateringDeliveryService from "../../services/catering-delivery.service";
 import { withdrawalService } from "../../services/withdrawal.service";
 import type { AdminDeliverySession } from "../../types/catering-session.types";
 import type { SidebarPage } from "../../components/Sidebar";
+import OrderingStatusCard from "../../components/OrderingStatusCard";
 import {
   buildQueues,
   daysUntil,
@@ -132,6 +133,8 @@ const DashboardScreen = ({ onNavigate }: { onNavigate?: (page: SidebarPage) => v
           Refresh
         </button>
       </div>
+
+      <OrderingStatusCard />
 
       {error ? (
         <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-4 py-3">{error}</div>

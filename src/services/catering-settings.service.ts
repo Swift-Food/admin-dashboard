@@ -30,6 +30,8 @@ export interface CateringSettings {
   commissionInvoiceRedirectEnabled: boolean;
   /** Test destination used while the redirect is on. */
   commissionInvoiceRedirectTo: string;
+  /** Swift has ceased operations: website shows the closure notice, new orders are refused. */
+  orderingClosed: boolean;
 }
 
 export interface Range {
